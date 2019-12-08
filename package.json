@@ -1,0 +1,38 @@
+{
+  "name": "run-cmake-vcpkg-libs",
+  "version": "0.0.1",
+  "description": "Libraries for running vcpkg and CMake in CI systems.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lukka/run-vcpkg-cmake-libs"
+  },
+  "author": "Luca Cappa (https://github.com/lukka)",
+  "license": "MIT",
+  "scripts": {
+    "clean": "rm -rf ./build/",
+    "build": "tsc -b . -v",
+    "lint": "tsc --noEmit && eslint '*/**/*.ts'"
+  },
+  "devDependencies": {
+    "@types/node": "^11.9.3",
+    "ts-node": "^8.5.4",
+    "typescript": "^3.7.3"
+  },
+  "dependencies": {
+    "@actions/core": "^1.2.0",
+    "@actions/exec": "^1.0.1",
+    "@actions/github": "^1.1.0",
+    "@actions/io": "^1.0.1",
+    "@types/adm-zip": "^0.4.32",
+    "@types/follow-redirects": "^1.8.0",
+    "@types/q": "^1.5.1",
+    "@types/shelljs": "^0.8.6",
+    "@typescript-eslint/eslint-plugin": "^2.10.0",
+    "@typescript-eslint/parser": "^2.10.0",
+    "adm-zip": "^0.4.13",
+    "azure-pipelines-task-lib": "~2.9.3",
+    "eslint": "^6.7.2",
+    "follow-redirects": "^1.9.0",
+    "del": "^5.1.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "sourceMap": true,
+        "strict": true,
+        "outDir": "build-run-cmake-vcpkg-libs",
+        "rootDirs": [
+            "run-vcpkg-lib/src",
+            "run-cmake-lib/src",
+            "action-base-lib/src",
+            "task-base-lib/src",
+            "base-lib/src"
+        ]
+    }
+}

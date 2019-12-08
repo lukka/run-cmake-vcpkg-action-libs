@@ -1,0 +1,552 @@
+// Copyright (c) 2019-2020 Luca Cappa
+// Released under the term specified in file LICENSE.txt
+// SPDX short identifier: MIT
+
+import * as baselib from './base-lib';
+import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as utils from './utils'
+import * as stripJsonComments from 'strip-json-comments';
+import * as ninjalib from './ninja';
+import * as globals from './cmake-globals'
+
+export interface EnvironmentMap { [name: string]: Environment }
+
+class CMakeVariable {
+  constructor(
+    public readonly name: string,
+    public readonly value: string,
+    public readonly type?: string) {
+    if (!type) {
+      this.type = 'string';
+    }
+    console.log(`Defining CMake variable: [name:'${name}', value='${value}', type='${type}'].`);
+  }
+
+  public toString(): string {
+    return `-D${this.name}:${this.type}="${this.value}"`;
+  }
+}
+
+class Variable {
+  constructor(
+    public readonly name: string,
+    public readonly value: string) {
+    // Nothing to do here.
+  }
+
+  public toString(): string {
+    return `{var: '${this.name}'='${this.value}'}`;
+  }
+}
+
+export class Environment {
+  constructor(
+    public readonly name: string,
+    private theVariables: Variable[]) {
+    // Nothing to do.
+  }
+
+  public addVariable(variable: Variable): void {
+    this.theVariables.push(variable);
+  }
+
+  public get variables(): readonly Variable[] {
+    return this.theVariables;
+  }
+
+  public toString(): string {
+    let varsString = "";
+    for (const variable of this.theVariables) {
+      varsString += String(variable) + ", ";
+    }
+    return `{env: '${this.name}', variables=${varsString}}`;
+  }
+}
+
+export class Configuration {
+
+  constructor(
+    public readonly name: string,
+    public readonly environments: EnvironmentMap,
+    public /* readonly //?? */ buildDir: string,
+    public readonly cmakeArgs: string,
+    public readonly makeArgs: string,
+    public readonly generator: string,
+    public readonly type: string,
+    public readonly workspaceRoot: string,
+    public readonly cmakeSettingsJsonPath: string,
+    public readonly cmakeToolchain: string,
+    public readonly variables: readonly CMakeVariable[],
+    public readonly inheritEnvironments: readonly string[]) {
+  }
+
+  public evaluate(evaluator: PropertyEvaluator): Configuration {
+    const evaledVars: CMakeVariable[] = [];
+    for (const variable of this.variables) {
+      evaledVars.push(new CMakeVariable(variable.name, evaluator.evaluateExpression(variable.value), variable.type));
+    }
+
+    const conf: Configuration = new Configuration(this.name,
+      this.environments,
+      evaluator.evaluateExpression(this.buildDir),
+      evaluator.evaluateExpression(this.cmakeArgs),
+      evaluator.evaluateExpression(this.makeArgs),
+      evaluator.evaluateExpression(this.generator),
+      evaluator.evaluateExpression(this.type),
+      this.workspaceRoot,
+      this.cmakeSettingsJsonPath,
+      evaluator.evaluateExpression(this.cmakeToolchain),
+      evaledVars,
+      this.inheritEnvironments
+    );
+
+    return conf;
+  }
+
+  public toString(): string {
+    return `{conf: ${this.name}:${this.type}}`;
+  }
+}
+
+export class PropertyEvaluator {
+  // Matches the variable name in "${variable.name}".
+  private varExp = new RegExp("\\$\{([^\{\}]+)\}", "g");
+  private localEnv: Environment = new Environment("", []);
+
+  public constructor(
+    public config: Configuration,
+    public globalEnvs: EnvironmentMap,
+    private tl: baselib.BaseLib) {
+    this.createLocalVars();
+  }
+
+  private addToLocalEnv(name: string, value: string): void {
+    this.localEnv.addVariable(new Variable(name, value));
+  }
+
+  private createLocalVars(): void {
+    const settingsPath: string = this.config.cmakeSettingsJsonPath;
+
+    this.addToLocalEnv('name', this.config.name);
+    this.addToLocalEnv('generator', this.config.generator);
+    this.addToLocalEnv('workspaceRoot', this.config.workspaceRoot);
+    this.addToLocalEnv('thisFile', settingsPath);
+    this.addToLocalEnv(
+      'projectFile',
+      path.join(
+        path.dirname(settingsPath), 'CMakeLists.txt'));
+    this.addToLocalEnv(
+      'projectDir', path.dirname(settingsPath));
+    this.addToLocalEnv(
+      'projectDirName', path.basename(path.dirname(settingsPath)));
+    this.addToLocalEnv(
+      'workspaceHash',
+      crypto.createHash('md5')
+        .update(this.config.cmakeSettingsJsonPath)
+        .digest('hex'));
+  }
+
+  private searchVariable(variable: string, env: Environment): string | null {
+    if (env != null) {
+      for (const v of env.variables) {
+        if (v.name == variable) {
+          return v.value ?? "";
+        }
+      }
+    }
+    return null;
+  }
+
+  private evaluateVariable(variable: Variable): string | null {
+    this.tl.debug(`Searching ${variable.name} in environment ${this.localEnv} ...`);
+    let res = this.searchVariable(variable.name, this.localEnv);
+    if (res !== null) {
+      return res;
+    }
+
+    for (const localName of this.config.inheritEnvironments) {
+      const env = this.config.environments[localName];
+      res = this.searchVariable(variable.name, env);
+      if (res !== null) {
+        return res;
+      }
+    }
+
+    let env = this.config.environments['unnamed'];
+    res = this.searchVariable(variable.name, env);
+    if (res !== null) {
+      return res;
+    }
+
+    for (const localName of this.config.inheritEnvironments) {
+      const env = this.globalEnvs[localName];
+      res = this.searchVariable(variable.name, env);
+      if (res !== null)
+        return res;
+    }
+
+    env = this.globalEnvs['unnamed'];
+    res = this.searchVariable(variable.name, env);
+    if (res !== null)
+      return res;
+
+    // Try to match an environment variable.
+    if (variable.name.startsWith("env.")) {
+      const envVarName: string = variable.name.substring(4);
+      const value = process.env[envVarName];
+      if (value) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  private extractVariables(str: string): Variable[] | null {
+    const variables: Variable[] = [];
+    while (true) {
+      const match = this.varExp.exec(str);
+      if (match == null) break;
+      if (match.length > 1) {
+        const varname = match[1];
+        const variable: Variable =
+          new Variable(varname, '');
+        variables.push(variable);
+      }
+    }
+
+    return variables;
+  }
+
+  public evaluateExpression(expr: string): string {
+    this.tl.debug(`evaluating expression: '${expr}' ...`)
+    let res: string = expr;
+    while (true) {
+      const variables = this.extractVariables(res);
+      if (variables !== null) {
+        let resolved: boolean;
+        resolved = false;
+        for (const variable of variables) {
+          const resv = this.evaluateVariable(variable);
+          if (resv !== null) {
+            res = res.replace('${' + variable.name + '}', resv);
+            this.tl.debug(`evaluated \$\{${variable.name}\} to '${resv}'`);
+            resolved = true;
+          } else {
+            this.tl.debug(`Warning: could not evaluate '${variable.toString()}'`)
+          }
+        }
+
+        if (resolved == false) {
+          break;
+        }
+      }
+    }
+
+    this.tl.debug(`evalutated to: '${String(res)}'.`);
+    return res ?? '';
+  }
+}
+
+export function parseEnvironments(envsJson: any): EnvironmentMap {
+  const environments: EnvironmentMap = {};
+  for (const env of envsJson) {
+    let namespace = 'env';
+    let name = 'unnamed';
+    const variables: Variable[] = [];
+    for (const envi in env) {
+      if (envi == 'environment') {
+        name = env[envi];
+      } else if (envi == 'namespace') {
+        namespace = env[envi];
+      } else {
+        let variableName = envi;
+        const variableValue = env[envi];
+        if (!variableName.includes('.')) {
+          if (namespace && namespace.length > 0) {
+            variableName = namespace + '.' + variableName;
+          }
+        }
+
+        variables.push(new Variable(variableName, variableValue));
+      }
+    }
+
+    if (name in environments) {
+      // Append entries to existing environments' variables.
+      for (const variable of variables) {
+        environments[name].addVariable(variable);
+      }
+    } else {
+      // Create a new environment.
+      const env: Environment = new Environment(name, variables);
+      environments[name] = env;
+    }
+  }
+
+  return environments;
+}
+
+export function parseConfigurations(json: any, cmakeSettingsJson: string, sourceDir: string): Configuration[] {
+  // Parse all configurations.
+  const configurations: Configuration[] = [];
+  if (json.configurations != null) {
+    for (const configuration of json.configurations) {
+      // Parse variables.
+      const vars: CMakeVariable[] = [];
+      if (configuration.variables != null) {
+        for (const variable of configuration.variables) {
+          const data: CMakeVariable =
+            new CMakeVariable(variable.name, variable.value, variable.type);
+          vars.push(data);
+        };
+      }
+
+      // Parse inherited environments.
+      const inheritedEnvs: string[] = [];
+      if (configuration.inheritEnvironments != null) {
+        for (const env of configuration.inheritEnvironments) {
+          inheritedEnvs.push(env);
+        }
+      }
+
+      // Parse local environments.
+      let localEnvs: EnvironmentMap = {};
+      if (configuration.environments != null) {
+        localEnvs = parseEnvironments(configuration.environments);
+      }
+
+      const newConfiguration: Configuration = new Configuration(
+        configuration.name,
+        localEnvs,
+        configuration.remoteMachineName ? configuration.remoteBuildRoot : configuration.buildRoot,
+        configuration.cmakeCommandArgs,
+        configuration.buildCommandArgs,
+        configuration.generator,
+        configuration.configurationType,
+        // Set the workspace with the provided source directory.
+        sourceDir,
+        // Set the Configuration.cmakeSettingsJsonPath field value with the one passed in.
+        cmakeSettingsJson,
+        configuration.cmakeToolchain,
+        vars,
+        inheritedEnvs);
+
+      configurations.push(newConfiguration);
+    } //for
+  }
+
+  return configurations;
+}
+
+export class CMakeSettingsJsonRunner {
+  static readonly ARM64: [string, string] = ["ARM64", "ARM64"];
+  static readonly ARM: [string, string] = ["ARM", "ARM"];
+  static readonly X64: [string, string] = ["x64", "x64"];
+  static readonly WIN64: [string, string] = ["Win64", "x64"];
+  static readonly WIN32: [string, string] = ["Win32", "Win32"];
+
+  constructor(
+    private readonly cmakeSettingsJson: any,
+    private readonly configurationFilter: string,
+    private readonly buildArgs: string,
+    private readonly workspaceRoot: string,
+    private readonly vcpkgTriplet: string,
+    private readonly useVcpkgToolchain: boolean,
+    private readonly doBuild: boolean,
+    private readonly ninjaPath: string,
+    private readonly ninjaDownloadUrl: string,
+    private readonly sourceScript: string,
+    private readonly buildDir: string,
+    private readonly tl: baselib.BaseLib) {
+    this.configurationFilter = configurationFilter;
+
+    this.buildDir = path.normalize(path.resolve(this.buildDir));
+    if (!fs.existsSync(cmakeSettingsJson)) {
+      throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
+    }
+  }
+
+  private parseConfigurations(json: any): Configuration[] {
+    const configurations: Configuration[] = parseConfigurations(json, this.cmakeSettingsJson,
+      this.tl.getSrcDir());
+    this.tl.debug(`CMakeSettings.json parsed configurations: '${String(configurations)}'.`);
+
+    return configurations;
+  }
+
+  private static parseEnvironments(envsJson: any): EnvironmentMap {
+    return parseEnvironments(envsJson);
+  }
+
+  parseGlobalEnvironments(json: any): EnvironmentMap {
+    // Parse global environments
+    let globalEnvs: EnvironmentMap = {};
+    if (json.environments != null) {
+      globalEnvs = CMakeSettingsJsonRunner.parseEnvironments(json.environments);
+    }
+    this.tl.debug("CMakeSettings.json parsed global environments.");
+    for (const envName in globalEnvs) {
+      this.tl.debug(`'${envName}'=${String(globalEnvs[envName])}`);
+    }
+
+    return globalEnvs;
+  }
+
+  getGeneratorArgs(gen: string): string {
+    if (gen.includes("Visual Studio")) {
+      // for VS generators, add the -A value
+      let architectureParam: string | undefined = undefined;
+      const generatorParam = "Visual Studio 16 2019";
+
+      const architectures: [string, string][] = [
+        CMakeSettingsJsonRunner.X64,
+        CMakeSettingsJsonRunner.WIN32,
+        CMakeSettingsJsonRunner.WIN64,
+        CMakeSettingsJsonRunner.ARM64, // Note ARM64 must be replaced before ARM!
+        CMakeSettingsJsonRunner.ARM
+      ];
+
+      // Remove the platform
+      for (const architecture of architectures) {
+        if (gen.includes(architecture[0])) {
+          gen = gen.replace(architecture[0], "");
+          architectureParam = architecture[1];
+        }
+      }
+
+      gen = `-G \"${gen.trim()}\"`;
+
+      if (architectureParam) {
+        gen += ` -A ${architectureParam}`
+      }
+    } else {
+      // All non-VS generators are passed as is.
+      gen = `-G "${gen}"`;
+    }
+
+    return gen;
+  }
+
+  async run(): Promise<void> {
+    let content: any = fs.readFileSync(this.cmakeSettingsJson);
+    // Remove any potential BOM at the beginning.
+    content = content.toString().trimLeft();
+    this.tl.debug(`Content of file CMakeSettings.json: '${content}'.`);
+    // Strip any comment out of the JSON content.
+    const cmakeSettingsJson: any = JSON.parse(stripJsonComments(content));
+
+    const configurations = this.parseConfigurations(cmakeSettingsJson);
+    const globalEnvs = this.parseGlobalEnvironments(cmakeSettingsJson);
+
+    const regex = new RegExp(this.configurationFilter);
+    const filteredConfigurations: Configuration[] = configurations.filter(configuration => {
+      return regex.test(configuration.name);
+    });
+
+    this.tl.debug(
+      `CMakeSettings.json filtered configurations: '${String(filteredConfigurations)}'."`);
+
+    if (filteredConfigurations.length == 0) {
+      throw new Error(`No matching configuration for filter: '${this.configurationFilter}'.`);
+    }
+
+    const exitCodes: number[] = [];
+    for (const configuration of filteredConfigurations) {
+      console.log(`Processing configuration: '${configuration.name}'.`);
+      let cmakeArgs = ' ';
+
+      // Search for CMake tool and run it
+      let cmake: baselib.ToolRunner;
+      if (this.sourceScript) {
+        cmake = this.tl.tool(this.sourceScript);
+        cmakeArgs += await this.tl.which('cmake', true);
+      } else {
+        cmake = this.tl.tool(await this.tl.which('cmake', true));
+      }
+
+      // Evaluate all variables in the configuration.
+      const evaluator: PropertyEvaluator =
+        new PropertyEvaluator(configuration, globalEnvs, this.tl);
+      const evaledConf: Configuration = configuration.evaluate(evaluator);
+
+      // The build directory value specified in CMakeSettings.json is ignored.
+      // This is because:
+      // 1. you want to build targeting an empty binary directory;
+      // 2. the default in CMakeSettings.json is under the source tree, which is not cleared upon each build run.
+      // Instead if users did not provided a specific path, force it to
+      // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
+      console.log(`Note: the run-cmake task always ignore the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
+      const artifactsDir = await this.tl.getArtifactsDir();
+      if (utils.normalizePath(this.buildDir) === utils.normalizePath(artifactsDir)) {
+        // The build directory goes into the artifact directory in a subdir
+        // named with the configuration name.
+        evaledConf.buildDir = path.join(artifactsDir, configuration.name);
+      } else {
+        evaledConf.buildDir = this.buildDir;
+      }
+      console.log(`Overriding build directory to: '${evaledConf.buildDir}'`);
+
+      cmakeArgs += " " + this.getGeneratorArgs(evaledConf.generator);
+
+      if (utils.isNinjaGenerator(cmakeArgs)) {
+        const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
+        cmakeArgs += ` -DCMAKE_MAKE_PROGRAM="${ninjaPath}"`;
+      }
+
+      cmakeArgs += ` -DCMAKE_BUILD_TYPE="${evaledConf.type}"`;
+      for (const variable of evaledConf.variables) {
+        cmakeArgs += ' ' + variable.toString();
+      }
+
+      if (configuration.cmakeToolchain) {
+        cmakeArgs += ` -DCMAKE_TOOLCHAIN_FILE="${evaledConf.cmakeToolchain}"`;
+      }
+
+      // Use vcpkg toolchain if requested.
+      if (this.useVcpkgToolchain === true) {
+        cmakeArgs = await utils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet)
+      }
+
+      // Add CMake args from CMakeSettings.json file.
+      cmakeArgs += " " + evaledConf.cmakeArgs;
+
+      // Set the source directory
+      cmakeArgs += " " + path.dirname(this.cmakeSettingsJson);
+
+      // Run CNake with the given arguments.
+      if (!evaledConf.buildDir) {
+        throw new Error("Build directory is not specified.");
+      }
+
+      await this.tl.mkdirP(evaledConf.buildDir);
+      cmake.line(cmakeArgs);
+
+      const options = {
+        cwd: evaledConf.buildDir,
+        failOnStdErr: false,
+        errStream: process.stdout,
+        outStream: process.stdout,
+        ignoreReturnCode: true,
+        silent: false,
+        windowsVerbatimArguments: false,
+        env: process.env
+      } as baselib.ExecOptions;
+
+      this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
+      const code: number = await cmake.exec(options);
+      if (code != 0) {
+        throw new Error(`"Build failed with error code: '${code}'."`);
+      }
+
+      if (this.doBuild) {
+        await utils.build(evaledConf.buildDir,
+          // CMakeSettings.json contains in buildCommandArgs the arguments to the make program only.
+          // They need to be put after '--', otherwise would be passed to directly to cmake.
+          ` -- ${evaledConf.makeArgs}`,
+          options);
+      }
+    }
+  }
+}
