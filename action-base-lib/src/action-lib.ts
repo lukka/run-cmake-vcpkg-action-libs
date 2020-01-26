@@ -309,7 +309,7 @@ export class ActionLib implements baselib.BaseLib {
       throw new Error("GITHUB_WORKSPACE is not set.");
     }
 
-    //?? HACK. How to get the {{ runner.temp }} path in JS's action?
+    //?? HACK. How to get the value of '{{ runner.temp }}' in JS's action?
     const artifactsPath = baselib.normalizePath(path.resolve(path.join(process.env.GITHUB_WORKSPACE, "../../_temp")));
     if (!fs.existsSync(artifactsPath)) {
       core.debug(`ArtifactsDir '${artifactsPath}' does not exists, creating it...`);

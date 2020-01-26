@@ -12,3 +12,6 @@ export const vcpkgTriplet = "vcpkgTriplet";
 export const vcpkgDirectory = "vcpkgDirectory";
 export const vcpkgArtifactIgnoreEntries = "vcpkgArtifactIgnoreEntries";
 export const vcpkgRemoteUrlLastFileName = 'vcpkg_remote_url.last';
+export const cleanAfterBuild = 'cleanAfterBuild';
+export const doNotUpdateVcpkg = 'doNotUpdateVcpkg';
+export const vcpkgRoot = 'VCPKG_ROOT';
