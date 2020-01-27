@@ -87,6 +87,7 @@ export class CMakeRunner {
     this.cmakeListsTxtPath = this.tl.getPathInput(
       globals.cmakeListsTxtPath,
       this.taskMode == TaskModeType.CMakeListsTxtBasic) ?? "";
+
     this.buildDir = this.tl.getInput(
       globals.buildDirectory,
       this.taskMode == TaskModeType.CMakeListsTxtBasic) ?? "";
@@ -224,15 +225,15 @@ export class CMakeRunner {
 
       case TaskModeType.CMakeSettingsJson: {
         const cmakeJson: CMakeSettingsJsonRunner = new CMakeSettingsJsonRunner(
-          this.cmakeSettingsJsonPath, 
+          this.cmakeSettingsJsonPath,
           this.configurationFilter,
-          this.appendedArgs, 
-          this.tl.getSrcDir(), 
+          this.appendedArgs,
+          this.tl.getSrcDir(),
           this.vcpkgTriplet,
-          this.useVcpkgToolchainFile, 
-          this.doBuild, 
-          this.ninjaPath, 
-          this.ninjaDownloadUrl, 
+          this.useVcpkgToolchainFile,
+          this.doBuild,
+          this.ninjaPath,
+          this.ninjaDownloadUrl,
           this.sourceScript,
           this.buildDir,
           this.tl);

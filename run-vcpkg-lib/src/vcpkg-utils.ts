@@ -4,7 +4,9 @@
 
 import * as fs from 'fs';
 import * as os from 'os';
+import * as path from 'path';
 import * as ifacelib from './base-lib'
+import { TLSSocket } from 'tls';
 
 let baseLib: ifacelib.BaseLib;
 
@@ -79,6 +81,12 @@ export function isLinux(): boolean {
 
 export function isDarwin(): boolean {
   return os.platform().toLowerCase() === 'Darwin';
+}
+
+export function getVcpkgExePath(vcpkgRoot: string): string {
+  const vcpkgExe: string = isWin32() ? "vcpkg.exe" : "vcpkg"
+  const vcpkgExePath: string = path.join(vcpkgRoot, vcpkgExe);
+  return vcpkgExePath;
 }
 
 export function directoryExists(path: string): boolean {
