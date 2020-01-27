@@ -304,9 +304,9 @@ export class VcpkgRunner {
       if (ok && content) {
         const trimmedContent = content.toString().replace("\"", "");
         const trimmedVersion = vcpkgVersion.replace("\"", "");
-        this.tl.debug(`trimmedContent='${trimmedContent}`);
+        this.tl.debug(`trimmedContent='${trimmedContent}'`);
         this.tl.debug(`trimmedVersion='${trimmedVersion}'`);
-        if (trimmedContent.includes(trimmedVersion)) {
+        if (trimmedVersion.includes(trimmedContent)) {
           upToDate = true;
         }
       }
