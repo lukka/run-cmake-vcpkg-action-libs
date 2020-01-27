@@ -302,8 +302,8 @@ export class VcpkgRunner {
       msg += `'VERSION.txt: '${ok}', '${content?.toString() ?? nil}' \n`;
 
       if (ok && content) {
-        const trimmedContent = content.toString().replace("\"", "").trim();
-        const trimmedVersion = vcpkgVersion.replace("\"", "").trim();
+        const trimmedContent = content.toString().replace(/\'|\"/g, "").trim();
+        const trimmedVersion = vcpkgVersion.replace(/\'|\"/g, "").trim();
         this.tl.debug(`trimmedContent='${trimmedContent}'`);
         this.tl.debug(`trimmedVersion='${trimmedVersion}'`);
         if (trimmedVersion.includes(trimmedContent)) {
