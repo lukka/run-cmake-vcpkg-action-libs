@@ -279,7 +279,7 @@ export class VcpkgRunner {
     this.tl.debug("executableUpToDate()<<");
     try {
       const options: ifacelib.ExecOptions = {
-        cwd: vcpkgExePath,
+        cwd: path.dirname(vcpkgExePath),
         failOnStdErr: false,
         errStream: process.stdout,
         outStream: process.stdout,
@@ -298,7 +298,7 @@ export class VcpkgRunner {
       const vcpkgVersion = res.stdout ?? "<nil-stdout>";
       msg += `'vcpkg version': stderr='${res.stderr ?? nil}' \n`;
       const [ok, content] = vcpkgUtils.readFile(
-        path.join(vcpkgExePath, 'toolsrc', 'VERSION.txt'));
+        path.join(path.dirname(vcpkgExePath), 'toolsrc', 'VERSION.txt'));
       msg += `'VERSION.txt: '${ok}', '${content?.toString() ?? nil}' \n`;
 
       if (ok && content) {
