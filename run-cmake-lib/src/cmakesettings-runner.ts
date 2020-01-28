@@ -48,7 +48,7 @@ class Variable {
     return `{var: '${this.name}'='${this.value}'}`;
   }
 
-  public addToEnvironment() {
+  public addToEnvironment(): void {
     process.env[this.stripNamespace(this.name)] = this.value;
   }
 

@@ -15,7 +15,7 @@ export class ToolRunner implements ifacelib.ToolRunner {
     // Do not create a new trm.ToolRunner here explicitly thru 'new', but
     // create it thru 'tl.tool()' function instead. This way it will be mocked
     // correctly when running tests.
-    this.toolRunner = tl.tool(path);
+    this.toolRunner = tl.tool(this.path);
   }
 
   exec(options: ifacelib.ExecOptions): Promise<number> {

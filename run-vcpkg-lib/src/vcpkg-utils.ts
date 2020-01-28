@@ -6,7 +6,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as ifacelib from './base-lib'
-import { TLSSocket } from 'tls';
 
 let baseLib: ifacelib.BaseLib;
 
@@ -206,4 +205,8 @@ export function setEnvVar(name: string, value: string): void {
   process.env[name] = value;
   baseLib.setVariable(name, value);
   baseLib.debug(`Set variable and the env variable '${name}' to value '${value}'.`);
+}
+
+export function trimString(value?: string): string {
+  return value?.trim() ?? "";
 }
