@@ -46,6 +46,17 @@ export class VcpkgRunner {
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
     this.pathToLastBuiltCommitId = path.join(this.vcpkgDestPath, globals.vcpkgLastBuiltCommitId);
+
+    this.options = {
+      cwd: this.vcpkgDestPath,
+      failOnStdErr: false,
+      errStream: process.stdout,
+      outStream: process.stdout,
+      ignoreReturnCode: true,
+      silent: false,
+      windowsVerbatimArguments: false,
+      env: process.env
+    } as ifacelib.ExecOptions;
   }
 
   async run(): Promise<void> {
@@ -66,16 +77,12 @@ export class VcpkgRunner {
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
     vcpkgUtils.setEnvVar(vcpkgUtils.cachingFormatEnvName, "Files");
 
-    this.options = {
-      cwd: this.vcpkgDestPath,
-      failOnStdErr: false,
-      errStream: process.stdout,
-      outStream: process.stdout,
-      ignoreReturnCode: true,
-      silent: false,
-      windowsVerbatimArguments: false,
-      env: process.env
-    } as ifacelib.ExecOptions;
+    // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
+
+    if (!await this.tl.exist(this.vcpkgDestPath)) {
+      this.tl.debug(`Creating vcpkg root directory as it is not existing.`);
+      await this.tl.mkdirP(this.vcpkgDestPath);
+    }
 
     let needRebuild = false;
     const currentCommitId = await this.getCommitId();
@@ -226,7 +233,7 @@ export class VcpkgRunner {
 
       // Issue a warning if the vcpkgCommitId is specified.
       if (this.vcpkgCommitId) {
-        this.tl.warning(`Since the vcpkg directory '${this.vcpkgDestPath}' is a submodule, the input 'vcpkgCommitId' should not be provided (${this.vcpkgCommitId})`);
+        this.tl.warning(`Since the vcpkg directory '${this.vcpkgDestPath}' is a submodule, the input '${globals.vcpkgCommitId}' should not be provided (${this.vcpkgCommitId})`);
       }
     } else {
       const res: boolean = vcpkgUtils.directoryExists(this.vcpkgDestPath);
@@ -236,7 +243,7 @@ export class VcpkgRunner {
         // Use git to verify whether the repo is up to date.
         this.tl.debug(`Current commit id of vcpkg: '${currentCommitId}'.`);
         if (!this.vcpkgCommitId) {
-          throw new Error(`'vcpkgCommitId' input parameter has not been provided. Since the specified vcpkg directory(${this.vcpkgDestPath}) is not a submodule, the parameter is required.`);
+          throw new Error(`'${globals.vcpkgCommitId}' input parameter must be provided when the specified vcpkg directory (${this.vcpkgDestPath}) is not a submodule.`);
         }
         if (this.vcpkgCommitId === currentCommitId) {
           console.log(`Repository is up to date to requested commit id '${this.vcpkgCommitId}'`);
@@ -271,7 +278,7 @@ export class VcpkgRunner {
   private async cloneRepo(): Promise<void> {
     console.log(`Cloning vcpkg in '${this.vcpkgDestPath}'...`);
     if (!this.vcpkgCommitId) {
-      throw new Error("When the vcpkg directory is empty, in order to git clone the repository the input parameter 'vcpkgCommitId' must be provided.");
+      throw new Error(`When the vcpkg directory is empty, the input parameter '${globals.vcpkgCommitId}' must be provided to git clone the repository.`);
     }
     const gitPath = await this.tl.which('git', true);
 
@@ -290,7 +297,7 @@ export class VcpkgRunner {
     console.log(`Clone vcpkg in '${this.vcpkgDestPath}'.`);
   }
 
-  async checkExecutable(): Promise<boolean> {
+  private async checkExecutable(): Promise<boolean> {
     let needRebuild = false;
     // If the executable file ./vcpkg/vcpkg is not present, force build. The fact that 'the repository is up to date' is meaningless.
     const vcpkgExePath: string = vcpkgUtils.getVcpkgExePath(this.vcpkgDestPath);

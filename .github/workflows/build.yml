@@ -2,14 +2,12 @@ name: 'build'
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, edit]
     paths-ignore:
     - '**.md'
   push:
     paths-ignore:
     - '**.md'
-    branches:
-    - master
 
 jobs:
   build:
@@ -25,3 +23,5 @@ jobs:
     - run: |
         npm install
         npm run build
+        npm run lint
+      name: npm install/build/lint 
