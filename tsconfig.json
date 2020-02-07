@@ -12,5 +12,12 @@
             "task-base-lib/src",
             "base-lib/src"
         ]
-    }
+    },
+    "include": [
+        "base-lib/**/*.ts",
+        "run-vcpkg-lib/**/*.ts",
+        "run-cmake-lib/**/*.ts",
+        "action-base-lib/**/*.ts",
+        "task-base-lib/**/*.ts"
+    ]
 }
