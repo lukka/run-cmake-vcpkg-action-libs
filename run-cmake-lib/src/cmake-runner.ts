@@ -149,13 +149,13 @@ export class CMakeRunner {
         let cmake: ifacelib.ToolRunner;
         if (this.sourceScript) {
           cmake = this.tl.tool(this.sourceScript);
-          cmakeArgs += await this.tl.which('cmake', true);
+          cmakeArgs += await this.tl.which('cmake', true) + " ";
         } else {
           cmake = this.tl.tool(await this.tl.which('cmake', true));
         }
 
         if (this.taskMode == TaskModeType.CMakeListsTxtAdvanced) {
-          cmakeArgs = this.appendedArgs ?? "";
+          cmakeArgs += this.appendedArgs ?? "";
 
           // If Ninja is required, specify the path to it.
           if (utils.isNinjaGenerator(cmakeArgs)) {
