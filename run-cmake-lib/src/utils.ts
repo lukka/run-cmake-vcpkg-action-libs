@@ -280,29 +280,6 @@ export async function injectVcpkgToolchain(args: string, triplet: string): Promi
 }
 
 /**
- * Build with CMake.
- * @export
- * @param {string} buildDir
- * @param {string} buildArgs
- * @param {trm.IExecOptions} options
- * @param {string} sourceScript
- * @returns {Promise<void>}
- */
-export async function build(buildDir: string, buildArgs: string, options: ifacelib.ExecOptions): Promise<void> {
-  // Run CMake with the given arguments
-  const cmake: ifacelib.ToolRunner = baseLib.tool(await baseLib.which('cmake', true));
-  cmake.line("--build . " + buildArgs ?? "");
-
-  // Run the command in the build directory
-  options.cwd = buildDir;
-  console.log(`Building with CMake in build directory '${options.cwd}' ...`);
-  const code = await cmake.exec(options);
-  if (code != 0) {
-    throw new Error(`"Build failed with error code: '${code}'."`);
-  }
-}
-
-/**
  * Get a set of commands to be run in the shell of the host OS.
  * @export
  * @param {string[]} args
@@ -330,7 +307,7 @@ export async function getScriptCommand(args: string): Promise<ifacelib.ToolRunne
  *
  * @export
  * @param {string} aPath The string representing a filesystem path.
- * @returns {string} The normalizeed path without trailing slash.
+ * @returns {string} The normalized path without trailing slash.
  */
 export function normalizePath(aPath: string): string {
   aPath = path.normalize(aPath);
