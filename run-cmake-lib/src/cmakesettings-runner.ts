@@ -10,6 +10,7 @@ import * as utils from './utils'
 import * as stripJsonComments from 'strip-json-comments';
 import * as ninjalib from './ninja';
 import * as globals from './cmake-globals'
+import * as cmakerunner from './cmake-runner'
 
 export interface EnvironmentMap { [name: string]: Environment }
 
@@ -166,11 +167,15 @@ export class Configuration {
   }
 
   public getGeneratorBuildArgs(): string {
+    let generatorBuildArgs = "";
     if (this.generator.includes("Visual Studio")) {
-      return `--config ${this.type}`;
+      generatorBuildArgs = `--config ${this.type}`;
+    }
+    else if (this.generator.includes("Ninja Multi-Config")) {
+      generatorBuildArgs = `--config ${this.type}`;
     }
 
-    return "";
+    return generatorBuildArgs;
   }
 
   public getGeneratorArgs(): string {
@@ -560,7 +565,10 @@ export class CMakeSettingsJsonRunner {
         cmakeArgs += ` -DCMAKE_MAKE_PROGRAM="${ninjaPath}"`;
       }
 
-      cmakeArgs += ` -DCMAKE_BUILD_TYPE="${evaledConf.type}"`;
+      if (!this.isMultiConfigGenerator(configuration.generator)) {
+        cmakeArgs += ` -DCMAKE_BUILD_TYPE="${evaledConf.type}"`;
+      }
+
       for (const variable of evaledConf.variables) {
         cmakeArgs += ' ' + variable.toString();
       }
@@ -609,12 +617,18 @@ export class CMakeSettingsJsonRunner {
       }
 
       if (this.doBuild) {
-        await utils.build(evaledConf.buildDir,
+        await cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
           // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
           //only. They need to be put after '--', otherwise would be passed to directly to cmake.
           ` ${evaledConf.getGeneratorBuildArgs()} ${evaledConf.cmakeArgs} ${this.appendedCMakeArgs} -- ${evaledConf.makeArgs}`,
           options);
       }
     }
+  }
+
+  private isMultiConfigGenerator(generatorName: string): boolean {
+    return generatorName.includes("Visual Studio") ||
+      generatorName.includes("Ninja Multi-Confi");
+
   }
 }
