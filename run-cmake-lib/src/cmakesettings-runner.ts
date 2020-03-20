@@ -178,8 +178,9 @@ export class Configuration {
     return generatorBuildArgs;
   }
 
-  public getGeneratorArgs(): string {
+  public getGeneratorArgs(): (string | undefined)[] {
     let gen: string = this.generator;
+    let arch: string | undefined;
     if (gen.includes("Visual Studio")) {
       // for VS generators, add the -A value
       let architectureParam: string | undefined = undefined;
@@ -200,17 +201,17 @@ export class Configuration {
         }
       }
 
-      gen = `-G \"${gen.trim()}\"`;
+      gen = `-G${gen.trim()}`;
 
       if (architectureParam) {
-        gen += ` -A ${architectureParam}`
+        arch = `-A${architectureParam.trim()}`
       }
     } else {
       // All non-VS generators are passed as is.
-      gen = `-G "${gen}"`;
+      gen = `-G${gen.trim()}`;
     }
 
-    return gen;
+    return [gen, arch];
   }
   public toString(): string {
     return `{conf: ${this.name}:${this.type}}`;
@@ -258,7 +259,7 @@ export class PropertyEvaluator {
   private searchVariable(variable: string, env: Environment): string | null {
     if (env != null) {
       for (const v of env.variables) {
-        if (v.name == variable) {
+        if (v.name === variable) {
           return v.value ?? "";
         }
       }
@@ -314,7 +315,7 @@ export class PropertyEvaluator {
     const variables: Variable[] = [];
     while (true) {
       const match = this.varExp.exec(str);
-      if (match == null) break;
+      if (match === null) break;
       if (match.length > 1) {
         const varname = match[1];
         const variable: Variable =
@@ -345,7 +346,7 @@ export class PropertyEvaluator {
           }
         }
 
-        if (resolved == false) {
+        if (resolved === false) {
           break;
         }
       }
@@ -363,9 +364,9 @@ export function parseEnvironments(envsJson: any): EnvironmentMap {
     let name = Configuration.unnamedEnvironmentName;
     const variables: Variable[] = [];
     for (const envi in env) {
-      if (envi == 'environment') {
+      if (envi === 'environment') {
         name = env[envi];
-      } else if (envi == 'namespace') {
+      } else if (envi === 'namespace') {
         namespace = env[envi];
       } else {
         let variableName = envi;
@@ -515,20 +516,20 @@ export class CMakeSettingsJsonRunner {
     this.tl.debug(
       `CMakeSettings.json filtered configurations: '${String(filteredConfigurations)}'."`);
 
-    if (filteredConfigurations.length == 0) {
+    if (filteredConfigurations.length === 0) {
       throw new Error(`No matching configuration for filter: '${this.configurationFilter}'.`);
     }
 
     const exitCodes: number[] = [];
     for (const configuration of filteredConfigurations) {
       console.log(`Processing configuration: '${configuration.name}'.`);
-      let cmakeArgs = ' ';
+      let cmakeArgs: string[] = [];
 
       // Search for CMake tool and run it
       let cmake: baselib.ToolRunner;
       if (this.sourceScript) {
         cmake = this.tl.tool(this.sourceScript);
-        cmakeArgs += await this.tl.which('cmake', true);
+        cmakeArgs.push(await this.tl.which('cmake', true));
       } else {
         cmake = this.tl.tool(await this.tl.which('cmake', true));
       }
@@ -558,23 +559,23 @@ export class CMakeSettingsJsonRunner {
       }
       console.log(`Overriding build directory to: '${evaledConf.buildDir}'`);
 
-      cmakeArgs += " " + evaledConf.getGeneratorArgs();
+      cmakeArgs.concat(evaledConf.getGeneratorArgs().filter(this.notEmpty));
 
       if (utils.isNinjaGenerator(cmakeArgs)) {
         const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
-        cmakeArgs += ` -DCMAKE_MAKE_PROGRAM="${ninjaPath}"`;
+        cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
       }
 
       if (!this.isMultiConfigGenerator(configuration.generator)) {
-        cmakeArgs += ` -DCMAKE_BUILD_TYPE="${evaledConf.type}"`;
+        cmakeArgs.push(`-DCMAKE_BUILD_TYPE=${evaledConf.type}`);
       }
 
       for (const variable of evaledConf.variables) {
-        cmakeArgs += ' ' + variable.toString();
+        cmakeArgs.push(variable.toString());
       }
 
       if (configuration.cmakeToolchain) {
-        cmakeArgs += ` -DCMAKE_TOOLCHAIN_FILE="${evaledConf.cmakeToolchain}"`;
+        cmakeArgs.push(`-DCMAKE_TOOLCHAIN_FILE=${evaledConf.cmakeToolchain}`);
       }
 
       // Use vcpkg toolchain if requested.
@@ -582,11 +583,17 @@ export class CMakeSettingsJsonRunner {
         cmakeArgs = await utils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet)
       }
 
+      // Add the current args in the tool, add
+      // custom args, and reset the args.
+      for (const arg of cmakeArgs)
+        cmake.arg(arg);
+      cmakeArgs = [];
+
       // Add CMake args from CMakeSettings.json file.
-      cmakeArgs += " " + evaledConf.cmakeArgs;
+      cmake.line(evaledConf.cmakeArgs);
 
       // Set the source directory.
-      cmakeArgs += " " + path.dirname(this.cmakeSettingsJson);
+      cmake.arg(path.dirname(this.cmakeSettingsJson));
 
       // Run CNake with the given arguments.
       if (!evaledConf.buildDir) {
@@ -594,10 +601,9 @@ export class CMakeSettingsJsonRunner {
       }
 
       // Append user provided CMake arguments.
-      cmakeArgs += " " + this.appendedCMakeArgs;
+      cmake.line(this.appendedCMakeArgs);
 
       await this.tl.mkdirP(evaledConf.buildDir);
-      cmake.line(cmakeArgs);
 
       const options = {
         cwd: evaledConf.buildDir,
@@ -612,7 +618,7 @@ export class CMakeSettingsJsonRunner {
 
       this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
       const code: number = await cmake.exec(options);
-      if (code != 0) {
+      if (code !== 0) {
         throw new Error(`"Build failed with error code: '${code}'."`);
       }
 
@@ -620,15 +626,19 @@ export class CMakeSettingsJsonRunner {
         await cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
           // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
           //only. They need to be put after '--', otherwise would be passed to directly to cmake.
-          ` ${evaledConf.getGeneratorBuildArgs()} ${evaledConf.cmakeArgs} ${this.appendedCMakeArgs} -- ${evaledConf.makeArgs}`,
+          ` ${evaledConf.getGeneratorBuildArgs()} -- ${evaledConf.makeArgs}`,
           options);
       }
     }
   }
 
+  private notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
+    return value !== null && value !== undefined;
+  }
+
   private isMultiConfigGenerator(generatorName: string): boolean {
     return generatorName.includes("Visual Studio") ||
       generatorName.includes("Ninja Multi-Confi");
-
   }
+
 }

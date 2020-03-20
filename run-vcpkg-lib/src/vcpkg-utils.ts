@@ -54,7 +54,7 @@ export async function isVcpkgSubmodule(gitPath: string, fullVcpkgPath: string): 
 }
 
 export function throwIfErrorCode(errorCode: number): void {
-  if (errorCode != 0) {
+  if (errorCode !== 0) {
     const errMsg = `Last command execution failed with error code '${errorCode}'.`;
     baseLib.error(errMsg);
     throw new Error(errMsg);

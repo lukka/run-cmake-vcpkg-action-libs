@@ -5,12 +5,64 @@
 import * as stream from 'stream';
 import * as baselib from './base-lib';
 import * as core from '@actions/core';
-import * as exec from '@actions/exec';
 import * as execIfaces from '@actions/exec/lib/interfaces';
+import * as toolrunner from '@actions/exec/lib/toolrunner';
 import * as ioutil from '@actions/io/lib/io-util';
 import * as io from '@actions/io/lib/io';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as cp from 'child_process';
+
+const isWin32 = process.platform === 'win32';
+
+/**
+ * Run a command with arguments in a shell.
+ * Note: -G Ninja or -GNinja? The former works witha shell, the second does not work without a shell.
+ * e.spawnSync('cmake', ['-GNinja', '.'], {shell:false, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> Configuring done.
+ * e.spawnSync('cmake', ['-G Ninja', '.'], {shell:false, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> CMake Error: Could not create named generator  Ninja
+ * e.spawnSync('cmake', ['-G Ninja', '.'], {shell:true, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> -- Configuring done
+ * e.spawnSync('cmake', ['-GNinja', '.'], {shell:true, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> -- Configuring done
+ * Hence the caller of this function is always using no spaces in between arguments.
+ * Exception is arbitrary text coming from the user, which will hit this problem when not useing a shell.
+ * 
+ * Other corner cases:
+ * e.spawnSync('cmake', ['-GUnix Makefiles', '.'], {shell:true, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> CMake Error: Could not create named generator Unix
+ * e.spawnSync('cmake', ['-GUnix\ Makefiles', '.'], {shell:false, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> -- Configuring done
+ > e.spawnSync('cmake', ['-GUnix Makefiles', '.'], {shell:false, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> -- Configuring done
+ e.spawnSync('cmake', ['-G Unix Makefiles', '.'], {shell:false, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> CMake Error: Could not create named generator  Unix Makefiles
+ * @static
+ * @param {string} commandPath
+ * @param {string[]} args
+ * @param {baselib.ExecOptions} [options2]
+ * @returns {Promise<number>}
+ * @memberof ActionLib
+ */
+async function exec(commandPath: string, args: string[], options2?: baselib.ExecOptions): Promise<number> {
+  core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, ${options2?.cwd})<<`);
+
+  let useShell: string | boolean = false;
+  if (process.env.INPUT_USESHELL === 'true')
+    useShell = true;
+  else if (process.env.INPUT_USESHELL === 'false') {
+    useShell = false;
+  } else if (process.env.INPUT_USESHELL) {
+    useShell = process.env.INPUT_USESHELL;
+  }
+
+  const opts: cp.SpawnSyncOptions = {
+    shell: useShell,
+    encoding: "utf8",
+    windowsVerbatimArguments: false,
+    cwd: options2?.cwd,
+    env: options2?.env,
+    stdio: "inherit"
+  };
+
+  core.debug(`exec("${commandPath}", ${JSON.stringify(args)}, {${opts?.cwd}, ${opts?.shell}})`);
+  const ret = cp.spawnSync(`"${commandPath}"`, args, opts);
+
+  return Promise.resolve(ret.status ?? -1000);
+}
 
 export class ToolRunner implements baselib.ToolRunner {
 
@@ -20,13 +72,11 @@ export class ToolRunner implements baselib.ToolRunner {
   }
 
   exec(options: baselib.ExecOptions): Promise<number> {
-    const options2: execIfaces.ExecOptions = this.convertExecOptions(options);
-
-    return exec.exec(`"${this.path}"`, this.args, options2);
+    return exec(this.path, this.args, options);
   }
 
   line(val: string): void {
-    this.args = this.args.concat(this.argStringToArray(val));
+    this.args = this.args.concat(toolrunner.argStringToArray(val));
   }
 
   arg(val: string | string[]): void {
@@ -55,7 +105,7 @@ export class ToolRunner implements baselib.ToolRunner {
       };
     }
 
-    const exitCode: number = await exec.exec(`"${this.path}"`, this.args, options2);
+    const exitCode: number = await exec(this.path, this.args, options2);
     const res2: baselib.ExecResult = {
       code: exitCode,
       stdout: stdout,
@@ -95,72 +145,7 @@ export class ToolRunner implements baselib.ToolRunner {
 
     return result;
   }
-
-  private argStringToArray(argString: string): string[] {
-    const args: string[] = [];
-
-    let inQuotes = false;
-    let escaped = false;
-    let lastCharWasSpace = true;
-    let arg = '';
-
-    const append = function (c: string): void {
-      // we only escape double quotes.
-      if (escaped && c !== '"') {
-        arg += '\\';
-      }
-
-      arg += c;
-      escaped = false;
-    }
-
-    for (let i = 0; i < argString.length; i++) {
-      const c: string = argString.charAt(i);
-
-      if (c === ' ' && !inQuotes) {
-        if (!lastCharWasSpace) {
-          args.push(arg);
-          arg = '';
-        }
-        lastCharWasSpace = true;
-        continue;
-      }
-      else {
-        lastCharWasSpace = false;
-      }
-
-      if (c === '"') {
-        if (!escaped) {
-          inQuotes = !inQuotes;
-        }
-        else {
-          append(c);
-        }
-        continue;
-      }
-
-      if (c === "\\" && escaped) {
-        append(c);
-        continue;
-      }
-
-      if (c === "\\" && inQuotes) {
-        escaped = true;
-        continue;
-      }
-
-      append(c);
-      lastCharWasSpace = false;
-    }
-
-    if (!lastCharWasSpace) {
-      args.push(arg.trim());
-    }
-
-    return args;
-  }
 }
-
 
 export class ActionLib implements baselib.BaseLib {
 
@@ -230,12 +215,11 @@ export class ActionLib implements baselib.BaseLib {
   }
 
   exec(path: string, args: string[], options?: baselib.ExecOptions): Promise<number> {
-    return Promise.resolve(exec.exec(`"${path}"`, args, options));
+    return Promise.resolve(exec(path, args, options));
   }
 
   async execSync(path: string, args: string[], options?: baselib.ExecOptions): Promise<baselib.ExecResult> {
-    // Note: the exec.exec() fails to launch an executable that contains blanks in its path/name. Sorrounding with double quotes is mandatory.
-    const exitCode: number = await exec.exec(`"${path}"`, args, options);
+    const exitCode: number = await exec(`"${path}"`, args, options);
     const res2: baselib.ExecResult = {
       code: exitCode,
       stdout: "",
@@ -246,7 +230,11 @@ export class ActionLib implements baselib.BaseLib {
   }
 
   async which(name: string, required: boolean): Promise<string> {
-    return io.which(name, required);
+    core.debug(`"which(${name})<<`);
+    const filePath = await io.which(name, required);
+    console.log(filePath);
+    core.debug(`"which(${name}) >> ${filePath}`);
+    return filePath;
   }
 
   async rmRF(path: string): Promise<void> {
@@ -266,7 +254,10 @@ export class ActionLib implements baselib.BaseLib {
   }
 
   resolve(apath: string): string {
-    return path.resolve(apath);
+    core.debug(`"resolve(${apath})<<`);
+    const resolvedPath = path.resolve(apath);
+    core.debug(`"resolve(${apath})>> '${resolvedPath})'`);
+    return resolvedPath;
   }
 
   stats(path: string): fs.Stats {
@@ -318,5 +309,4 @@ export class ActionLib implements baselib.BaseLib {
 
     return artifactsPath;
   }
-
 }

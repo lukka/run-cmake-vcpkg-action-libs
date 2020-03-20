@@ -243,7 +243,7 @@ export class VcpkgRunner {
       }
     } else {
       const res: boolean = vcpkgUtils.directoryExists(this.vcpkgDestPath);
-      this.tl.debug(`exist('${this.vcpkgDestPath}') == ${res}`);
+      this.tl.debug(`exist('${this.vcpkgDestPath}') === ${res}`);
       if (res && !isSubmodule) {
 
         // Use git to verify whether the repo is up to date.
