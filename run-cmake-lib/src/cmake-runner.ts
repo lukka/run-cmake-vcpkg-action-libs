@@ -192,7 +192,7 @@ export class CMakeRunner {
           const generatorName = this.generator['G'];
           const generatorArch = this.generator['A'];
           const generatorIsMultiConf = this.generator['MultiConfiguration'] ?? false;
-          cmakeArgs.push(`-G${generatorName}`);
+          cmakeArgs.push(`-G"${generatorName}"`);
           if (generatorArch) {
             cmakeArgs.push(`-A${generatorArch}`);
           }

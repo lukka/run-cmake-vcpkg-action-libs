@@ -201,14 +201,14 @@ export class Configuration {
         }
       }
 
-      gen = `-G${gen.trim()}`;
+      gen = `-G"${gen.trim()}"`;
 
       if (architectureParam) {
         arch = `-A${architectureParam.trim()}`
       }
     } else {
       // All non-VS generators are passed as is.
-      gen = `-G${gen.trim()}`;
+      gen = `-G"${gen.trim()}"`;
     }
 
     return [gen, arch];
