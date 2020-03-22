@@ -213,6 +213,7 @@ export class Configuration {
 
     return [gen, arch];
   }
+
   public toString(): string {
     return `{conf: ${this.name}:${this.type}}`;
   }
@@ -559,14 +560,13 @@ export class CMakeSettingsJsonRunner {
       }
       console.log(`Overriding build directory to: '${evaledConf.buildDir}'`);
 
-      cmakeArgs.concat(evaledConf.getGeneratorArgs().filter(this.notEmpty));
-
+      cmakeArgs = cmakeArgs.concat(evaledConf.getGeneratorArgs().filter(this.notEmpty));
       if (utils.isNinjaGenerator(cmakeArgs)) {
         const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
         cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
       }
 
-      if (!this.isMultiConfigGenerator(configuration.generator)) {
+      if (!this.isMultiConfigGenerator(evaledConf.generator)) {
         cmakeArgs.push(`-DCMAKE_BUILD_TYPE=${evaledConf.type}`);
       }
 
@@ -574,7 +574,7 @@ export class CMakeSettingsJsonRunner {
         cmakeArgs.push(variable.toString());
       }
 
-      if (configuration.cmakeToolchain) {
+      if (evaledConf.cmakeToolchain) {
         cmakeArgs.push(`-DCMAKE_TOOLCHAIN_FILE=${evaledConf.cmakeToolchain}`);
       }
 
@@ -585,8 +585,9 @@ export class CMakeSettingsJsonRunner {
 
       // Add the current args in the tool, add
       // custom args, and reset the args.
-      for (const arg of cmakeArgs)
+      for (const arg of cmakeArgs) {
         cmake.arg(arg);
+      }
       cmakeArgs = [];
 
       // Add CMake args from CMakeSettings.json file.

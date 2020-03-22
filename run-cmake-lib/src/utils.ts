@@ -73,12 +73,7 @@ export function getToolchainFile(args: string[]): string | undefined {
 }
 
 export function removeToolchainFile(args: string[]): string[] {
-  const newArgs: string[] = [];
-  for (const arg of args) {
-    newArgs.push(arg.replace(/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/, ""));
-  }
-
-  return newArgs;
+  return args.filter(a => !/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/.test(a));
 }
 
 export function mkdir(target: string, options: fs.MakeDirectoryOptions): void {

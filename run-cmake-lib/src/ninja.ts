@@ -40,7 +40,7 @@ export class NinjaDownloader {
       await utils.getBaseLib().exec('chmod', ['+x', ninjaPath]);
     }
 
-    return ninjaPath;
+    return `"${ninjaPath}"`;
   }
 }
 
