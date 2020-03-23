@@ -8,10 +8,11 @@ import * as ifacelib from "./base-lib";
 import * as globals from './vcpkg-globals';
 
 export class VcpkgRunner {
-  vcpkgDestPath: string;
-  vcpkgArgs: string;
-  defaultVcpkgUrl: string;
-  vcpkgURL: string;
+  private readonly vcpkgDestPath: string;
+  private readonly vcpkgArgs: string;
+  private readonly defaultVcpkgUrl: string;
+  private readonly vcpkgURL: string;
+  private readonly setupOnly: boolean;
 
   /**
    * Git commit id to fetch from the vcpkg repository.
@@ -27,7 +28,9 @@ export class VcpkgRunner {
   readonly pathToLastBuiltCommitId: string;
 
   public constructor(private tl: ifacelib.BaseLib) {
-    this.vcpkgArgs = this.tl.getInput(globals.vcpkgArguments, true) ?? "";
+    this.setupOnly = this.tl.getBoolInput(globals.setupOnly, false) ?? false;
+
+    this.vcpkgArgs = this.tl.getInput(globals.vcpkgArguments, this.setupOnly === false) ?? "";
     this.defaultVcpkgUrl = 'https://github.com/microsoft/vcpkg.git';
     this.vcpkgURL =
       this.tl.getInput(globals.vcpkgGitURL, false) || this.defaultVcpkgUrl;
@@ -112,7 +115,10 @@ export class VcpkgRunner {
       this.tl.writeFile(this.pathToLastBuiltCommitId, currentCommitId);
     }
 
-    await this.updatePackages();
+    if (!this.setupOnly) {
+      await this.updatePackages();
+    }
+
     await this.prepareForCache();
   }
 

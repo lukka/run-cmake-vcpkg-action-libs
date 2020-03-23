@@ -15,3 +15,4 @@ export const vcpkgLastBuiltCommitId = 'vcpkgLastBuiltCommitId';
 export const cleanAfterBuild = 'cleanAfterBuild';
 export const doNotUpdateVcpkg = 'doNotUpdateVcpkg';
 export const vcpkgRoot = 'VCPKG_ROOT';
+export const setupOnly = 'setupOnly';
