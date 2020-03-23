@@ -13,7 +13,31 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as cp from 'child_process';
 
-const isWin32 = process.platform === 'win32';
+function escapeShArgument(argument: string): string {
+  // escape blanks: blank -> \blank
+  return argument.replace(' ', '\\ ');
+}
+
+function escapeCmdExeArgument(argument: string): string {
+  // \" -> \\"
+  argument = argument.replace(/(\\*)"/g, '$1$1\\"');
+
+  // \$ -> \\$
+  argument = argument.replace(/(\\*)$/, '$1$1');
+
+  // All other backslashes occur literally.
+
+  // Quote the whole thing:
+  argument = `"${argument}"`;
+
+  // Prefix with caret ^ any character to be escaped, as in:
+  // http://www.robvanderwoude.com/escapechars.php
+  // Do not escape %, let variable be passed in as is.
+  const metaCharsRegExp = /([()\][!^"`<>&|;, *?])/g;
+  argument = argument.replace(metaCharsRegExp, '^$1');
+
+  return argument;
+}
 
 /**
  * Run a command with arguments in a shell.
@@ -37,8 +61,8 @@ const isWin32 = process.platform === 'win32';
  * @returns {Promise<number>}
  * @memberof ActionLib
  */
-async function exec(commandPath: string, args: string[], options2?: baselib.ExecOptions): Promise<number> {
-  core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, ${options2?.cwd})<<`);
+async function exec(commandPath: string, args: string[], options2?: execIfaces.ExecOptions): Promise<number> {
+  core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, {${options2?.cwd}})<<`);
 
   let useShell: string | boolean = false;
   if (process.env.INPUT_USESHELL === 'true')
@@ -49,42 +73,98 @@ async function exec(commandPath: string, args: string[], options2?: baselib.Exec
     useShell = process.env.INPUT_USESHELL;
   }
 
-  const opts: cp.SpawnSyncOptions = {
+  const opts: cp.SpawnOptions = {
     shell: useShell,
-    encoding: "utf8",
     windowsVerbatimArguments: false,
     cwd: options2?.cwd,
     env: options2?.env,
-    stdio: "inherit"
+    stdio: "pipe",
   };
 
-  core.debug(`exec("${commandPath}", ${JSON.stringify(args)}, {${opts?.cwd}, ${opts?.shell}})`);
-  const ret = cp.spawnSync(`"${commandPath}"`, args, opts);
+  let args2 = args;
+  if ((typeof useShell === 'string' && useShell.includes('cmd')) ||
+    (process.platform === 'win32' && typeof useShell === 'boolean' && useShell === true)) {
+    args2 = [];
+    args.map((arg) => args2.push(escapeCmdExeArgument(arg)));
+  }
+  else if (((typeof useShell === 'string' && !useShell.includes('cmd')) ||
+    (process.platform !== 'win32' && typeof useShell === 'boolean' && useShell === true))) {
+    args2 = [];
+    args.map((arg) => args2.push(escapeShArgument(arg)));
+  }
+  args = args2;
 
-  return Promise.resolve(ret.status ?? -1000);
+  core.debug(`exec("${commandPath}", ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}})`);
+  return new Promise<number>((resolve, reject) => {
+    const child: cp.ChildProcess = cp.spawn(`"${commandPath}"`, args, opts);
+
+    if (options2 && child.stdout) {
+      child.stdout.on('data', (chunk: Buffer) => {
+        if (options2.listeners && options2.listeners.stdout) {
+          options2.listeners.stdout(chunk);
+        }
+        process.stdout.write(chunk);
+      });
+    }
+    if (options2 && child.stderr) {
+      child.stderr.on('data', (chunk: Buffer) => {
+        if (options2.listeners && options2.listeners.stderr) {
+          options2.listeners.stderr(chunk);
+        }
+        process.stdout.write(chunk);
+      });
+    }
+
+    child.on('error', (error: Error) => {
+      core.warning(`${error}`);
+      // Wait one second to get still some output.
+      setTimeout(
+        () => {
+          reject(error);
+          child.removeAllListeners()
+        }
+        , 1000);
+    });
+
+    child.on('exit', (exitCode: number) => {
+      core.debug(`Exit code ${exitCode} received from command '${commandPath}'`)
+      child.removeAllListeners();
+      resolve(exitCode);
+    });
+
+    child.on('close', (exitCode: number) => {
+      core.debug(`STDIO streams have closed for command '${commandPath}'`)
+      child.removeAllListeners();
+      resolve(exitCode);
+    });
+  });
 }
 
 export class ToolRunner implements baselib.ToolRunner {
 
-  private args: string[] = [];
+  private arguments: string[] = [];
 
   constructor(private readonly path: string) {
   }
 
+  _argStringToArray(text: string): string[] {
+    return this.__argStringToArray(text);
+  }
+
   exec(options: baselib.ExecOptions): Promise<number> {
-    return exec(this.path, this.args, options);
+    return exec(this.path, this.arguments, options);
   }
 
   line(val: string): void {
-    this.args = this.args.concat(toolrunner.argStringToArray(val));
+    this.arguments = this.arguments.concat(toolrunner.argStringToArray(val));
   }
 
   arg(val: string | string[]): void {
     if (val instanceof Array) {
-      this.args = this.args.concat(val);
+      this.arguments = this.arguments.concat(val);
     }
     else if (typeof (val) === 'string') {
-      this.args = this.args.concat(val.trim());
+      this.arguments = this.arguments.concat(val.trim());
     }
   }
 
@@ -92,7 +172,7 @@ export class ToolRunner implements baselib.ToolRunner {
     let stdout = "";
     let stderr = "";
 
-    let options2: any | undefined = undefined;
+    let options2: execIfaces.ExecOptions | undefined;
     if (options) {
       options2 = this.convertExecOptions(options);
       options2.listeners = {
@@ -105,7 +185,7 @@ export class ToolRunner implements baselib.ToolRunner {
       };
     }
 
-    const exitCode: number = await exec(this.path, this.args, options2);
+    const exitCode: number = await exec(this.path, this.arguments, options2);
     const res2: baselib.ExecResult = {
       code: exitCode,
       stdout: stdout,
@@ -145,6 +225,59 @@ export class ToolRunner implements baselib.ToolRunner {
 
     return result;
   }
+
+  private __argStringToArray(argString: string): string[] {
+    const args: string[] = [];
+    let inQuotes = false;
+    let escaped = false;
+    let lastCharWasSpace = true;
+    let arg = '';
+    const append = function (c: string): void {
+      // we only escape double quotes.
+      if (escaped && c !== '"') {
+        arg += '\\';
+      }
+      arg += c;
+      escaped = false;
+    };
+    for (let i = 0; i < argString.length; i++) {
+      const c = argString.charAt(i);
+      if (c === ' ' && !inQuotes) {
+        if (!lastCharWasSpace) {
+          args.push(arg);
+          arg = '';
+        }
+        lastCharWasSpace = true;
+        continue;
+      }
+      else {
+        lastCharWasSpace = false;
+      }
+      if (c === '"') {
+        if (!escaped) {
+          inQuotes = !inQuotes;
+        }
+        else {
+          append(c);
+        }
+        continue;
+      }
+      if (c === "\\" && escaped) {
+        append(c);
+        continue;
+      }
+      if (c === "\\" && inQuotes) {
+        escaped = true;
+        continue;
+      }
+      append(c);
+      lastCharWasSpace = false;
+    }
+    if (!lastCharWasSpace) {
+      args.push(arg.trim());
+    }
+    return args;
+  };
 }
 
 export class ActionLib implements baselib.BaseLib {
@@ -214,8 +347,8 @@ export class ActionLib implements baselib.BaseLib {
     return new ToolRunner(name);
   }
 
-  exec(path: string, args: string[], options?: baselib.ExecOptions): Promise<number> {
-    return Promise.resolve(exec(path, args, options));
+  async exec(path: string, args: string[], options?: baselib.ExecOptions): Promise<number> {
+    return await exec(path, args, options);
   }
 
   async execSync(path: string, args: string[], options?: baselib.ExecOptions): Promise<baselib.ExecResult> {

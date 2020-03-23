@@ -29,6 +29,10 @@ export class ToolRunner implements ifacelib.ToolRunner {
     this.toolRunner.line(val);
   }
 
+  _argStringToArray(text: string): string[] {
+    return (this.toolRunner as any)._argStringToArray(text);
+  }
+
   arg(val: string | string[]): void {
     this.toolRunner.arg(val);
   }

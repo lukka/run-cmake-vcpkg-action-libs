@@ -174,25 +174,24 @@ export class CMakeRunner {
 
         if (this.taskMode === TaskModeType.CMakeListsTxtAdvanced) {
 
-          const appendedArgsArray = this.appendedArgs.split(' ');
-
           // If Ninja is required, specify the path to it.
-          if (utils.isNinjaGenerator(appendedArgsArray)) {
-            if (!utils.isMakeProgram(appendedArgsArray)) {
+          if (utils.isNinjaGenerator([this.appendedArgs])) {
+            if (!utils.isMakeProgram([this.appendedArgs])) {
               const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
               cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
             }
           }
 
           if (this.appendedArgs) {
-            cmake.line(this.appendedArgs);
+            const addedArgs: string[] = cmake._argStringToArray(this.appendedArgs);
+            cmakeArgs = [...cmakeArgs, ...addedArgs];
           }
 
         } else if (this.taskMode === TaskModeType.CMakeListsTxtBasic) {
           const generatorName = this.generator['G'];
           const generatorArch = this.generator['A'];
           const generatorIsMultiConf = this.generator['MultiConfiguration'] ?? false;
-          cmakeArgs.push(`-G"${generatorName}"`);
+          cmakeArgs.push(`-G${generatorName}`);
           if (generatorArch) {
             cmakeArgs.push(`-A${generatorArch}`);
           }
@@ -213,22 +212,24 @@ export class CMakeRunner {
           prependedBuildArguments = this.prependBuildConfigIfNeeded(this.doBuildArgs, generatorIsMultiConf, this.cmakeBuildType);
         }
 
+        // The source directory is required for any mode.
+        cmakeArgs.push(this.cmakeSourceDir);
+
         // Use vcpkg toolchain if requested.
         if (this.useVcpkgToolchainFile === true) {
           cmakeArgs = await utils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet)
         }
 
-        // The source directory is required for any mode.
-        cmakeArgs.push(this.cmakeSourceDir);
-
         this.tl.debug(`CMake arguments: ${cmakeArgs}`);
-
-        // Ensure the build directory is existing.
-        await this.tl.mkdirP(this.buildDir);
 
         for (const arg of cmakeArgs) {
           cmake.arg(arg);
         }
+
+
+        // Ensure the build directory is existing.
+        await this.tl.mkdirP(this.buildDir);
+
 
         const options = {
           cwd: this.buildDir,
@@ -244,7 +245,7 @@ export class CMakeRunner {
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
         const code: number = await cmake.exec(options);
         if (code !== 0) {
-          throw new Error(`"CMake failed with error: '${code}'.`);
+          throw new Error(`"CMake failed with error code: '${code}'.`);
         }
 
         if (this.doBuild) {

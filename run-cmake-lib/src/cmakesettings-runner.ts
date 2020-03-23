@@ -201,14 +201,14 @@ export class Configuration {
         }
       }
 
-      gen = `-G"${gen.trim()}"`;
+      gen = `-G${gen.trim()}`;
 
       if (architectureParam) {
         arch = `-A${architectureParam.trim()}`
       }
     } else {
       // All non-VS generators are passed as is.
-      gen = `-G"${gen.trim()}"`;
+      gen = `-G${gen.trim()}`;
     }
 
     return [gen, arch];
@@ -620,7 +620,7 @@ export class CMakeSettingsJsonRunner {
       this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
       const code: number = await cmake.exec(options);
       if (code !== 0) {
-        throw new Error(`"Build failed with error code: '${code}'."`);
+        throw new Error(`"CMake failed with error code: '${code}'."`);
       }
 
       if (this.doBuild) {

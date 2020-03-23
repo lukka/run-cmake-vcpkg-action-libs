@@ -194,7 +194,6 @@ function parseVcpkgEnvOutput(data: string): VarMap {
     param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
   };
   const lines = data.split(/[\r\n]+/);
-  const section = null;
   for (const line of lines) {
     if (regex.param.test(line)) {
       const match = line.match(regex.param);
@@ -246,11 +245,12 @@ export async function injectEnvVariables(vcpkgRoot: string, triplet: string): Pr
 
   const map = parseVcpkgEnvOutput(output.stdout);
   for (const key in map) {
-    if (key.toUpperCase() === "PATH") {
-      process.env[key] += ";" + map[key];
-    } else {
+    //if (key.toUpperCase() === "PATH") {
+    //  process.env[key] += path.delimiter + map[key];
+    //} else {
       process.env[key] = map[key];
-    }
+    //}
+    baseLib.debug(`set ${key}=${process.env[key]}`)
   }
 }
 
@@ -258,8 +258,8 @@ export async function injectVcpkgToolchain(args: string[], triplet: string): Pro
   args = args ?? [];
   const vcpkgRoot: string | undefined = process.env[globals.outVcpkgRootPath];
 
-  // if RUNVCPKG_VCPKG_ROOT is defined, and a toolchain has not been specified,
-  // use it!
+  // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put aside into
+  // VCPKG_CHAINLOAD_TOOLCHAIN_FILE the existing toolchain.
   if (vcpkgRoot && vcpkgRoot.length > 1) {
     const toolchainFile: string | undefined =
       getToolchainFile(args);

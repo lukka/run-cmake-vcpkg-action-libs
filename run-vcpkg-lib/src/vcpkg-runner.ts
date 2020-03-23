@@ -234,7 +234,7 @@ export class VcpkgRunner {
         this.vcpkgArtifactIgnoreEntries.filter(item => !item.trim().endsWith('!.git'));
       // Add '.git' to ignore that directory.
       this.vcpkgArtifactIgnoreEntries.push('.git');
-      console.log(`.artifactsignore content: '${this.vcpkgArtifactIgnoreEntries.map(s => `"${s}"`).join(', ')}'`);
+      console.log(`.artifactsignore content: '${this.vcpkgArtifactIgnoreEntries.map(s => `'${s}'`).join(', ')}'`);
       updated = true;
 
       // Issue a warning if the vcpkgCommitId is specified.

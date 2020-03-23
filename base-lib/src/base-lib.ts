@@ -25,6 +25,7 @@ export interface ToolRunner {
   line(line: string): void;
   arg(val: string | string[]): void;
   execSync(options?: ExecOptions): Promise<ExecResult>;
+  _argStringToArray(argString: string): string[];
 }
 
 export interface BaseLib {
