@@ -294,15 +294,15 @@ export class ActionLib implements baselib.BaseLib {
     return value;
   }
 
-  getPathInput(name: string): string {
-    const value = core.getInput(name);
+  getPathInput(name: string, isRequired: boolean): string {
+    const value = core.getInput(name, { required: isRequired });
     this.debug(`getPathInput(${name}) -> '${value}'`);
     return value;
   }
 
   isFilePathSupplied(name: string): boolean {
     // normalize paths
-    const pathValue = this.resolve(this.getPathInput(name) ?? '');
+    const pathValue = this.resolve(this.getPathInput(name, false) ?? '');
     const repoRoot = this.resolve(process.env.GITHUB_WORKSPACE ?? '');
     const isSupplied = pathValue !== repoRoot;
     this.debug(`isFilePathSupplied(s file path=('${name}') -> '${isSupplied}'`);

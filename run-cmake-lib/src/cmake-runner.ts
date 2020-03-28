@@ -116,7 +116,7 @@ export class CMakeRunner {
       false) ?? "";
     this.configurationFilter = this.tl.getInput(
       globals.configurationRegexFilter,
-      this.taskMode === TaskModeType.CMakeSettingsJson) ?? "";
+      false) ?? "";
     this.ninjaPath = '';
     if (this.tl.isFilePathSupplied(globals.ninjaPath)) {
       this.ninjaPath = tl.getInput(globals.ninjaPath, false) ?? "";
