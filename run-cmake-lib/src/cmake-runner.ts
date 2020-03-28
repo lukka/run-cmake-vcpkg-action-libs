@@ -201,7 +201,7 @@ export class CMakeRunner {
           }
 
           if (this.cmakeToolchainPath) {
-            cmakeArgs.push(`-DCMAKE_TOOLCHAIN_FILE="${this.cmakeToolchainPath}"`);
+            cmakeArgs.push(`-DCMAKE_TOOLCHAIN_FILE=${this.cmakeToolchainPath}`);
           }
 
           // Add CMake's build type, unless a multi configuration generator is being used.
@@ -212,13 +212,13 @@ export class CMakeRunner {
           prependedBuildArguments = this.prependBuildConfigIfNeeded(this.doBuildArgs, generatorIsMultiConf, this.cmakeBuildType);
         }
 
-        // The source directory is required for any mode.
-        cmakeArgs.push(this.cmakeSourceDir);
-
         // Use vcpkg toolchain if requested.
         if (this.useVcpkgToolchainFile === true) {
           cmakeArgs = await utils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet)
         }
+
+        // The source directory is required for any mode.
+        cmakeArgs.push(this.cmakeSourceDir);
 
         this.tl.debug(`CMake arguments: ${cmakeArgs}`);
 
