@@ -59,11 +59,13 @@ export function isToolchainFile(args: string[]): boolean {
 }
 
 export function getToolchainFile(args: string[]): string | undefined {
+  baseLib.debug(`getToolchainFile(${JSON.stringify(args)})<<`);
   for (const arg of args) {
     const matches = /-DCMAKE_TOOLCHAIN_FILE(?::[^\s]*)?=([^\s]*)/.exec(arg);
 
     if (matches != null) {
       if (matches.length > 1) {
+        baseLib.debug(`match found=${matches[1]}`);
         return matches[1];
       }
     }
@@ -248,7 +250,7 @@ export async function injectEnvVariables(vcpkgRoot: string, triplet: string): Pr
     //if (key.toUpperCase() === "PATH") {
     //  process.env[key] += path.delimiter + map[key];
     //} else {
-      process.env[key] = map[key];
+    process.env[key] = map[key];
     //}
     baseLib.debug(`set ${key}=${process.env[key]}`)
   }

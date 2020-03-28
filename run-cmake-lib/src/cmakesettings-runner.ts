@@ -34,7 +34,7 @@ class CMakeVariable {
   }
 
   public toString(): string {
-    return `-D${this.name}:${this.type}="${this.value}"`;
+    return `-D${this.name}:${this.type}=${this.value}`;
   }
 }
 

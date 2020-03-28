@@ -215,7 +215,7 @@ export class VcpkgRunner {
     }
 
     if (res.code !== 0) {
-      this.tl.warning(`error executing git: code=${res.code}, stdout=${vcpkgUtils.trimString(res.stdout)}, stderr=${vcpkgUtils.trimString(res.stderr)}`);
+      this.tl.debug(`error executing git: code=${res.code}, stdout=${vcpkgUtils.trimString(res.stdout)}, stderr=${vcpkgUtils.trimString(res.stderr)}`);
     }
 
     return currentCommitId;
