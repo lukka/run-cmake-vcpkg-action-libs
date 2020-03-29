@@ -30,7 +30,7 @@ export interface ToolRunner {
 
 export interface BaseLib {
   getInput(name: string, required: boolean): string | undefined;
-  getPathInput(name: string, required: boolean): string | undefined;
+  getPathInput(name: string, required: boolean, check: boolean): string | undefined;
   getBoolInput(name: string, required: boolean): boolean | undefined;
   isFilePathSupplied(name: string): boolean;
   getDelimitedInput(name: string, delim: string, required: boolean): string[];

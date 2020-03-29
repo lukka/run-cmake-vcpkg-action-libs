@@ -69,8 +69,8 @@ export class TaskLib implements ifacelib.BaseLib {
     return tl.getInput(name, required);
   }
 
-  getPathInput(name: string, required: boolean): string | undefined {
-    return tl.getPathInput(name, required);
+  getPathInput(name: string, required: boolean, check: boolean): string | undefined {
+    return tl.getPathInput(name, required, check);
   }
 
   getBoolInput(name: string, required: boolean): boolean {

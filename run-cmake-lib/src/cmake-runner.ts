@@ -100,13 +100,17 @@ export class CMakeRunner {
     }
     this.taskMode = taskMode;
 
+    let required = this.taskMode === TaskModeType.CMakeSettingsJson;
     this.cmakeSettingsJsonPath = this.tl.getPathInput(
       globals.cmakeSettingsJsonPath,
-      this.taskMode === TaskModeType.CMakeSettingsJson) ?? "";
+      required,
+      required) ?? "";
 
+    required = this.taskMode !== TaskModeType.CMakeSettingsJson;
     this.cmakeListsTxtPath = this.tl.getPathInput(
       globals.cmakeListsTxtPath,
-      this.taskMode === TaskModeType.CMakeListsTxtBasic) ?? "";
+      required,
+      required) ?? "";
 
     this.buildDir = this.tl.getInput(
       globals.buildDirectory,
@@ -133,7 +137,7 @@ export class CMakeRunner {
     this.ninjaDownloadUrl = this.tl.getInput(globals.ninjaDownloadUrl, false) ?? "";
     this.doBuild = this.tl.getBoolInput(globals.buildWithCMake, false) ?? false;
     this.doBuildArgs = this.tl.getInput(globals.buildWithCMakeArgs, false) ?? "";
-    this.cmakeSourceDir = path.dirname(this.cmakeListsTxtPath ?? "");
+    this.cmakeSourceDir = path.dirname(path.resolve(this.cmakeListsTxtPath) ?? "");
 
     this.useVcpkgToolchainFile =
       this.tl.getBoolInput(globals.useVcpkgToolchainFile, false) ?? false;

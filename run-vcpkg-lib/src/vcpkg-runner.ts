@@ -36,7 +36,7 @@ export class VcpkgRunner {
       this.tl.getInput(globals.vcpkgGitURL, false) || this.defaultVcpkgUrl;
     this.vcpkgCommitId =
       this.tl.getInput(globals.vcpkgCommitId, false);
-    this.vcpkgDestPath = this.tl.getPathInput(globals.vcpkgDirectory, false) ?? "";
+    this.vcpkgDestPath = this.tl.getPathInput(globals.vcpkgDirectory, false, false) ?? "";
     if (!this.vcpkgDestPath) {
       this.vcpkgDestPath = path.join(this.tl.getBinDir(), 'vcpkg');
     }

@@ -13,6 +13,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as cp from 'child_process';
 
+function escapeCmdCommand(command: string): string {
+  command = command.trim();
+  if (!/^\".*\"$/.test(command))
+    command = `\"${command}\"`;
+  return command;
+}
+
 function escapeShArgument(argument: string): string {
   // escape blanks: blank -> \blank
   return argument.replace(' ', '\\ ');
@@ -86,11 +93,17 @@ async function exec(commandPath: string, args: string[], options2?: execIfaces.E
     (process.platform === 'win32' && typeof useShell === 'boolean' && useShell === true)) {
     args2 = [];
     args.map((arg) => args2.push(escapeCmdExeArgument(arg)));
+
+    // When using a shell, the command must be enclosed by quotes to handle blanks correctly.
+    commandPath = escapeCmdCommand(commandPath);
   }
   else if (((typeof useShell === 'string' && !useShell.includes('cmd')) ||
     (process.platform !== 'win32' && typeof useShell === 'boolean' && useShell === true))) {
     args2 = [];
     args.map((arg) => args2.push(escapeShArgument(arg)));
+
+    // When using a Unix shell, blanks needs to be escaped in the command as well.
+    commandPath = escapeShArgument(commandPath);
   }
   args = args2;
 
@@ -294,15 +307,19 @@ export class ActionLib implements baselib.BaseLib {
     return value;
   }
 
-  getPathInput(name: string, isRequired: boolean): string {
-    const value = core.getInput(name, { required: isRequired });
+  getPathInput(name: string, isRequired: boolean, checkExists: boolean): string {
+    const value = path.resolve(core.getInput(name, { required: isRequired }));
     this.debug(`getPathInput(${name}) -> '${value}'`);
+    if (checkExists) {
+      if (!fs.existsSync(value))
+        throw new Error(`input path '${value}' for '${name}' does not exist.`);
+    }
     return value;
   }
 
   isFilePathSupplied(name: string): boolean {
     // normalize paths
-    const pathValue = this.resolve(this.getPathInput(name, false) ?? '');
+    const pathValue = this.resolve(this.getPathInput(name, false, false) ?? '');
     const repoRoot = this.resolve(process.env.GITHUB_WORKSPACE ?? '');
     const isSupplied = pathValue !== repoRoot;
     this.debug(`isFilePathSupplied(s file path=('${name}') -> '${isSupplied}'`);
