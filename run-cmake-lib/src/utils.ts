@@ -247,11 +247,11 @@ export async function injectEnvVariables(vcpkgRoot: string, triplet: string): Pr
 
   const map = parseVcpkgEnvOutput(output.stdout);
   for (const key in map) {
-    //if (key.toUpperCase() === "PATH") {
-    //  process.env[key] += path.delimiter + map[key];
-    //} else {
-    process.env[key] = map[key];
-    //}
+    if (key.toUpperCase() === "PATH") {
+      process.env[key] = map[key] + path.delimiter + process.env[key];
+    } else {
+      process.env[key] = map[key];
+    }
     baseLib.debug(`set ${key}=${process.env[key]}`)
   }
 }

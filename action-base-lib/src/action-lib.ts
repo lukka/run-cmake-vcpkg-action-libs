@@ -94,9 +94,9 @@ async function exec(commandPath: string, args: string[], options2?: execIfaces.E
   }
   args = args2;
 
-  core.debug(`exec("${commandPath}", ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}})`);
+  core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}})`);
   return new Promise<number>((resolve, reject) => {
-    const child: cp.ChildProcess = cp.spawn(`"${commandPath}"`, args, opts);
+    const child: cp.ChildProcess = cp.spawn(`${commandPath}`, args, opts);
 
     if (options2 && child.stdout) {
       child.stdout.on('data', (chunk: Buffer) => {
@@ -365,7 +365,7 @@ export class ActionLib implements baselib.BaseLib {
   async which(name: string, required: boolean): Promise<string> {
     core.debug(`"which(${name})<<`);
     const filePath = await io.which(name, required);
-    console.log(filePath);
+    console.log(`tool: ${filePath}`);
     core.debug(`"which(${name}) >> ${filePath}`);
     return filePath;
   }
