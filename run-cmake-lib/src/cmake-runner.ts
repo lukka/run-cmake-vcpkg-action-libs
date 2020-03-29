@@ -187,7 +187,9 @@ export class CMakeRunner {
           }
 
           if (this.appendedArgs) {
+            this.tl.debug(`Parsing additional CMake args: ${this.appendedArgs}`);
             const addedArgs: string[] = cmake._argStringToArray(this.appendedArgs);
+            this.tl.debug(`Appending args: ${JSON.stringify(addedArgs)}`);
             cmakeArgs = [...cmakeArgs, ...addedArgs];
           }
 

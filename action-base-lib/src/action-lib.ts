@@ -21,8 +21,8 @@ function escapeCmdCommand(command: string): string {
 }
 
 function escapeShArgument(argument: string): string {
-  // escape blanks: blank -> \blank
-  return argument.replace(' ', '\\ ');
+  // escape all blanks: blank -> \blank
+  return argument.replace(/ /g, '\\ ');
 }
 
 function escapeCmdExeArgument(argument: string): string {
@@ -30,7 +30,7 @@ function escapeCmdExeArgument(argument: string): string {
   argument = argument.replace(/(\\*)"/g, '$1$1\\"');
 
   // \$ -> \\$
-  argument = argument.replace(/(\\*)$/, '$1$1');
+  argument = argument.replace(/(\\*)$/g, '$1$1');
 
   // All other backslashes occur literally.
 
@@ -64,12 +64,12 @@ function escapeCmdExeArgument(argument: string): string {
  * @static
  * @param {string} commandPath
  * @param {string[]} args
- * @param {baselib.ExecOptions} [options2]
+ * @param {baselib.ExecOptions} [execOptions]
  * @returns {Promise<number>}
  * @memberof ActionLib
  */
-async function exec(commandPath: string, args: string[], options2?: execIfaces.ExecOptions): Promise<number> {
-  core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, {${options2?.cwd}})<<`);
+async function exec(commandPath: string, args: string[], execOptions?: execIfaces.ExecOptions): Promise<number> {
+  core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, {${execOptions?.cwd}})<<`);
 
   let useShell: string | boolean = false;
   if (process.env.INPUT_USESHELL === 'true')
@@ -83,8 +83,8 @@ async function exec(commandPath: string, args: string[], options2?: execIfaces.E
   const opts: cp.SpawnOptions = {
     shell: useShell,
     windowsVerbatimArguments: false,
-    cwd: options2?.cwd,
-    env: options2?.env,
+    cwd: execOptions?.cwd,
+    env: execOptions?.env,
     stdio: "pipe",
   };
 
@@ -107,22 +107,22 @@ async function exec(commandPath: string, args: string[], options2?: execIfaces.E
   }
   args = args2;
 
-  core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}})`);
+  core.debug(`cp.spawn(${commandPath}, ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}, path=${JSON.stringify(opts?.env?.PATH)}})`);
   return new Promise<number>((resolve, reject) => {
     const child: cp.ChildProcess = cp.spawn(`${commandPath}`, args, opts);
 
-    if (options2 && child.stdout) {
+    if (execOptions && child.stdout) {
       child.stdout.on('data', (chunk: Buffer) => {
-        if (options2.listeners && options2.listeners.stdout) {
-          options2.listeners.stdout(chunk);
+        if (execOptions.listeners && execOptions.listeners.stdout) {
+          execOptions.listeners.stdout(chunk);
         }
         process.stdout.write(chunk);
       });
     }
-    if (options2 && child.stderr) {
+    if (execOptions && child.stderr) {
       child.stderr.on('data', (chunk: Buffer) => {
-        if (options2.listeners && options2.listeners.stderr) {
-          options2.listeners.stderr(chunk);
+        if (execOptions.listeners && execOptions.listeners.stderr) {
+          execOptions.listeners.stderr(chunk);
         }
         process.stdout.write(chunk);
       });
@@ -224,6 +224,7 @@ export class ToolRunner implements baselib.ToolRunner {
           // Nothing to do.
         },
         stdline: (data: string): void => void {
+          // Nothing to do.
         },
         errline: (data: string): void => void {
           // Nothing to do.

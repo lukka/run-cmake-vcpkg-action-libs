@@ -521,7 +521,8 @@ export class CMakeSettingsJsonRunner {
       throw new Error(`No matching configuration for filter: '${this.configurationFilter}'.`);
     }
 
-    const exitCodes: number[] = [];
+    // Store and restore the PATH env var for each configuration, to prevent side effects among configurations.
+    const originalPath = process.env.PATH;
     for (const configuration of filteredConfigurations) {
       console.log(`Processing configuration: '${configuration.name}'.`);
       let cmakeArgs: string[] = [];
@@ -546,8 +547,8 @@ export class CMakeSettingsJsonRunner {
       // The build directory value specified in CMakeSettings.json is ignored.
       // This is because:
       // 1. you want to build targeting an empty binary directory;
-      // 2. the default in CMakeSettings.json is under the source tree, which is not cleared upon each build run.
-      // Instead if users did not provided a specific path, force it to
+      // 2. the default location in CMakeSettings.json is under the source tree, whose content is not deleted upon each build run.
+      // Instead if users did not provided a specific path, let's force it to
       // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
       console.log(`Note: the run-cmake task always ignore the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
       const artifactsDir = await this.tl.getArtifactsDir();
@@ -556,7 +557,9 @@ export class CMakeSettingsJsonRunner {
         // named with the configuration name.
         evaledConf.buildDir = path.join(artifactsDir, configuration.name);
       } else {
-        evaledConf.buildDir = this.buildDir;
+        // Append the configuration name to the user provided build directory. This is mandatory to have each 
+        // build in a different directory.
+        evaledConf.buildDir = path.join(this.buildDir, configuration.name);
       }
       console.log(`Overriding build directory to: '${evaledConf.buildDir}'`);
 
@@ -630,6 +633,9 @@ export class CMakeSettingsJsonRunner {
           ` ${evaledConf.getGeneratorBuildArgs()} -- ${evaledConf.makeArgs}`,
           options);
       }
+
+      // Restore the original PATH environment variable.
+      process.env.PATH = originalPath;
     }
   }
 
