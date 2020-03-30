@@ -19,10 +19,10 @@
     "typescript": "^3.7.3"
   },
   "dependencies": {
-    "@actions/core": "^1.2.0",
-    "@actions/exec": "^1.0.1",
-    "@actions/github": "^1.1.0",
-    "@actions/io": "^1.0.1",
+    "@actions/core": "^1.2.3",
+    "@actions/exec": "^1.0.3",
+    "@actions/github": "^2.1.1",
+    "@actions/io": "^1.0.2",
     "@types/adm-zip": "^0.4.32",
     "@types/follow-redirects": "^1.8.0",
     "@types/q": "^1.5.1",
@@ -33,6 +33,7 @@
     "azure-pipelines-task-lib": "~2.9.3",
     "eslint": "^6.7.2",
     "follow-redirects": "^1.9.0",
+    "minimist": ">=1.2.2",
     "del": "^5.1.0"
   }
 }

@@ -29,6 +29,10 @@ export class ToolRunner implements ifacelib.ToolRunner {
     this.toolRunner.line(val);
   }
 
+  _argStringToArray(text: string): string[] {
+    return (this.toolRunner as any)._argStringToArray(text);
+  }
+
   arg(val: string | string[]): void {
     this.toolRunner.arg(val);
   }
@@ -65,8 +69,8 @@ export class TaskLib implements ifacelib.BaseLib {
     return tl.getInput(name, required);
   }
 
-  getPathInput(name: string): string | undefined {
-    return tl.getPathInput(name);
+  getPathInput(name: string, required: boolean, check: boolean): string | undefined {
+    return tl.getPathInput(name, required, check);
   }
 
   getBoolInput(name: string, required: boolean): boolean {

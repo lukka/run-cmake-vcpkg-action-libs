@@ -100,13 +100,17 @@ export class CMakeRunner {
     }
     this.taskMode = taskMode;
 
+    let required = this.taskMode === TaskModeType.CMakeSettingsJson;
     this.cmakeSettingsJsonPath = this.tl.getPathInput(
       globals.cmakeSettingsJsonPath,
-      this.taskMode === TaskModeType.CMakeSettingsJson) ?? "";
+      required,
+      required) ?? "";
 
+    required = this.taskMode !== TaskModeType.CMakeSettingsJson;
     this.cmakeListsTxtPath = this.tl.getPathInput(
       globals.cmakeListsTxtPath,
-      this.taskMode === TaskModeType.CMakeListsTxtBasic) ?? "";
+      required,
+      required) ?? "";
 
     this.buildDir = this.tl.getInput(
       globals.buildDirectory,
@@ -116,7 +120,7 @@ export class CMakeRunner {
       false) ?? "";
     this.configurationFilter = this.tl.getInput(
       globals.configurationRegexFilter,
-      this.taskMode === TaskModeType.CMakeSettingsJson) ?? "";
+      false) ?? "";
     this.ninjaPath = '';
     if (this.tl.isFilePathSupplied(globals.ninjaPath)) {
       this.ninjaPath = tl.getInput(globals.ninjaPath, false) ?? "";
@@ -133,7 +137,7 @@ export class CMakeRunner {
     this.ninjaDownloadUrl = this.tl.getInput(globals.ninjaDownloadUrl, false) ?? "";
     this.doBuild = this.tl.getBoolInput(globals.buildWithCMake, false) ?? false;
     this.doBuildArgs = this.tl.getInput(globals.buildWithCMakeArgs, false) ?? "";
-    this.cmakeSourceDir = path.dirname(this.cmakeListsTxtPath ?? "");
+    this.cmakeSourceDir = path.dirname(path.resolve(this.cmakeListsTxtPath) ?? "");
 
     this.useVcpkgToolchainFile =
       this.tl.getBoolInput(globals.useVcpkgToolchainFile, false) ?? false;
@@ -158,50 +162,57 @@ export class CMakeRunner {
 
     // Contains the '--config <CONFIG>' when using multiconfiguration generators.
     let prependedBuildArguments = "";
-    let cmakeArgs = ' ';
+    let cmakeArgs: string[] = [];
 
     switch (this.taskMode) {
       case TaskModeType.CMakeListsTxtAdvanced:
       case TaskModeType.CMakeListsTxtBasic: {
-        // Search for CMake tool and run it
+        // Search for CMake tool and run it.
         let cmake: ifacelib.ToolRunner;
         if (this.sourceScript) {
           cmake = this.tl.tool(this.sourceScript);
-          cmakeArgs += await this.tl.which('cmake', true) + " ";
+          cmakeArgs.push(await this.tl.which('cmake', true));
         } else {
           cmake = this.tl.tool(await this.tl.which('cmake', true));
         }
 
-        if (this.taskMode == TaskModeType.CMakeListsTxtAdvanced) {
-          cmakeArgs += this.appendedArgs ?? "";
+        if (this.taskMode === TaskModeType.CMakeListsTxtAdvanced) {
 
           // If Ninja is required, specify the path to it.
-          if (utils.isNinjaGenerator(cmakeArgs)) {
-            if (!utils.isMakeProgram(cmakeArgs)) {
+          if (utils.isNinjaGenerator([this.appendedArgs])) {
+            if (!utils.isMakeProgram([this.appendedArgs])) {
               const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
-              cmakeArgs += ` -DCMAKE_MAKE_PROGRAM="${ninjaPath}"`;
+              cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
             }
           }
-        } else if (this.taskMode == TaskModeType.CMakeListsTxtBasic) {
+
+          if (this.appendedArgs) {
+            this.tl.debug(`Parsing additional CMake args: ${this.appendedArgs}`);
+            const addedArgs: string[] = cmake._argStringToArray(this.appendedArgs);
+            this.tl.debug(`Appending args: ${JSON.stringify(addedArgs)}`);
+            cmakeArgs = [...cmakeArgs, ...addedArgs];
+          }
+
+        } else if (this.taskMode === TaskModeType.CMakeListsTxtBasic) {
           const generatorName = this.generator['G'];
           const generatorArch = this.generator['A'];
           const generatorIsMultiConf = this.generator['MultiConfiguration'] ?? false;
-          cmakeArgs = ` -G "${generatorName}"`;
+          cmakeArgs.push(`-G${generatorName}`);
           if (generatorArch) {
-            cmakeArgs += ` -A ${generatorArch}`;
+            cmakeArgs.push(`-A${generatorArch}`);
           }
-          if (generatorName == CMakeGenerator['Ninja']['G']) {
+          if (generatorName === CMakeGenerator['Ninja']['G']) {
             const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
-            cmakeArgs += ` -DCMAKE_MAKE_PROGRAM="${ninjaPath}"`;
+            cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
           }
 
           if (this.cmakeToolchainPath) {
-            cmakeArgs += ` -D${utils.CMAKE_TOOLCHAIN_FILE}="${this.cmakeToolchainPath}"`;
+            cmakeArgs.push(`-DCMAKE_TOOLCHAIN_FILE=${this.cmakeToolchainPath}`);
           }
 
           // Add CMake's build type, unless a multi configuration generator is being used.
           if (!generatorIsMultiConf) {
-            cmakeArgs += ` -DCMAKE_BUILD_TYPE=${this.cmakeBuildType}`;
+            cmakeArgs.push(`-DCMAKE_BUILD_TYPE=${this.cmakeBuildType}`);
           }
 
           prependedBuildArguments = this.prependBuildConfigIfNeeded(this.doBuildArgs, generatorIsMultiConf, this.cmakeBuildType);
@@ -213,14 +224,18 @@ export class CMakeRunner {
         }
 
         // The source directory is required for any mode.
-        cmakeArgs += ` ${this.cmakeSourceDir}`;
+        cmakeArgs.push(this.cmakeSourceDir);
 
         this.tl.debug(`CMake arguments: ${cmakeArgs}`);
+
+        for (const arg of cmakeArgs) {
+          cmake.arg(arg);
+        }
+
 
         // Ensure the build directory is existing.
         await this.tl.mkdirP(this.buildDir);
 
-        cmake.line(cmakeArgs);
 
         const options = {
           cwd: this.buildDir,
@@ -235,8 +250,8 @@ export class CMakeRunner {
 
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
         const code: number = await cmake.exec(options);
-        if (code != 0) {
-          throw new Error(`"CMake failed with error: '${code}'.`);
+        if (code !== 0) {
+          throw new Error(`"CMake failed with error code: '${code}'.`);
         }
 
         if (this.doBuild) {
@@ -289,15 +304,17 @@ export class CMakeRunner {
   static async build(baseLib: ifacelib.BaseLib, buildDir: string, buildArgs: string, options: ifacelib.ExecOptions): Promise<void> {
     // Run CMake with the given arguments
     const cmake: ifacelib.ToolRunner = baseLib.tool(await baseLib.which('cmake', true));
-    cmake.line("--build . " + buildArgs ?? "");
+    cmake.arg("--build");
+    cmake.arg(".");
+    if (buildArgs)
+      cmake.line(buildArgs);
 
     // Run the command in the build directory
     options.cwd = buildDir;
     console.log(`Building with CMake in build directory '${options.cwd}' ...`);
     const code = await cmake.exec(options);
-    if (code != 0) {
+    if (code !== 0) {
       throw new Error(`"Build failed with error code: '${code}'."`);
     }
   }
-
 }

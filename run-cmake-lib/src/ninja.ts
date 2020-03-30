@@ -13,7 +13,7 @@ export async function findNinjaTool(): Promise<string> {
 
 export class NinjaDownloader {
   static baseUrl =
-    'https://github.com/ninja-build/ninja/releases/download/v1.9.0';
+    'https://github.com/ninja-build/ninja/releases/download/v1.10.0';
 
   static async download(url: string): Promise<string> {
     let ninjaPath = '';
@@ -40,7 +40,7 @@ export class NinjaDownloader {
       await utils.getBaseLib().exec('chmod', ['+x', ninjaPath]);
     }
 
-    return ninjaPath;
+    return `${ninjaPath}`;
   }
 }
 

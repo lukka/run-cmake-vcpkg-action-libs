@@ -11,7 +11,7 @@ import * as http from 'follow-redirects'
 import * as del from 'del'
 import * as globals from './cmake-globals'
 
-// TODO starts: remove this block and createa class where the BaseLib is passed
+// TODO starts: remove this block and create a class where the BaseLib is passed
 // in ctor
 let baseLib: ifacelib.BaseLib;
 
@@ -24,7 +24,6 @@ export function getBaseLib(): ifacelib.BaseLib {
 }
 // TODO ends
 
-export const CMAKE_TOOLCHAIN_FILE = "CMAKE_TOOLCHAIN_FILE";
 /**
  * Check whether the current generator selected in the command line
  * is -G Ninja.
@@ -32,34 +31,51 @@ export const CMAKE_TOOLCHAIN_FILE = "CMAKE_TOOLCHAIN_FILE";
  * @param {string} commandLineString The command line as string
  * @returns {boolean}
  */
-export function isNinjaGenerator(commandLineString: string): boolean {
-  return /-G[\s]*(\"Ninja\"|Ninja)/.test(commandLineString);
+export function isNinjaGenerator(args: string[]): boolean {
+  for (const arg of args) {
+    if (/-G[\s]*(\"Ninja\"|Ninja)/.test(arg))
+      return true;
+  }
+
+  return false;
 }
 
-export function isMakeProgram(str: string): boolean {
-  return /-DCMAKE_MAKE_PROGRAM/.test(str);
+export function isMakeProgram(args: string[]): boolean {
+  for (const arg of args) {
+    if (/-DCMAKE_MAKE_PROGRAM/.test(arg))
+      return true;
+  }
+
+  return false;
 }
 
-export function isToolchainFile(str: string): boolean {
-  return /-DCMAKE_TOOLCHAIN_FILE/.test(str);
+export function isToolchainFile(args: string[]): boolean {
+  for (const arg of args) {
+    if (/-DCMAKE_TOOLCHAIN_FILE/.test(arg))
+      return true;
+  }
+
+  return false;
 }
 
-export function getToolchainFile(str: string): string | undefined {
-  const matches = /-DCMAKE_TOOLCHAIN_FILE(?::[^\s]*)?=([^\s]*)/.exec(str);
-  let toolchainFile: string | undefined;
+export function getToolchainFile(args: string[]): string | undefined {
+  baseLib.debug(`getToolchainFile(${JSON.stringify(args)})<<`);
+  for (const arg of args) {
+    const matches = /-DCMAKE_TOOLCHAIN_FILE(?::[^\s]*)?=([^\s]*)/.exec(arg);
 
-  if (matches != null) {
-    if (matches.length > 1) {
-      toolchainFile = matches[1];
+    if (matches != null) {
+      if (matches.length > 1) {
+        baseLib.debug(`match found=${matches[1]}`);
+        return matches[1];
+      }
     }
   }
 
-  return toolchainFile;
+  return undefined;
 }
 
-export function removeToolchainFile(str: string): string {
-  str = str.replace(/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/, "");
-  return str;
+export function removeToolchainFile(args: string[]): string[] {
+  return args.filter(a => !/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/.test(a));
 }
 
 export function mkdir(target: string, options: fs.MakeDirectoryOptions): void {
@@ -141,8 +157,8 @@ export class Downloader {
    * @returns The path to the extracted content.
    */
   static async downloadArchive(url: string): Promise<string> {
-    if (url == null) {
-      throw new Error('downloadArchive: url is null!');
+    if (!url) {
+      throw new Error('downloadArchive: url must be provided!');
     }
 
     try {
@@ -180,7 +196,6 @@ function parseVcpkgEnvOutput(data: string): VarMap {
     param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
   };
   const lines = data.split(/[\r\n]+/);
-  const section = null;
   for (const line of lines) {
     if (regex.param.test(line)) {
       const match = line.match(regex.param);
@@ -226,46 +241,47 @@ export async function injectEnvVariables(vcpkgRoot: string, triplet: string): Pr
   } as ifacelib.ExecOptions;
 
   const output = await vcpkg.execSync(options);
-  if (output.code != 0) {
+  if (output.code !== 0) {
     throw new Error(`${output.stdout}\n\n${output.stderr}`);
   }
 
   const map = parseVcpkgEnvOutput(output.stdout);
   for (const key in map) {
-    if (key.toUpperCase() == "PATH") {
-      process.env[key] += ";" + map[key];
+    if (key.toUpperCase() === "PATH") {
+      process.env[key] = process.env[key] + path.delimiter + map[key];
     } else {
       process.env[key] = map[key];
     }
+    baseLib.debug(`set ${key}=${process.env[key]}`)
   }
 }
 
-export async function injectVcpkgToolchain(args: string, triplet: string): Promise<string> {
-  args = args ?? "";
+export async function injectVcpkgToolchain(args: string[], triplet: string): Promise<string[]> {
+  args = args ?? [];
   const vcpkgRoot: string | undefined = process.env[globals.outVcpkgRootPath];
 
-  // if RUNVCPKG_VCPKG_ROOT is defined, and a toolchain has not been specified,
-  // use it!
+  // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put aside into
+  // VCPKG_CHAINLOAD_TOOLCHAIN_FILE the existing toolchain.
   if (vcpkgRoot && vcpkgRoot.length > 1) {
     const toolchainFile: string | undefined =
       getToolchainFile(args);
     args = removeToolchainFile(args);
     const vcpkgToolchain: string =
       path.join(vcpkgRoot, '/scripts/buildsystems/vcpkg.cmake');
-    args += ` -D${CMAKE_TOOLCHAIN_FILE}="${vcpkgToolchain}"`;
+    args.push(`-DCMAKE_TOOLCHAIN_FILE=${vcpkgToolchain}`);
     if (toolchainFile) {
-      args += ` -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE="${toolchainFile}"`;
+      args.push(`-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${toolchainFile}`);
     }
 
     // If the triplet is provided, specify the same triplet on the cmd line and set the environment for msvc.
     if (triplet) {
-      args += ` -DVCPKG_TARGET_TRIPLET=${triplet}`;
+      args.push(`-DVCPKG_TARGET_TRIPLET=${triplet}`);
 
       // For Windows build agents, inject the environment variables used
       // for the MSVC compiler using the 'vcpkg env' command.
       // This is not be needed for others compiler on Windows, but it should be harmless.
       if (isWin32() && triplet) {
-        if (triplet.indexOf("windows") != -1) {
+        if (triplet.indexOf("windows") !== -1) {
           process.env.CC = "cl.exe";
           process.env.CXX = "cl.exe";
           baseLib.setVariable("CC", "cl.exe");
@@ -276,6 +292,7 @@ export async function injectVcpkgToolchain(args: string, triplet: string): Promi
       }
     }
   }
+
   return args;
 }
 
@@ -289,7 +306,8 @@ export async function getScriptCommand(args: string): Promise<ifacelib.ToolRunne
 
   let tool: ifacelib.ToolRunner;
   if (isWin32()) {
-    const cmdPath: string = await baseLib.which('cmd.exe', true);
+    const cmdExe = process.env.COMSPEC ?? "cmd.exe";
+    const cmdPath: string = await baseLib.which(cmdExe, true);
     tool = baseLib.tool(cmdPath);
     tool.arg('/c');
     tool.line(args);

@@ -36,7 +36,7 @@ export class VcpkgRunner {
       this.tl.getInput(globals.vcpkgGitURL, false) || this.defaultVcpkgUrl;
     this.vcpkgCommitId =
       this.tl.getInput(globals.vcpkgCommitId, false);
-    this.vcpkgDestPath = this.tl.getPathInput(globals.vcpkgDirectory, false) ?? "";
+    this.vcpkgDestPath = this.tl.getPathInput(globals.vcpkgDirectory, false, false) ?? "";
     if (!this.vcpkgDestPath) {
       this.vcpkgDestPath = path.join(this.tl.getBinDir(), 'vcpkg');
     }
@@ -215,7 +215,7 @@ export class VcpkgRunner {
     }
 
     if (res.code !== 0) {
-      this.tl.warning(`error executing git: code=${res.code}, stdout=${vcpkgUtils.trimString(res.stdout)}, stderr=${vcpkgUtils.trimString(res.stderr)}`);
+      this.tl.debug(`error executing git: code=${res.code}, stdout=${vcpkgUtils.trimString(res.stdout)}, stderr=${vcpkgUtils.trimString(res.stderr)}`);
     }
 
     return currentCommitId;
@@ -234,7 +234,7 @@ export class VcpkgRunner {
         this.vcpkgArtifactIgnoreEntries.filter(item => !item.trim().endsWith('!.git'));
       // Add '.git' to ignore that directory.
       this.vcpkgArtifactIgnoreEntries.push('.git');
-      console.log(`.artifactsignore content: '${this.vcpkgArtifactIgnoreEntries.map(s => `"${s}"`).join(', ')}'`);
+      console.log(`.artifactsignore content: '${this.vcpkgArtifactIgnoreEntries.map(s => `'${s}'`).join(', ')}'`);
       updated = true;
 
       // Issue a warning if the vcpkgCommitId is specified.
@@ -243,7 +243,7 @@ export class VcpkgRunner {
       }
     } else {
       const res: boolean = vcpkgUtils.directoryExists(this.vcpkgDestPath);
-      this.tl.debug(`exist('${this.vcpkgDestPath}') == ${res}`);
+      this.tl.debug(`exist('${this.vcpkgDestPath}') === ${res}`);
       if (res && !isSubmodule) {
 
         // Use git to verify whether the repo is up to date.
