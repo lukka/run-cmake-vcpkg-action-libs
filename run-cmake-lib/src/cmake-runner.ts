@@ -30,6 +30,7 @@ const CMakeGenerator: any = {
   'VS15Win64': { 'G': 'Visual Studio 15 2017', 'A': 'x64', 'MultiConfiguration': true },
   'VS15Arm64': { 'G': 'Visual Studio 15 2017', 'A': 'ARM64', 'MultiConfiguration': true },
   'Ninja': { 'G': 'Ninja', 'A': '', 'MultiConfiguration': false },
+  'NinjaMulti': { 'G': 'Ninja Multi-Config', 'A': '', 'MultiConfiguration': true },
   'UnixMakefiles': { 'G': 'Unix Makefiles', 'A': '', 'MultiConfiguration': false }
 };
 function getGenerator(generatorString: string): any {
@@ -146,7 +147,8 @@ export class CMakeRunner {
       globals.cmakeBuildType,
       this.taskMode === TaskModeType.CMakeListsTxtBasic) ?? "";
 
-    this.vcpkgTriplet = this.tl.getInput(globals.vcpkgTriplet, false) ?? "";
+    this.vcpkgTriplet = (this.tl.getInput(globals.vcpkgTriplet, false) ||
+      process.env.RUNVCPKG_VCPKG_TRIPLET) ?? "";
 
     this.sourceScript = this.tl.getInput(globals.cmakeWrapperCommand, false) ?? "";
   }
@@ -201,7 +203,7 @@ export class CMakeRunner {
           if (generatorArch) {
             cmakeArgs.push(`-A${generatorArch}`);
           }
-          if (generatorName === CMakeGenerator['Ninja']['G']) {
+          if (CMakeRunner.isNinjaGenerator(generatorName)) {
             const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
             cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
           }
@@ -215,7 +217,8 @@ export class CMakeRunner {
             cmakeArgs.push(`-DCMAKE_BUILD_TYPE=${this.cmakeBuildType}`);
           }
 
-          prependedBuildArguments = this.prependBuildConfigIfNeeded(this.doBuildArgs, generatorIsMultiConf, this.cmakeBuildType);
+          prependedBuildArguments = this.prependBuildConfigIfNeeded(this.doBuildArgs,
+            generatorIsMultiConf, this.cmakeBuildType);
         }
 
         // Use vcpkg toolchain if requested.
@@ -281,11 +284,16 @@ export class CMakeRunner {
     }
   }
 
+  private static isNinjaGenerator(generatorName: string): boolean {
+    return generatorName === CMakeGenerator['Ninja']['G'] ||
+      generatorName === CMakeGenerator['NinjaMulti']['G'];
+  }
+
   /// If not already provided, creates the '--config <CONFIG>' argument to pass when building.
   /// Return a string of arguments to prepend the build arguments.
   private prependBuildConfigIfNeeded(buildArgs: string, multiConfi: boolean, buildType: string): string {
     let prependArgs = "";
-    if (multiConfi && buildArgs.includes("--config")) {
+    if (multiConfi && !buildArgs.includes("--config")) {
       prependArgs = ` --config ${buildType} ${buildArgs}`;
     }
 

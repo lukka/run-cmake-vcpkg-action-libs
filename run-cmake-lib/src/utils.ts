@@ -32,14 +32,14 @@ function isVariableStrippingPath(variableName: string): boolean {
 
 /**
  * Check whether the current generator selected in the command line
- * is -G Ninja.
+ * is -G Ninja or -G Ninja Multi-Config.
  * @export
  * @param {string} commandLineString The command line as string
  * @returns {boolean}
  */
 export function isNinjaGenerator(args: string[]): boolean {
   for (const arg of args) {
-    if (/-G[\s]*(\"Ninja\"|Ninja)/.test(arg))
+    if (/-G[\s]*(?:\"Ninja.*\"|Ninja.*)/.test(arg))
       return true;
   }
 

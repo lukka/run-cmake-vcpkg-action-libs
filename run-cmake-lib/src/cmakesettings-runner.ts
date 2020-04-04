@@ -645,7 +645,7 @@ export class CMakeSettingsJsonRunner {
 
   private isMultiConfigGenerator(generatorName: string): boolean {
     return generatorName.includes("Visual Studio") ||
-      generatorName.includes("Ninja Multi-Confi");
+      generatorName.includes("Ninja Multi-Config");
   }
 
 }
