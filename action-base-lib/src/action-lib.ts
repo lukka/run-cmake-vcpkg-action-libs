@@ -140,13 +140,12 @@ async function exec(commandPath: string, args: string[], execOptions?: execIface
     });
 
     child.on('exit', (exitCode: number) => {
-      core.debug(`Exit code ${exitCode} received from command '${commandPath}'`)
-      child.removeAllListeners();
-      resolve(exitCode);
+      core.debug(`Exit code '${exitCode}' received from command '${commandPath}'`);
+      // Do not resolve yet, wait for the close event.
     });
 
     child.on('close', (exitCode: number) => {
-      core.debug(`STDIO streams have closed for command '${commandPath}'`)
+      core.debug(`STDIO streams have closed for command '${commandPath}'`);
       child.removeAllListeners();
       resolve(exitCode);
     });

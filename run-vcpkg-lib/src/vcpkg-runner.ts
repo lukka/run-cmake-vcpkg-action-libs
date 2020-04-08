@@ -21,7 +21,7 @@ export class VcpkgRunner {
    */
   readonly vcpkgCommitId?: string;
   readonly vcpkgTriplet: string;
-  options: ifacelib.ExecOptions = {} as ifacelib.ExecOptions;
+  readonly options: ifacelib.ExecOptions = {} as ifacelib.ExecOptions;
   vcpkgArtifactIgnoreEntries: string[] = [];
   readonly cleanAfterBuild: boolean = false;
   readonly doNotUpdateVcpkg: boolean = false;
@@ -81,9 +81,8 @@ export class VcpkgRunner {
     vcpkgUtils.setEnvVar(vcpkgUtils.cachingFormatEnvName, "Files");
 
     // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
-
     if (!await this.tl.exist(this.vcpkgDestPath)) {
-      this.tl.debug(`Creating vcpkg root directory as it is not existing.`);
+      this.tl.debug(`Creating vcpkg root directory as it is not existing: ${this.vcpkgDestPath}`);
       await this.tl.mkdirP(this.vcpkgDestPath);
     }
 
@@ -110,9 +109,11 @@ export class VcpkgRunner {
     if (needRebuild) {
       await this.build();
 
+      // After a build, refetch the commit id of the vcpkg's repo, and store it into the file.
+      const builtCommitId = await this.getCommitId();
+      vcpkgUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
       // Keep track of last successful build commit id.
-      console.log(`Storing last built vcpkg commit id '${currentCommitId}' in file '${this.pathToLastBuiltCommitId}`);
-      this.tl.writeFile(this.pathToLastBuiltCommitId, currentCommitId);
+      console.log(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
     }
 
     if (!this.setupOnly) {
@@ -202,26 +203,26 @@ export class VcpkgRunner {
    * @memberof VcpkgRunner
    */
   private async getCommitId(): Promise<string> {
-    let currentCommitId = "";
     this.tl.debug("getCommitId()<<");
+    let currentCommitId = "";
     const gitPath = await this.tl.which('git', true);
     // Use git to verify whether the repo is up to date.
     const gitRunner: ifacelib.ToolRunner = this.tl.tool(gitPath);
     gitRunner.arg(['rev-parse', 'HEAD']);
+    console.log(`Fetching the commit id at ${this.options.cwd}`);
     const res: ifacelib.ExecResult = await gitRunner.execSync(this.options);
     if (res.code === 0) {
       currentCommitId = vcpkgUtils.trimString(res.stdout);
       this.tl.debug(`git rev-parse: code=${res.code}, stdout=${vcpkgUtils.trimString(res.stdout)}, stderr=${vcpkgUtils.trimString(res.stderr)}`);
-    }
-
-    if (res.code !== 0) {
+    } else /* if (res.code !== 0) */ {
       this.tl.debug(`error executing git: code=${res.code}, stdout=${vcpkgUtils.trimString(res.stdout)}, stderr=${vcpkgUtils.trimString(res.stderr)}`);
     }
-
+    this.tl.debug(`getCommitId()>> -> ${currentCommitId}`);
     return currentCommitId;
   }
 
   private async checkRepoUpdated(currentCommitId: string): Promise<boolean> {
+    console.log(`Checking whether vcpkg's repository is updated to commit id '${currentCommitId}' ...`);
     let updated = false;
 
     const gitPath = await this.tl.which('git', true);
@@ -234,7 +235,7 @@ export class VcpkgRunner {
         this.vcpkgArtifactIgnoreEntries.filter(item => !item.trim().endsWith('!.git'));
       // Add '.git' to ignore that directory.
       this.vcpkgArtifactIgnoreEntries.push('.git');
-      console.log(`.artifactsignore content: '${this.vcpkgArtifactIgnoreEntries.map(s => `'${s}'`).join(', ')}'`);
+      console.log(`File '.artifactsignore' content: '${this.vcpkgArtifactIgnoreEntries.map(s => `'${s}'`).join(', ')}'`);
       updated = true;
 
       // Issue a warning if the vcpkgCommitId is specified.
@@ -247,7 +248,7 @@ export class VcpkgRunner {
       if (res && !isSubmodule) {
 
         // Use git to verify whether the repo is up to date.
-        this.tl.debug(`Current commit id of vcpkg: '${currentCommitId}'.`);
+        console.log(`Current commit id of vcpkg: '${currentCommitId}'.`);
         if (!this.vcpkgCommitId) {
           throw new Error(`'${globals.vcpkgCommitId}' input parameter must be provided when the specified vcpkg directory (${this.vcpkgDestPath}) is not a submodule.`);
         }
@@ -257,10 +258,13 @@ export class VcpkgRunner {
         }
       }
     }
+
+    console.log(`Is vcpkg repository updated? ${updated ? "Yes" : "No"}`);
     return updated;
   }
 
   private checkLastBuildCommitId(vcpkgCommitId: string): boolean {
+    console.log(`Checking last vcpkg build commit id in file '${this.pathToLastBuiltCommitId}' ...`);
     let rebuild = true;// Default is true.
     const [ok, lastCommitIdLast] = vcpkgUtils.readFile(this.pathToLastBuiltCommitId);
     this.tl.debug(`last build check: ${ok}, ${lastCommitIdLast}`);
@@ -269,8 +273,7 @@ export class VcpkgRunner {
       if (lastCommitIdLast === vcpkgCommitId) {
         rebuild = false;
         console.log(`vcpkg executable is up to date with sources.`);
-      }
-      else {
+      } else {
         console.log(`vcpkg executable is out of date with sources.`);
       }
     } else {
