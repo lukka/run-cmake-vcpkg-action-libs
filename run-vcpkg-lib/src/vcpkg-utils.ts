@@ -210,3 +210,30 @@ export function setEnvVar(name: string, value: string): void {
 export function trimString(value?: string): string {
   return value?.trim() ?? "";
 }
+
+export async function wrapOp<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  baseLib.beginOperation(name);
+
+  let result: T
+
+  try {
+    result = await fn();
+  } finally {
+    baseLib.endOperation();
+  }
+
+  return result
+}
+
+export function wrapOpSync<T>(name: string, fn: () => T): T {
+  baseLib.beginOperation(name);
+
+  let result: T;
+  try {
+    result = fn();
+  } finally {
+    baseLib.endOperation();
+  }
+
+  return result;
+}

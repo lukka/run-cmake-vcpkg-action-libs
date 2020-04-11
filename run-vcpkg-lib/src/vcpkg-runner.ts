@@ -64,6 +64,50 @@ export class VcpkgRunner {
 
   async run(): Promise<void> {
     this.tl.debug("vcpkg runner starting...");
+
+    vcpkgUtils.wrapOpSync("Set output env vars", () => this.setOutputs());
+
+    // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
+    if (!await this.tl.exist(this.vcpkgDestPath)) {
+      this.tl.debug(`Creating vcpkg root directory as it is not existing: ${this.vcpkgDestPath}`);
+      await this.tl.mkdirP(this.vcpkgDestPath);
+    }
+
+    let needRebuild = false;
+    const currentCommitId = await this.getCommitId();
+    if (this.doNotUpdateVcpkg) {
+      console.log(`Skipping any check to update vcpkg directory (${this.vcpkgDestPath}).`);
+    } else {
+      const updated = await vcpkgUtils.wrapOp("Check whether vcpkg repository is up to date",
+        () => this.checkRepoUpdated(currentCommitId),
+      );
+      if (!updated) {
+        await vcpkgUtils.wrapOp("Download vcpkg source code repository",
+          () => this.cloneRepo());
+        needRebuild = true;
+      }
+    }
+
+    // Build is needed at the first check which is saying so.
+    if (!needRebuild) {
+      needRebuild = vcpkgUtils.wrapOpSync("Check whether last vcpkg's build is up to date with sources", () => this.checkLastBuildCommitId(currentCommitId));
+      if (!needRebuild) {
+        needRebuild = await vcpkgUtils.wrapOp("Check vcpkg executable exists", () => this.checkExecutable());
+      }
+    }
+
+    if (needRebuild) {
+      await vcpkgUtils.wrapOp("Build vcpkg", () => this.build());
+    }
+
+    if (!this.setupOnly) {
+      await vcpkgUtils.wrapOp("Install/Update ports", () => this.updatePackages());
+    }
+
+    await vcpkgUtils.wrapOp("Prepare vcpkg generated file for caching", () => this.prepareForCache());
+  }
+
+  private setOutputs(): void {
     // Set the RUNVCPKG_VCPKG_ROOT value, it could be re-used later by run-cmake task.
     vcpkgUtils.setEnvVar(globals.outVcpkgRootPath, this.vcpkgDestPath);
     // Override the VCPKG_ROOT value, it must point to this vcpkg instance, it is used by 
@@ -79,48 +123,6 @@ export class VcpkgRunner {
 
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
     vcpkgUtils.setEnvVar(vcpkgUtils.cachingFormatEnvName, "Files");
-
-    // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
-    if (!await this.tl.exist(this.vcpkgDestPath)) {
-      this.tl.debug(`Creating vcpkg root directory as it is not existing: ${this.vcpkgDestPath}`);
-      await this.tl.mkdirP(this.vcpkgDestPath);
-    }
-
-    let needRebuild = false;
-    const currentCommitId = await this.getCommitId();
-    if (this.doNotUpdateVcpkg) {
-      console.log(`Skipping any check to update vcpkg directory (${this.vcpkgDestPath}).`);
-    } else {
-      const updated = await this.checkRepoUpdated(currentCommitId);
-      if (!updated) {
-        await this.cloneRepo();
-        needRebuild = true;
-      }
-    }
-
-    // Build is needed at the first check which is saying so.
-    if (!needRebuild) {
-      needRebuild = this.checkLastBuildCommitId(currentCommitId);
-      if (!needRebuild) {
-        needRebuild = await this.checkExecutable();
-      }
-    }
-
-    if (needRebuild) {
-      await this.build();
-
-      // After a build, refetch the commit id of the vcpkg's repo, and store it into the file.
-      const builtCommitId = await this.getCommitId();
-      vcpkgUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
-      // Keep track of last successful build commit id.
-      console.log(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
-    }
-
-    if (!this.setupOnly) {
-      await this.updatePackages();
-    }
-
-    await this.prepareForCache();
   }
 
   private async prepareForCache(): Promise<void> {
@@ -345,6 +347,13 @@ export class VcpkgRunner {
       shTool.arg(['-c', bootstrapFullPath]);
       vcpkgUtils.throwIfErrorCode(await shTool.exec(this.options));
     }
+
+    // After a build, refetch the commit id of the vcpkg's repo, and store it into the file.
+    const builtCommitId = await this.getCommitId();
+    vcpkgUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
+    // Keep track of last successful build commit id.
+    console.log(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
+
   }
 
 }

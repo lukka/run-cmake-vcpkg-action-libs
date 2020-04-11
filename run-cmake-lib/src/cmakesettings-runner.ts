@@ -524,118 +524,124 @@ export class CMakeSettingsJsonRunner {
     // Store and restore the PATH env var for each configuration, to prevent side effects among configurations.
     const originalPath = process.env.PATH;
     for (const configuration of filteredConfigurations) {
-      console.log(`Processing configuration: '${configuration.name}'.`);
-      let cmakeArgs: string[] = [];
+      const msg = `Process configuration: '${configuration.name}'.`;
+      try {
+        this.tl.beginOperation(msg)
+        console.log(msg);
+        let cmakeArgs: string[] = [];
 
-      // Search for CMake tool and run it
-      let cmake: baselib.ToolRunner;
-      if (this.sourceScript) {
-        cmake = this.tl.tool(this.sourceScript);
-        cmakeArgs.push(await this.tl.which('cmake', true));
-      } else {
-        cmake = this.tl.tool(await this.tl.which('cmake', true));
+        // Search for CMake tool and run it
+        let cmake: baselib.ToolRunner;
+        if (this.sourceScript) {
+          cmake = this.tl.tool(this.sourceScript);
+          cmakeArgs.push(await this.tl.which('cmake', true));
+        } else {
+          cmake = this.tl.tool(await this.tl.which('cmake', true));
+        }
+
+        // Evaluate all variables in the configuration.
+        const evaluator: PropertyEvaluator =
+          new PropertyEvaluator(configuration, globalEnvs, this.tl);
+        const evaledConf: Configuration = configuration.evaluate(evaluator);
+
+        // Set all variable in the configuration in the process environment.
+        evaledConf.setEnvironment(globalEnvs);
+
+        // The build directory value specified in CMakeSettings.json is ignored.
+        // This is because:
+        // 1. you want to build targeting an empty binary directory;
+        // 2. the default location in CMakeSettings.json is under the source tree, whose content is not deleted upon each build run.
+        // Instead if users did not provided a specific path, let's force it to
+        // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
+        console.log(`Note: the run-cmake task always ignore the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
+        const artifactsDir = await this.tl.getArtifactsDir();
+        if (utils.normalizePath(this.buildDir) === utils.normalizePath(artifactsDir)) {
+          // The build directory goes into the artifact directory in a subdir
+          // named with the configuration name.
+          evaledConf.buildDir = path.join(artifactsDir, configuration.name);
+        } else {
+          // Append the configuration name to the user provided build directory. This is mandatory to have each 
+          // build in a different directory.
+          evaledConf.buildDir = path.join(this.buildDir, configuration.name);
+        }
+        console.log(`Overriding build directory to: '${evaledConf.buildDir}'`);
+
+        cmakeArgs = cmakeArgs.concat(evaledConf.getGeneratorArgs().filter(this.notEmpty));
+        if (utils.isNinjaGenerator(cmakeArgs)) {
+          const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
+          cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
+        }
+
+        if (!this.isMultiConfigGenerator(evaledConf.generator)) {
+          cmakeArgs.push(`-DCMAKE_BUILD_TYPE=${evaledConf.type}`);
+        }
+
+        for (const variable of evaledConf.variables) {
+          cmakeArgs.push(variable.toString());
+        }
+
+        if (evaledConf.cmakeToolchain) {
+          cmakeArgs.push(`-DCMAKE_TOOLCHAIN_FILE=${evaledConf.cmakeToolchain}`);
+        }
+
+        // Use vcpkg toolchain if requested.
+        if (this.useVcpkgToolchain === true) {
+          cmakeArgs = await utils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet)
+        }
+
+        // Add the current args in the tool, add
+        // custom args, and reset the args.
+        for (const arg of cmakeArgs) {
+          cmake.arg(arg);
+        }
+        cmakeArgs = [];
+
+        // Add CMake args from CMakeSettings.json file.
+        cmake.line(evaledConf.cmakeArgs);
+
+        // Set the source directory.
+        cmake.arg(path.dirname(this.cmakeSettingsJson));
+
+        // Run CNake with the given arguments.
+        if (!evaledConf.buildDir) {
+          throw new Error("Build directory is not specified.");
+        }
+
+        // Append user provided CMake arguments.
+        cmake.line(this.appendedCMakeArgs);
+
+        await this.tl.mkdirP(evaledConf.buildDir);
+
+        const options = {
+          cwd: evaledConf.buildDir,
+          failOnStdErr: false,
+          errStream: process.stdout,
+          outStream: process.stdout,
+          ignoreReturnCode: true,
+          silent: false,
+          windowsVerbatimArguments: false,
+          env: process.env
+        } as baselib.ExecOptions;
+
+        this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
+        const code: number = await utils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
+        if (code !== 0) {
+          throw new Error(`"CMake failed with error code: '${code}'."`);
+        }
+
+        if (this.doBuild) {
+          await utils.wrapOp("Build with CMake", () => cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
+            // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
+            //only. They need to be put after '--', otherwise would be passed to directly to cmake.
+            ` ${evaledConf.getGeneratorBuildArgs()} -- ${evaledConf.makeArgs}`,
+            options));
+        }
+
+        // Restore the original PATH environment variable.
+        process.env.PATH = originalPath;
+      } finally {
+        this.tl.endOperation();
       }
-
-      // Evaluate all variables in the configuration.
-      const evaluator: PropertyEvaluator =
-        new PropertyEvaluator(configuration, globalEnvs, this.tl);
-      const evaledConf: Configuration = configuration.evaluate(evaluator);
-
-      // Set all variable in the configuration in the process environment.
-      evaledConf.setEnvironment(globalEnvs);
-
-      // The build directory value specified in CMakeSettings.json is ignored.
-      // This is because:
-      // 1. you want to build targeting an empty binary directory;
-      // 2. the default location in CMakeSettings.json is under the source tree, whose content is not deleted upon each build run.
-      // Instead if users did not provided a specific path, let's force it to
-      // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
-      console.log(`Note: the run-cmake task always ignore the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
-      const artifactsDir = await this.tl.getArtifactsDir();
-      if (utils.normalizePath(this.buildDir) === utils.normalizePath(artifactsDir)) {
-        // The build directory goes into the artifact directory in a subdir
-        // named with the configuration name.
-        evaledConf.buildDir = path.join(artifactsDir, configuration.name);
-      } else {
-        // Append the configuration name to the user provided build directory. This is mandatory to have each 
-        // build in a different directory.
-        evaledConf.buildDir = path.join(this.buildDir, configuration.name);
-      }
-      console.log(`Overriding build directory to: '${evaledConf.buildDir}'`);
-
-      cmakeArgs = cmakeArgs.concat(evaledConf.getGeneratorArgs().filter(this.notEmpty));
-      if (utils.isNinjaGenerator(cmakeArgs)) {
-        const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
-        cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
-      }
-
-      if (!this.isMultiConfigGenerator(evaledConf.generator)) {
-        cmakeArgs.push(`-DCMAKE_BUILD_TYPE=${evaledConf.type}`);
-      }
-
-      for (const variable of evaledConf.variables) {
-        cmakeArgs.push(variable.toString());
-      }
-
-      if (evaledConf.cmakeToolchain) {
-        cmakeArgs.push(`-DCMAKE_TOOLCHAIN_FILE=${evaledConf.cmakeToolchain}`);
-      }
-
-      // Use vcpkg toolchain if requested.
-      if (this.useVcpkgToolchain === true) {
-        cmakeArgs = await utils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet)
-      }
-
-      // Add the current args in the tool, add
-      // custom args, and reset the args.
-      for (const arg of cmakeArgs) {
-        cmake.arg(arg);
-      }
-      cmakeArgs = [];
-
-      // Add CMake args from CMakeSettings.json file.
-      cmake.line(evaledConf.cmakeArgs);
-
-      // Set the source directory.
-      cmake.arg(path.dirname(this.cmakeSettingsJson));
-
-      // Run CNake with the given arguments.
-      if (!evaledConf.buildDir) {
-        throw new Error("Build directory is not specified.");
-      }
-
-      // Append user provided CMake arguments.
-      cmake.line(this.appendedCMakeArgs);
-
-      await this.tl.mkdirP(evaledConf.buildDir);
-
-      const options = {
-        cwd: evaledConf.buildDir,
-        failOnStdErr: false,
-        errStream: process.stdout,
-        outStream: process.stdout,
-        ignoreReturnCode: true,
-        silent: false,
-        windowsVerbatimArguments: false,
-        env: process.env
-      } as baselib.ExecOptions;
-
-      this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
-      const code: number = await cmake.exec(options);
-      if (code !== 0) {
-        throw new Error(`"CMake failed with error code: '${code}'."`);
-      }
-
-      if (this.doBuild) {
-        await cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
-          // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
-          //only. They need to be put after '--', otherwise would be passed to directly to cmake.
-          ` ${evaledConf.getGeneratorBuildArgs()} -- ${evaledConf.makeArgs}`,
-          options);
-      }
-
-      // Restore the original PATH environment variable.
-      process.env.PATH = originalPath;
     }
   }
 

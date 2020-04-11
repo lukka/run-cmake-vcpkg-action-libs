@@ -65,6 +65,7 @@ export class ToolRunner implements ifacelib.ToolRunner {
 }
 
 export class TaskLib implements ifacelib.BaseLib {
+
   getInput(name: string, required: boolean): string | undefined {
     return tl.getInput(name, required);
   }
@@ -196,5 +197,13 @@ export class TaskLib implements ifacelib.BaseLib {
     }
 
     return dir;
+  }
+
+  beginOperation(message: string): void {
+    tl.logDetail(Math.random().toString(), message)
+  }
+
+  endOperation(): void {
+    // Intentionally void.
   }
 }

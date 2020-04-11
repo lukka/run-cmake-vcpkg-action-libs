@@ -459,4 +459,12 @@ export class ActionLib implements baselib.BaseLib {
 
     return artifactsPath;
   }
+
+  beginOperation(message: string): void {
+    core.startGroup(message);
+  }
+  endOperation(): void {
+    core.endGroup()
+  }
+
 }

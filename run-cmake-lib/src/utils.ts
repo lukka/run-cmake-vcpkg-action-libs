@@ -341,3 +341,30 @@ export function normalizePath(aPath: string): string {
     aPath = aPath.slice(0, -1);
   return aPath;
 }
+
+export async function wrapOp<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  baseLib.beginOperation(name);
+
+  let result: T
+
+  try {
+    result = await fn();
+  } finally {
+    baseLib.endOperation();
+  }
+
+  return result
+}
+
+export function wrapOpSync<T>(name: string, fn: () => T): T {
+  baseLib.beginOperation(name);
+
+  let result: T;
+  try {
+    result = fn();
+  } finally {
+    baseLib.endOperation();
+  }
+
+  return result;
+}

@@ -54,6 +54,8 @@ export interface BaseLib {
   getBinDir(): string;
   getSrcDir(): string;
   getArtifactsDir(): string;
+  beginOperation(message: string): void;
+  endOperation(): void;
 }
 
 export interface ExecOptions {

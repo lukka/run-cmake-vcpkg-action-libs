@@ -252,13 +252,13 @@ export class CMakeRunner {
         } as ifacelib.ExecOptions;
 
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
-        const code: number = await cmake.exec(options);
+        const code: number = await utils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
         if (code !== 0) {
           throw new Error(`"CMake failed with error code: '${code}'.`);
         }
 
         if (this.doBuild) {
-          await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments + this.doBuildArgs, options);
+          await utils.wrapOp("Build with CMake", () => CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments + this.doBuildArgs, options));
         }
 
         break;
@@ -278,7 +278,7 @@ export class CMakeRunner {
           this.sourceScript,
           this.buildDir,
           this.tl);
-        await cmakeJson.run();
+        await utils.wrapOp("Run CMake with CMakeSettings.json", () => cmakeJson.run());
         break;
       }
     }
