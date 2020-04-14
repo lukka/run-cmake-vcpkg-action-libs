@@ -26,6 +26,7 @@ export class VcpkgRunner {
   readonly cleanAfterBuild: boolean = false;
   readonly doNotUpdateVcpkg: boolean = false;
   readonly pathToLastBuiltCommitId: string;
+  private static readonly overlayArgName = "--overlay-ports=";
 
   public constructor(private tl: ifacelib.BaseLib) {
     this.setupOnly = this.tl.getBoolInput(globals.setupOnly, false) ?? false;
@@ -132,14 +133,42 @@ export class VcpkgRunner {
       this.vcpkgArtifactIgnoreEntries.join('\n'));
   }
 
+  private static extractOverlays(args: string, currentDir: string): string[] {
+    const overlays: string[] = args.split(' ').
+      filter((item) => item.startsWith(VcpkgRunner.overlayArgName) || item.startsWith('@'));
+
+    let result: string[] = [];
+    for (const item of overlays) {
+      if (item.startsWith('@')) {
+        let responseFilePath = item.slice(1);
+        if (!path.isAbsolute(responseFilePath)) {
+          responseFilePath = path.join(currentDir, responseFilePath);
+        }
+
+        const [ok, content] = vcpkgUtils.readFile(responseFilePath)
+        if (ok) {
+          const overlays2: string[] = content.split('\n').
+            filter((item) => item.trim().startsWith(VcpkgRunner.overlayArgName)).map((item) => item.trim());
+          result = result.concat(overlays2);
+        }
+      } else {
+        result = result.concat(item);
+      }
+    }
+
+    return result;
+  }
+
   private async updatePackages(): Promise<void> {
     let vcpkgPath: string = path.join(this.vcpkgDestPath, 'vcpkg');
     if (vcpkgUtils.isWin32()) {
       vcpkgPath += '.exe';
     }
 
+    const appendedOverlaysArgs: string[] = VcpkgRunner.extractOverlays(this.vcpkgArgs, this.options.cwd);
+    const appendedString = appendedOverlaysArgs ? " " + appendedOverlaysArgs.join(' ') : "";
     // vcpkg remove --outdated --recurse
-    const removeCmd = 'remove --outdated --recurse';
+    const removeCmd = `remove --outdated --recurse${appendedString}`;
     let vcpkgTool = this.tl.tool(vcpkgPath);
     console.log(
       `Running 'vcpkg ${removeCmd}' in directory '${this.vcpkgDestPath}' ...`);
