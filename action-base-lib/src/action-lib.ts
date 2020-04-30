@@ -467,4 +467,11 @@ export class ActionLib implements baselib.BaseLib {
     core.endGroup()
   }
 
+  addMatcher(file: string): void {
+    console.log(`::add-matcher::${file}`);
+  }
+
+  removeMatcher(file: string): void {
+    console.log(`::remove-matcher::${file}`);
+  }
 }

@@ -10,6 +10,7 @@ import * as ifacelib from './base-lib'
 import * as http from 'follow-redirects'
 import * as del from 'del'
 import * as globals from './cmake-globals'
+import { using } from "using-statement";
 
 // TODO starts: remove this block and create a class where the BaseLib is passed
 // in ctor
@@ -367,4 +368,37 @@ export function wrapOpSync<T>(name: string, fn: () => T): T {
   }
 
   return result;
+}
+
+export class Matcher {
+  constructor(private name: string, private fromPath?: string) {
+    const matcherFilePath = path.join(__dirname, `${name}.json`);
+    fromPath;
+    /* //?? TODO This code should be removed.
+    if (fromPath) {
+      try {
+        const content = fs.readFileSync(matcherFilePath);
+        const json: any = JSON.parse(content.toString());
+        json.problemMatcher[0].pattern[0].fromPath = fromPath;
+        fs.writeFileSync(matcherFilePath, JSON.stringify(json),
+          {
+            encoding: "utf8",
+            flag: "w+"
+          });
+        baseLib.debug(fs.readFileSync(matcherFilePath).toString());
+      } catch (err) {
+        baseLib.debug(`Failure in Matcher: ${err}`);
+      }
+    }*/
+
+    baseLib.addMatcher(matcherFilePath);
+  }
+
+  dispose(): void {
+    baseLib.removeMatcher(path.join(__dirname, `${this.name}.json`));
+  }
+}
+
+export function createMatcher(name: string, fromPath?: string): Matcher {
+  return new Matcher(name, fromPath);
 }

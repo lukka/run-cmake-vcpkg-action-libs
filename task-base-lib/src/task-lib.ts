@@ -206,4 +206,12 @@ export class TaskLib implements ifacelib.BaseLib {
   endOperation(): void {
     // Intentionally void.
   }
+
+  addMatcher(file: string): void {
+    // Intentionally not implemented.
+  }
+
+  removeMatcher(owner: string): void {
+    // Intentionally not implemented.
+  }
 }

@@ -4,10 +4,12 @@
 
 import * as ifacelib from './base-lib';
 import * as path from 'path';
+import * as fs from 'fs';
 import { CMakeSettingsJsonRunner } from './cmakesettings-runner'
 import * as globals from './cmake-globals';
 import * as ninjalib from './ninja';
 import * as utils from './utils'
+import { using } from "using-statement";
 
 enum TaskModeType {
   CMakeListsTxtBasic = 1,
@@ -252,13 +254,19 @@ export class CMakeRunner {
         } as ifacelib.ExecOptions;
 
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
-        const code: number = await utils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
+        let code = -1;
+        await using(utils.createMatcher('cmake', this.cmakeSourceDir), async matcher => {
+          code = await utils.wrapOp("Generate project files with CMake", async () => await cmake.exec(options));
+        });
+
         if (code !== 0) {
           throw new Error(`"CMake failed with error code: '${code}'.`);
         }
 
         if (this.doBuild) {
-          await utils.wrapOp("Build with CMake", () => CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments + this.doBuildArgs, options));
+          await using(utils.createMatcher(CMakeRunner.getBuildMatcher(this.buildDir, this.tl)), async matcher => {
+            await utils.wrapOp("Build with CMake", async () => await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments + this.doBuildArgs, options))
+          });
         }
 
         break;
@@ -278,7 +286,7 @@ export class CMakeRunner {
           this.sourceScript,
           this.buildDir,
           this.tl);
-        await utils.wrapOp("Run CMake with CMakeSettings.json", () => cmakeJson.run());
+        await utils.wrapOp("Run CMake with CMakeSettings.json", async () => await cmakeJson.run());
         break;
       }
     }
@@ -324,5 +332,64 @@ export class CMakeRunner {
     if (code !== 0) {
       throw new Error(`"Build failed with error code: '${code}'."`);
     }
+  }
+
+  private static gccMatcher = 'gcc';
+  private static clangMatcher = 'clang';
+  private static msvcMatcher = 'msvc';
+
+  private static getDefaultMatcher(): string {
+    const plat = process.platform;
+    return plat === "win32" ? CMakeRunner.msvcMatcher :
+      plat === "darwin" ? CMakeRunner.clangMatcher : CMakeRunner.gccMatcher;
+  }
+
+  private static getCompilerMatcher(line: string): string | undefined {
+    let matcherName: string | undefined = undefined;
+    if (line.includes('g++') || line.includes('gcc') || line.includes('c++'))
+      matcherName = CMakeRunner.gccMatcher;
+    else if (line.includes('cl.exe'))
+      matcherName = CMakeRunner.msvcMatcher;
+    else if (line.includes('clang'))
+      matcherName = CMakeRunner.clangMatcher;
+    return matcherName;
+  }
+
+  public static getBuildMatcher(buildDir: string, tl: ifacelib.BaseLib): string {
+    let cxxMatcher: string | undefined;
+    let ccMatcher: string | undefined;
+
+    try {
+      const cmakeCacheTxtPath = path.join(buildDir, "CMakeCache.txt");
+      const cache: Buffer = fs.readFileSync(cmakeCacheTxtPath);
+      tl.debug(`Loaded fileCMakeCache.txt at path='${cmakeCacheTxtPath}'`);
+      if (cache) {
+        const cacheContent = cache.toString();
+        for (const line of cacheContent.split('\n')) {
+          tl.debug(`text=${line}`);
+          if (line.includes("CMAKE_CXX_COMPILER:")) {
+            tl.debug(`Found CXX compiler: '${line}'.`);
+            cxxMatcher = CMakeRunner.getCompilerMatcher(line);
+            tl.debug(`Matcher selected for CXX: ${cxxMatcher}`);
+            break;
+          }
+          if (line.includes("CMAKE_C_COMPILER:")) {
+            tl.debug(`Found C compiler: '${line}'.`);
+            ccMatcher = CMakeRunner.getCompilerMatcher(line);
+            tl.debug(`Matcher selected for CC: ${ccMatcher}`);
+            break;
+          }
+        }
+      }
+    } catch (error) {
+      tl.debug(error.toString());
+    }
+
+    const defaultMatcher: string = CMakeRunner.getDefaultMatcher();
+    tl.debug(`Default matcher according to platform is: ${defaultMatcher}`);
+
+    const selectedMatcher = cxxMatcher ?? ccMatcher ?? defaultMatcher
+    tl.debug(`Selected matcher: ${selectedMatcher}`);
+    return selectedMatcher;
   }
 }

@@ -11,6 +11,7 @@ import * as stripJsonComments from 'strip-json-comments';
 import * as ninjalib from './ninja';
 import * as globals from './cmake-globals'
 import * as cmakerunner from './cmake-runner'
+import { using } from "using-statement";
 
 export interface EnvironmentMap { [name: string]: Environment }
 
@@ -449,7 +450,7 @@ export function parseConfigurations(configurationsJson: any, cmakeSettingsJson: 
 
 export class CMakeSettingsJsonRunner {
   constructor(
-    private readonly cmakeSettingsJson: any,
+    private readonly cmakeSettingsJson: string,
     private readonly configurationFilter: string,
     private readonly appendedCMakeArgs: string,
     private readonly workspaceRoot: string,
@@ -624,17 +625,22 @@ export class CMakeSettingsJsonRunner {
         } as baselib.ExecOptions;
 
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
-        const code: number = await utils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
+        let code = -1;
+        await using(utils.createMatcher('cmake', this.cmakeSettingsJson), async matcher => {
+          code = await utils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
+        });
         if (code !== 0) {
           throw new Error(`"CMake failed with error code: '${code}'."`);
         }
 
         if (this.doBuild) {
-          await utils.wrapOp("Build with CMake", () => cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
-            // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
-            //only. They need to be put after '--', otherwise would be passed to directly to cmake.
-            ` ${evaledConf.getGeneratorBuildArgs()} -- ${evaledConf.makeArgs}`,
-            options));
+          await using(utils.createMatcher(cmakerunner.CMakeRunner.getBuildMatcher(this.buildDir, this.tl)), async matcher => {
+            await utils.wrapOp("Build with CMake", async () => await cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
+              // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
+              //only. They need to be put after '--', otherwise would be passed to directly to cmake.
+              ` ${evaledConf.getGeneratorBuildArgs()} -- ${evaledConf.makeArgs}`,
+              options))
+          });
         }
 
         // Restore the original PATH environment variable.

@@ -56,6 +56,8 @@ export interface BaseLib {
   getArtifactsDir(): string;
   beginOperation(message: string): void;
   endOperation(): void;
+  addMatcher(file: string): void;
+  removeMatcher(owner: string): void;
 }
 
 export interface ExecOptions {
