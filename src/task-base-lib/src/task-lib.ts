@@ -3,12 +3,12 @@
 // SPDX short identifier: MIT
 
 import * as stream from 'stream';
-import * as ifacelib from './base-lib';
+import * as ifacelib from '../../base-lib/src/base-lib';
 import * as tl from 'azure-pipelines-task-lib/task';
 import * as trm from 'azure-pipelines-task-lib/toolrunner';
 import * as fs from 'fs';
 
-export class ToolRunner implements ifacelib.ToolRunner {
+export class TaskToolRunner implements ifacelib.ToolRunner {
   private readonly toolRunner: trm.ToolRunner;
 
   constructor(private path: string) {
@@ -111,7 +111,7 @@ export class TaskLib implements ifacelib.BaseLib {
   }
 
   tool(name: string): ifacelib.ToolRunner {
-    return new ToolRunner(name);
+    return new TaskToolRunner(name);
   }
 
   exec(name: string, args: string[], options?: ifacelib.ExecOptions): Promise<number> {
@@ -215,3 +215,4 @@ export class TaskLib implements ifacelib.BaseLib {
     // Intentionally not implemented.
   }
 }
+

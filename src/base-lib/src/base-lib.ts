@@ -4,21 +4,6 @@
 
 import * as stream from 'stream';
 import * as fs from 'fs';
-import * as path from 'path';
-
-/**
- * Normalize a filesystem path with path.normalize(), then remove any trailing space.
- *
- * @export
- * @param {string} aPath The string representing a filesystem path.
- * @returns {string} The normalizeed path without trailing slash.
- */
-export function normalizePath(aPath: string): string {
-  aPath = path.normalize(aPath);
-  if (/[\\\/]$/.test(aPath))
-    aPath = aPath.slice(0, -1);
-  return aPath;
-}
 
 export interface ToolRunner {
   exec(options: ExecOptions): Promise<number>;

@@ -1,22 +1,35 @@
 {
-  "name": "run-cmake-vcpkg-libs",
-  "version": "0.0.1",
+  "name": "@lukka/run-cmake-vcpkg-action-libs",
+  "version": "0.0.2",
   "description": "Libraries for running vcpkg and CMake in CI systems.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lukka/run-vcpkg-cmake-libs"
+    "url": "https://github.com/lukka/run-cmake-vcpkg-action-libs",
+    "directory": "run-cmake-vcpkg-action-libs"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/lukka"
   },
   "author": "Luca Cappa (https://github.com/lukka)",
   "license": "MIT",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
   "scripts": {
     "clean": "rm -rf ./build/",
     "build": "tsc -b . -v",
-    "lint": "tsc --noEmit && eslint '*/**/*.ts'"
+    "lint": "tsc --noEmit && eslint '*/**/*.ts'",
+    "pack": "tsc -b . -v",
+    "test": "jest"
   },
   "devDependencies": {
+    "@types/jest": "^25.2.3",
     "@types/node": "^11.9.3",
+    "jest": "^26.0.1",
+    "jest-circus": "^26.0.1",
+    "nock": "^12.0.3",
+    "ts-jest": "^26.1.0",
     "ts-node": "^8.5.4",
-    "typescript": "^3.7.3"
+    "typescript": "^3.9.3"
   },
   "dependencies": {
     "@actions/core": "^1.2.3",
@@ -36,5 +49,9 @@
     "minimist": ">=1.2.2",
     "del": "^5.1.0",
     "using-statement": "^0.3.1"
-  }
+  },
+  "files": [
+    "build/**/*",
+    "!__tests__"
+  ]
 }

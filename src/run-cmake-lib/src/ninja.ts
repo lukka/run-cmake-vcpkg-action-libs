@@ -4,7 +4,7 @@
 
 import * as path from 'path';
 import * as ifacelib from '../../base-lib/src/base-lib'
-import * as utils from './utils';
+import * as utils from '../../base-lib/src/utils';
 
 export async function findNinjaTool(): Promise<string> {
   const ninjaPath = await utils.getBaseLib().which('ninja', false);

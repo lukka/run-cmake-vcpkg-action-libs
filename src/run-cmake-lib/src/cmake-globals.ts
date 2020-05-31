@@ -15,9 +15,7 @@ export const cmakeToolchainPath = 'cmakeToolchainPath';
 export const buildWithCMake = 'buildWithCMake';
 export const buildWithCMakeArgs = 'buildWithCMakeArgs';
 export const cmakeBuildType = 'cmakeBuildType';
-export const vcpkgTriplet = 'vcpkgTriplet';
+export const cmakeVcpkgTriplet = 'vcpkgTriplet';
 export const cmakeWrapperCommand = 'cmakeWrapperCommand';
 export const useVcpkgToolchainFile = 'useVcpkgToolchainFile';
-export const outVcpkgRootPath = "RUNVCPKG_VCPKG_ROOT";
-export const outVcpkgTriplet = "RUNVCPKG_VCPKG_TRIPLET";
 

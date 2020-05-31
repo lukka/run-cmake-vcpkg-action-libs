@@ -2,11 +2,11 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as baselib from './base-lib';
+import * as ifacelib from '../../base-lib/src/base-lib';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as utils from './utils'
+import * as utils from '../../base-lib/src/utils'
 import * as stripJsonComments from 'strip-json-comments';
 import * as ninjalib from './ninja';
 import * as globals from './cmake-globals'
@@ -228,7 +228,7 @@ export class PropertyEvaluator {
   public constructor(
     public config: Configuration,
     public globalEnvs: EnvironmentMap,
-    private tl: baselib.BaseLib) {
+    private tl: ifacelib.BaseLib) {
     this.createLocalVars();
   }
 
@@ -461,7 +461,7 @@ export class CMakeSettingsJsonRunner {
     private readonly ninjaDownloadUrl: string,
     private readonly sourceScript: string,
     private readonly buildDir: string,
-    private readonly tl: baselib.BaseLib) {
+    private readonly tl: ifacelib.BaseLib) {
     this.configurationFilter = configurationFilter;
 
     this.buildDir = path.normalize(path.resolve(this.buildDir));
@@ -532,7 +532,7 @@ export class CMakeSettingsJsonRunner {
         let cmakeArgs: string[] = [];
 
         // Search for CMake tool and run it
-        let cmake: baselib.ToolRunner;
+        let cmake: ifacelib.ToolRunner;
         if (this.sourceScript) {
           cmake = this.tl.tool(this.sourceScript);
           cmakeArgs.push(await this.tl.which('cmake', true));
@@ -622,7 +622,7 @@ export class CMakeSettingsJsonRunner {
           silent: false,
           windowsVerbatimArguments: false,
           env: process.env
-        } as baselib.ExecOptions;
+        } as ifacelib.ExecOptions;
 
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
         let code = -1;

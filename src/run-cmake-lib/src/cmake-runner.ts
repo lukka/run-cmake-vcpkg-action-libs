@@ -2,13 +2,14 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as ifacelib from './base-lib';
+import * as ifacelib from '../../base-lib/src/base-lib';
 import * as path from 'path';
 import * as fs from 'fs';
 import { CMakeSettingsJsonRunner } from './cmakesettings-runner'
-import * as globals from './cmake-globals';
+import * as cmakeGlobals from './cmake-globals';
+import * as vcpkgGlobals from '../../run-vcpkg-lib/src/vcpkg-globals'
 import * as ninjalib from './ninja';
-import * as utils from './utils'
+import * as utils from '../../base-lib/src/utils'
 import { using } from "using-statement";
 
 enum TaskModeType {
@@ -60,24 +61,24 @@ export class CMakeRunner {
   readonly sourceScript: string;
 
   private static readonly modePerInput: { [inputName: string]: TaskModeType[] } = {
-    [globals.cmakeListsTxtPath]:
+    [cmakeGlobals.cmakeListsTxtPath]:
       [TaskModeType.CMakeListsTxtBasic, TaskModeType.CMakeListsTxtAdvanced],
-    [globals.cmakeSettingsJsonPath]:
+    [cmakeGlobals.cmakeSettingsJsonPath]:
       [TaskModeType.CMakeSettingsJson],
-    [globals.cmakeToolchainPath]:
+    [cmakeGlobals.cmakeToolchainPath]:
       [TaskModeType.CMakeListsTxtBasic],
     /*[globals.useVcpkgToolchainFile]: all */
     /*[globals.vcpkgTriplet]: all */
-    [globals.cmakeBuildType]:
+    [cmakeGlobals.cmakeBuildType]:
       [TaskModeType.CMakeListsTxtBasic],
-    [globals.cmakeGenerator]:
+    [cmakeGlobals.cmakeGenerator]:
       [TaskModeType.CMakeListsTxtBasic],
     /*[globals.buildDirectory]: all */
-    [globals.cmakeAppendedArgs]:
+    [cmakeGlobals.cmakeAppendedArgs]:
       [TaskModeType.CMakeListsTxtAdvanced, TaskModeType.CMakeSettingsJson],
-    [globals.configurationRegexFilter]:
+    [cmakeGlobals.configurationRegexFilter]:
       [TaskModeType.CMakeSettingsJson],
-    [globals.buildWithCMakeArgs]:
+    [cmakeGlobals.buildWithCMakeArgs]:
       [TaskModeType.CMakeListsTxtAdvanced, TaskModeType.CMakeListsTxtBasic]
   };
 
@@ -96,7 +97,7 @@ export class CMakeRunner {
   }
 
   public constructor(private tl: ifacelib.BaseLib) {
-    const mode: string = this.tl.getInput(globals.cmakeListsOrSettingsJson, true) ?? "";
+    const mode: string = this.tl.getInput(cmakeGlobals.cmakeListsOrSettingsJson, true) ?? "";
     const taskMode: TaskModeType | undefined = getTargetType(mode);
     if (!taskMode) {
       throw new Error(`ctor(): invalid task mode '${mode}'.`);
@@ -105,54 +106,54 @@ export class CMakeRunner {
 
     let required = this.taskMode === TaskModeType.CMakeSettingsJson;
     this.cmakeSettingsJsonPath = this.tl.getPathInput(
-      globals.cmakeSettingsJsonPath,
+      cmakeGlobals.cmakeSettingsJsonPath,
       required,
       required) ?? "";
 
     required = this.taskMode !== TaskModeType.CMakeSettingsJson;
     this.cmakeListsTxtPath = this.tl.getPathInput(
-      globals.cmakeListsTxtPath,
+      cmakeGlobals.cmakeListsTxtPath,
       required,
       required) ?? "";
 
     this.buildDir = this.tl.getInput(
-      globals.buildDirectory,
+      cmakeGlobals.buildDirectory,
       this.taskMode === TaskModeType.CMakeListsTxtBasic) ?? "";
     this.appendedArgs = this.tl.getInput(
-      globals.cmakeAppendedArgs,
+      cmakeGlobals.cmakeAppendedArgs,
       false) ?? "";
     this.configurationFilter = this.tl.getInput(
-      globals.configurationRegexFilter,
+      cmakeGlobals.configurationRegexFilter,
       false) ?? "";
     this.ninjaPath = '';
-    if (this.tl.isFilePathSupplied(globals.ninjaPath)) {
-      this.ninjaPath = tl.getInput(globals.ninjaPath, false) ?? "";
+    if (this.tl.isFilePathSupplied(cmakeGlobals.ninjaPath)) {
+      this.ninjaPath = tl.getInput(cmakeGlobals.ninjaPath, false) ?? "";
     }
 
     this.cmakeToolchainPath = "";
-    if (this.tl.isFilePathSupplied(globals.cmakeToolchainPath)) {
-      this.cmakeToolchainPath = tl.getInput(globals.cmakeToolchainPath, false) ?? "";
+    if (this.tl.isFilePathSupplied(cmakeGlobals.cmakeToolchainPath)) {
+      this.cmakeToolchainPath = tl.getInput(cmakeGlobals.cmakeToolchainPath, false) ?? "";
     }
     const gen: string = this.tl.getInput(
-      globals.cmakeGenerator,
+      cmakeGlobals.cmakeGenerator,
       this.taskMode === TaskModeType.CMakeListsTxtBasic) ?? "";
     this.generator = getGenerator(gen);
-    this.ninjaDownloadUrl = this.tl.getInput(globals.ninjaDownloadUrl, false) ?? "";
-    this.doBuild = this.tl.getBoolInput(globals.buildWithCMake, false) ?? false;
-    this.doBuildArgs = this.tl.getInput(globals.buildWithCMakeArgs, false) ?? "";
+    this.ninjaDownloadUrl = this.tl.getInput(cmakeGlobals.ninjaDownloadUrl, false) ?? "";
+    this.doBuild = this.tl.getBoolInput(cmakeGlobals.buildWithCMake, false) ?? false;
+    this.doBuildArgs = this.tl.getInput(cmakeGlobals.buildWithCMakeArgs, false) ?? "";
     this.cmakeSourceDir = path.dirname(path.resolve(this.cmakeListsTxtPath) ?? "");
 
     this.useVcpkgToolchainFile =
-      this.tl.getBoolInput(globals.useVcpkgToolchainFile, false) ?? false;
+      this.tl.getBoolInput(cmakeGlobals.useVcpkgToolchainFile, false) ?? false;
 
     this.cmakeBuildType = this.tl.getInput(
-      globals.cmakeBuildType,
+      cmakeGlobals.cmakeBuildType,
       this.taskMode === TaskModeType.CMakeListsTxtBasic) ?? "";
 
-    this.vcpkgTriplet = (this.tl.getInput(globals.vcpkgTriplet, false) ||
+    this.vcpkgTriplet = (this.tl.getInput(cmakeGlobals.cmakeVcpkgTriplet, false) ||
       process.env.RUNVCPKG_VCPKG_TRIPLET) ?? "";
 
-    this.sourceScript = this.tl.getInput(globals.cmakeWrapperCommand, false) ?? "";
+    this.sourceScript = this.tl.getInput(cmakeGlobals.cmakeWrapperCommand, false) ?? "";
   }
 
   async run(): Promise<void> {

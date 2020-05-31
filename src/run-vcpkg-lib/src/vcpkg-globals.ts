@@ -3,7 +3,6 @@
 // SPDX short identifier: MIT
 
 export const vcpkgArguments = 'vcpkgArguments';
-export const buildDirectory = 'buildDirectory';
 export const vcpkgGitURL = 'vcpkgGitURL';
 export const vcpkgCommitId = 'vcpkgGitCommitId';
 export const outVcpkgRootPath = "RUNVCPKG_VCPKG_ROOT";

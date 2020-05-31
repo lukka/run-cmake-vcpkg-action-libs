@@ -3,8 +3,8 @@
 // SPDX short identifier: MIT
 
 import * as path from 'path';
-import * as vcpkgUtils from './vcpkg-utils'
-import * as ifacelib from "./base-lib";
+import * as utils from '../../base-lib/src/utils'
+import * as ifacelib from '../../base-lib/src/base-lib';
 import * as globals from './vcpkg-globals';
 
 export class VcpkgRunner {
@@ -66,7 +66,7 @@ export class VcpkgRunner {
   async run(): Promise<void> {
     this.tl.debug("vcpkg runner starting...");
 
-    vcpkgUtils.wrapOpSync("Set output env vars", () => this.setOutputs());
+    utils.wrapOpSync("Set output env vars", () => this.setOutputs());
 
     // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
     if (!await this.tl.exist(this.vcpkgDestPath)) {
@@ -79,11 +79,11 @@ export class VcpkgRunner {
     if (this.doNotUpdateVcpkg) {
       console.log(`Skipping any check to update vcpkg directory (${this.vcpkgDestPath}).`);
     } else {
-      const updated = await vcpkgUtils.wrapOp("Check whether vcpkg repository is up to date",
+      const updated = await utils.wrapOp("Check whether vcpkg repository is up to date",
         () => this.checkRepoUpdated(currentCommitId),
       );
       if (!updated) {
-        await vcpkgUtils.wrapOp("Download vcpkg source code repository",
+        await utils.wrapOp("Download vcpkg source code repository",
           () => this.cloneRepo());
         needRebuild = true;
       }
@@ -91,29 +91,29 @@ export class VcpkgRunner {
 
     // Build is needed at the first check which is saying so.
     if (!needRebuild) {
-      needRebuild = vcpkgUtils.wrapOpSync("Check whether last vcpkg's build is up to date with sources", () => this.checkLastBuildCommitId(currentCommitId));
+      needRebuild = utils.wrapOpSync("Check whether last vcpkg's build is up to date with sources", () => this.checkLastBuildCommitId(currentCommitId));
       if (!needRebuild) {
-        needRebuild = await vcpkgUtils.wrapOp("Check vcpkg executable exists", () => this.checkExecutable());
+        needRebuild = await utils.wrapOp("Check vcpkg executable exists", () => this.checkExecutable());
       }
     }
 
     if (needRebuild) {
-      await vcpkgUtils.wrapOp("Build vcpkg", () => this.build());
+      await utils.wrapOp("Build vcpkg", () => this.build());
     }
 
     if (!this.setupOnly) {
-      await vcpkgUtils.wrapOp("Install/Update ports", () => this.updatePackages());
+      await utils.wrapOp("Install/Update ports", () => this.updatePackages());
     }
 
-    await vcpkgUtils.wrapOp("Prepare vcpkg generated file for caching", () => this.prepareForCache());
+    await utils.wrapOp("Prepare vcpkg generated file for caching", () => this.prepareForCache());
   }
 
   private setOutputs(): void {
     // Set the RUNVCPKG_VCPKG_ROOT value, it could be re-used later by run-cmake task.
-    vcpkgUtils.setEnvVar(globals.outVcpkgRootPath, this.vcpkgDestPath);
+    utils.setEnvVar(globals.outVcpkgRootPath, this.vcpkgDestPath);
     // Override the VCPKG_ROOT value, it must point to this vcpkg instance, it is used by 
     // any invocation of the vcpkg executable in this task.
-    vcpkgUtils.setEnvVar(globals.vcpkgRoot, this.vcpkgDestPath);
+    utils.setEnvVar(globals.vcpkgRoot, this.vcpkgDestPath);
 
     // The output variable must have a different name than the
     // one set with setVariable(), as the former get a prefix added out of our control.
@@ -123,13 +123,13 @@ export class VcpkgRunner {
     this.tl.setOutput(`${outVarName}`, this.vcpkgDestPath);
 
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
-    vcpkgUtils.setEnvVar(vcpkgUtils.cachingFormatEnvName, "Files");
+    utils.setEnvVar(utils.cachingFormatEnvName, "Files");
   }
 
   private async prepareForCache(): Promise<void> {
     const artifactignoreFile = '.artifactignore';
     const artifactFullPath: string = path.join(this.vcpkgDestPath, artifactignoreFile);
-    vcpkgUtils.writeFile(artifactFullPath,
+    utils.writeFile(artifactFullPath,
       this.vcpkgArtifactIgnoreEntries.join('\n'));
   }
 
@@ -145,10 +145,10 @@ export class VcpkgRunner {
           responseFilePath = path.join(currentDir, responseFilePath);
         }
 
-        const [ok, content] = vcpkgUtils.readFile(responseFilePath)
+        const [ok, content] = utils.readFile(responseFilePath)
         if (ok) {
           const overlays2: string[] = content.split('\n').
-            filter((item) => item.trim().startsWith(VcpkgRunner.overlayArgName)).map((item) => item.trim());
+            filter((item: string) => item.trim().startsWith(VcpkgRunner.overlayArgName)).map((item) => item.trim());
           result = result.concat(overlays2);
         }
       } else {
@@ -161,7 +161,7 @@ export class VcpkgRunner {
 
   private async updatePackages(): Promise<void> {
     let vcpkgPath: string = path.join(this.vcpkgDestPath, 'vcpkg');
-    if (vcpkgUtils.isWin32()) {
+    if (utils.isWin32()) {
       vcpkgPath += '.exe';
     }
 
@@ -173,7 +173,7 @@ export class VcpkgRunner {
     console.log(
       `Running 'vcpkg ${removeCmd}' in directory '${this.vcpkgDestPath}' ...`);
     vcpkgTool.line(removeCmd);
-    vcpkgUtils.throwIfErrorCode(await vcpkgTool.exec(this.options));
+    utils.throwIfErrorCode(await vcpkgTool.exec(this.options));
 
     // vcpkg install --recurse <list of packages>
     vcpkgTool = this.tl.tool(vcpkgPath);
@@ -182,7 +182,7 @@ export class VcpkgRunner {
     // Get the triplet specified in the task.
     let vcpkgTripletUsed = this.vcpkgTriplet;
     // Extract triplet from arguments for vcpkg.
-    const extractedTriplet: string | null = vcpkgUtils.extractTriplet(installCmd, vcpkgUtils.readFile);
+    const extractedTriplet: string | null = utils.extractTriplet(installCmd, utils.readFile);
     // Append triplet, only if provided by the user in the task arguments
     if (extractedTriplet !== null) {
       if (vcpkgTripletUsed) {
@@ -211,7 +211,7 @@ export class VcpkgRunner {
     const outVarName = `${globals.outVcpkgTriplet}_OUT`;
     if (vcpkgTripletUsed) {
       // Set the used triplet in RUNVCPKG_VCPKG_TRIPLET environment variable.
-      vcpkgUtils.setEnvVar(globals.outVcpkgTriplet, vcpkgTripletUsed);
+      utils.setEnvVar(globals.outVcpkgTriplet, vcpkgTripletUsed);
 
       // Set output variable containing the use triplet
       console.log(`Set task output variable '${outVarName}' to value: ${
@@ -224,7 +224,7 @@ export class VcpkgRunner {
     vcpkgTool.line(installCmd);
     console.log(
       `Running 'vcpkg ${installCmd}' in directory '${this.vcpkgDestPath}' ...`);
-    vcpkgUtils.throwIfErrorCode(await vcpkgTool.exec(this.options));
+    utils.throwIfErrorCode(await vcpkgTool.exec(this.options));
   }
 
   /**
@@ -243,10 +243,10 @@ export class VcpkgRunner {
     console.log(`Fetching the commit id at ${this.options.cwd}`);
     const res: ifacelib.ExecResult = await gitRunner.execSync(this.options);
     if (res.code === 0) {
-      currentCommitId = vcpkgUtils.trimString(res.stdout);
-      this.tl.debug(`git rev-parse: code=${res.code}, stdout=${vcpkgUtils.trimString(res.stdout)}, stderr=${vcpkgUtils.trimString(res.stderr)}`);
+      currentCommitId = utils.trimString(res.stdout);
+      this.tl.debug(`git rev-parse: code=${res.code}, stdout=${utils.trimString(res.stdout)}, stderr=${utils.trimString(res.stderr)}`);
     } else /* if (res.code !== 0) */ {
-      this.tl.debug(`error executing git: code=${res.code}, stdout=${vcpkgUtils.trimString(res.stdout)}, stderr=${vcpkgUtils.trimString(res.stderr)}`);
+      this.tl.debug(`error executing git: code=${res.code}, stdout=${utils.trimString(res.stdout)}, stderr=${utils.trimString(res.stderr)}`);
     }
     this.tl.debug(`getCommitId()>> -> ${currentCommitId}`);
     return currentCommitId;
@@ -257,7 +257,7 @@ export class VcpkgRunner {
     let updated = false;
 
     const gitPath = await this.tl.which('git', true);
-    const isSubmodule = await vcpkgUtils.isVcpkgSubmodule(gitPath, this.vcpkgDestPath);
+    const isSubmodule = await utils.isVcpkgSubmodule(gitPath, this.vcpkgDestPath);
     if (isSubmodule) {
       // In case vcpkg it is a Git submodule...
       console.log(`'vcpkg' is detected as a submodule, adding '.git' to the ignored entries in '.artifactignore' file (for excluding it from caching).`);
@@ -274,7 +274,7 @@ export class VcpkgRunner {
         this.tl.warning(`Since the vcpkg directory '${this.vcpkgDestPath}' is a submodule, the input '${globals.vcpkgCommitId}' should not be provided (${this.vcpkgCommitId})`);
       }
     } else {
-      const res: boolean = vcpkgUtils.directoryExists(this.vcpkgDestPath);
+      const res: boolean = utils.directoryExists(this.vcpkgDestPath);
       this.tl.debug(`exist('${this.vcpkgDestPath}') === ${res}`);
       if (res && !isSubmodule) {
 
@@ -297,7 +297,7 @@ export class VcpkgRunner {
   private checkLastBuildCommitId(vcpkgCommitId: string): boolean {
     console.log(`Checking last vcpkg build commit id in file '${this.pathToLastBuiltCommitId}' ...`);
     let rebuild = true;// Default is true.
-    const [ok, lastCommitIdLast] = vcpkgUtils.readFile(this.pathToLastBuiltCommitId);
+    const [ok, lastCommitIdLast] = utils.readFile(this.pathToLastBuiltCommitId);
     this.tl.debug(`last build check: ${ok}, ${lastCommitIdLast}`);
     if (ok) {
       this.tl.debug(`lastcommitid = ${lastCommitIdLast}, currentcommitid = ${vcpkgCommitId}`);
@@ -329,23 +329,23 @@ export class VcpkgRunner {
     let gitTool = this.tl.tool(gitPath);
 
     gitTool.arg(['clone', this.vcpkgURL, '-n', '.']);
-    vcpkgUtils.throwIfErrorCode(await gitTool.exec(this.options));
+    utils.throwIfErrorCode(await gitTool.exec(this.options));
 
     gitTool = this.tl.tool(gitPath);
     gitTool.arg(['checkout', '--force', this.vcpkgCommitId]);
-    vcpkgUtils.throwIfErrorCode(await gitTool.exec(this.options));
+    utils.throwIfErrorCode(await gitTool.exec(this.options));
     console.log(`Clone vcpkg in '${this.vcpkgDestPath}'.`);
   }
 
   private async checkExecutable(): Promise<boolean> {
     let needRebuild = false;
     // If the executable file ./vcpkg/vcpkg is not present, force build. The fact that 'the repository is up to date' is meaningless.
-    const vcpkgExePath: string = vcpkgUtils.getVcpkgExePath(this.vcpkgDestPath);
-    if (!vcpkgUtils.fileExists(vcpkgExePath)) {
+    const vcpkgExePath: string = utils.getVcpkgExePath(this.vcpkgDestPath);
+    if (!utils.fileExists(vcpkgExePath)) {
       console.log("Building vcpkg is necessary as executable is missing.");
       needRebuild = true;
     } else {
-      if (!vcpkgUtils.isWin32()) {
+      if (!utils.isWin32()) {
         await this.tl.execSync('chmod', ["+x", vcpkgExePath])
       }
     }
@@ -355,31 +355,31 @@ export class VcpkgRunner {
   private async build(): Promise<void> {
     // Build vcpkg.
     let bootstrapFileName = 'bootstrap-vcpkg';
-    if (vcpkgUtils.isWin32()) {
+    if (utils.isWin32()) {
       bootstrapFileName += '.bat';
     } else {
       bootstrapFileName += '.sh';
     }
 
-    if (vcpkgUtils.isWin32()) {
+    if (utils.isWin32()) {
       const cmdPath: string = await this.tl.which('cmd.exe', true);
       const cmdTool = this.tl.tool(cmdPath);
       cmdTool.arg(['/c', path.join(this.vcpkgDestPath, bootstrapFileName)]);
-      vcpkgUtils.throwIfErrorCode(await cmdTool.exec(this.options));
+      utils.throwIfErrorCode(await cmdTool.exec(this.options));
     } else {
       const shPath: string = await this.tl.which('sh', true);
       const shTool = this.tl.tool(shPath);
       const bootstrapFullPath: string = path.join(this.vcpkgDestPath, bootstrapFileName);
-      if (!vcpkgUtils.isWin32()) {
+      if (!utils.isWin32()) {
         await this.tl.execSync('chmod', ["+x", bootstrapFullPath]);
       }
       shTool.arg(['-c', bootstrapFullPath]);
-      vcpkgUtils.throwIfErrorCode(await shTool.exec(this.options));
+      utils.throwIfErrorCode(await shTool.exec(this.options));
     }
 
     // After a build, refetch the commit id of the vcpkg's repo, and store it into the file.
     const builtCommitId = await this.getCommitId();
-    vcpkgUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
+    utils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
     // Keep track of last successful build commit id.
     console.log(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
 

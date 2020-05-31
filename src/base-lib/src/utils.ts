@@ -2,19 +2,19 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as admZip from 'adm-zip';
-import * as fs from 'fs';
+import * as utils from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as ifacelib from './base-lib'
+import * as ifacelib from './base-lib';
+import * as admZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
-import * as globals from './cmake-globals'
-import { using } from "using-statement";
+import * as cmakeGlobals from '../../run-cmake-lib/src/cmake-globals'
+import * as vcpkgGlobals from '../../run-vcpkg-lib/src/vcpkg-globals'
 
-// TODO starts: remove this block and create a class where the BaseLib is passed
-// in ctor
 let baseLib: ifacelib.BaseLib;
+
+export const cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
 
 export function setBaseLib(tl: ifacelib.BaseLib): void {
   baseLib = tl;
@@ -23,7 +23,229 @@ export function setBaseLib(tl: ifacelib.BaseLib): void {
 export function getBaseLib(): ifacelib.BaseLib {
   return baseLib;
 }
-// TODO ends
+
+export async function isVcpkgSubmodule(gitPath: string, fullVcpkgPath: string): Promise<boolean> {
+  try {
+    const options: ifacelib.ExecOptions = {
+      cwd: process.env.BUILD_SOURCESDIRECTORY,
+      failOnStdErr: false,
+      errStream: process.stdout,
+      outStream: process.stdout,
+      ignoreReturnCode: true,
+      silent: false,
+      windowsVerbatimArguments: false,
+      env: process.env
+    } as ifacelib.ExecOptions;
+
+    const res: ifacelib.ExecResult = await baseLib.execSync(gitPath, ['submodule', 'status', fullVcpkgPath], options);
+    let isSubmodule = false;
+    if (res.error !== null) {
+      isSubmodule = res.code == 0;
+      let msg: string;
+      msg = `'git submodule ${fullVcpkgPath}': exit code='${res.code}' `;
+      if (res.stdout !== null) {
+        msg += `, stdout='${res.stdout.trim()}'`;
+      }
+      if (res.stderr !== null) {
+        msg += `, stderr='${res.stderr.trim()}'`;
+      }
+      msg += '.';
+
+      baseLib.debug(msg);
+    }
+
+    return isSubmodule;
+  }
+  catch (error) {
+    baseLib.warning(`ïsVcpkgSubmodule() failed: ${error}`);
+    return false;
+  }
+}
+
+export function throwIfErrorCode(errorCode: number): void {
+  if (errorCode !== 0) {
+    const errMsg = `Last command execution failed with error code '${errorCode}'.`;
+    baseLib.error(errMsg);
+    throw new Error(errMsg);
+  }
+}
+
+export function isWin32(): boolean {
+  return os.platform().toLowerCase() === 'win32';
+}
+
+export function isMacos(): boolean {
+  return os.platform().toLowerCase() === 'darwin';
+}
+
+// freeBSD or openBSD
+export function isBSD(): boolean {
+  return os.platform().toLowerCase().indexOf("bsd") != -1;
+}
+
+export function isLinux(): boolean {
+  return os.platform().toLowerCase() === 'linux';
+}
+
+export function isDarwin(): boolean {
+  return os.platform().toLowerCase() === 'Darwin';
+}
+
+export function getVcpkgExePath(vcpkgRoot: string): string {
+  const vcpkgExe: string = isWin32() ? "vcpkg.exe" : "vcpkg"
+  const vcpkgExePath: string = path.join(vcpkgRoot, vcpkgExe);
+  return vcpkgExePath;
+}
+
+export function directoryExists(path: string): boolean {
+  try {
+    return baseLib.stats(path).isDirectory();
+  } catch (error) {
+    baseLib.debug(`directoryExists(${path}): ${"" + error}`);
+    return false;
+  }
+}
+
+export function fileExists(path: string): boolean {
+  try {
+    return baseLib.stats(path).isFile();
+  } catch (error) {
+    baseLib.debug(`fileExists(${path}): ${"" + error}`);
+    return false;
+  }
+}
+
+export function readFile(path: string): [boolean, string] {
+  try {
+    const readString: string = utils.readFileSync(path, { encoding: 'utf8', flag: 'r' });
+    baseLib.debug(`readFile(${path})='${readString}'.`);
+    return [true, readString];
+  } catch (error) {
+    baseLib.debug(`readFile(${path}): ${"" + error}`);
+    return [false, error];
+  }
+}
+
+export function writeFile(file: string, content: string): void {
+  baseLib.debug(`Writing to file '${file}' content '${content}'.`);
+  baseLib.writeFile(file, content);
+}
+
+export function getDefaultTriplet(): string {
+  const envVar = process.env["VCPKG_DEFAULT_TRIPLET"];
+  if (envVar) {
+    return envVar;
+  } else {
+    if (isWin32()) {
+      return "x86-windows";
+    } else if (isLinux()) {
+      return "x64-linux";
+    } else if (isMacos()) {
+      return "x64-osx";
+    } else if (isBSD()) {
+      return "x64-freebsd";
+    }
+  }
+  return "";
+}
+
+export function extractTriplet(args: string, readFile: (path: string) => [boolean, string]): string | null {
+  let triplet: string | null = null;
+  // Split string on any 'whitespace' character
+  const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
+  let index = 0;
+  for (; index < argsSplitted.length; index++) {
+    let arg: string = argsSplitted[index].trim();
+    // remove all whitespace characters (e.g. newlines, tabs, blanks)
+    arg = arg.replace(/\s/, '')
+    if (arg === "--triplet") {
+      index++;
+      if (index < argsSplitted.length) {
+        triplet = argsSplitted[index];
+        return triplet.trim();
+      }
+    }
+    if (arg.startsWith("@")) {
+      const [ok, content] = readFile(arg.substring(1));
+      if (ok) {
+        const t = extractTriplet(content, readFile);
+        if (t) {
+          return t.trim();
+        }
+      }
+    }
+  }
+  return triplet;
+}
+
+export function resolveArguments(args: string, readFile: (path: string) => [boolean, string]): string {
+  let resolvedArguments = "";
+
+  // Split string on any 'whitespace' character
+  const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
+  let index = 0;
+  for (; index < argsSplitted.length; index++) {
+    let arg: string = argsSplitted[index].trim();
+    // remove all whitespace characters (e.g. newlines, tabs, blanks)
+    arg = arg.replace(/\s/, '');
+    let isResponseFile = false;
+    if (arg.startsWith("@")) {
+      const resolvedFilePath: string = baseLib.resolve(arg);
+      if (baseLib.exist(resolvedFilePath)) {
+        const [ok, content] = readFile(resolvedFilePath);
+        if (ok && content) {
+          isResponseFile = true;
+          resolvedArguments += content;
+        }
+      }
+    }
+
+    if (!isResponseFile) {
+      resolvedArguments += arg;
+    }
+  }
+
+  return resolvedArguments;
+}
+
+// Force 'name' env variable to have value of 'value'.
+export function setEnvVar(name: string, value: string): void {
+  // Set variable both as env var and as step variable, which might be re-used in subseqeunt steps.  
+  process.env[name] = value;
+  baseLib.setVariable(name, value);
+  baseLib.debug(`Set variable and the env variable '${name}' to value '${value}'.`);
+}
+
+export function trimString(value?: string): string {
+  return value?.trim() ?? "";
+}
+
+export async function wrapOp<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  baseLib.beginOperation(name);
+
+  let result: T
+
+  try {
+    result = await fn();
+  } finally {
+    baseLib.endOperation();
+  }
+
+  return result
+}
+
+export function wrapOpSync<T>(name: string, fn: () => T): T {
+  baseLib.beginOperation(name);
+
+  let result: T;
+  try {
+    result = fn();
+  } finally {
+    baseLib.endOperation();
+  }
+
+  return result;
+}
 
 function isVariableStrippingPath(variableName: string): boolean {
   // Avoid that the PATH is minimized by MSBuild props:
@@ -85,8 +307,8 @@ export function removeToolchainFile(args: string[]): string[] {
   return args.filter(a => !/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/.test(a));
 }
 
-export function mkdir(target: string, options: fs.MakeDirectoryOptions): void {
-  fs.mkdirSync(target, options);
+export function mkdir(target: string, options: utils.MakeDirectoryOptions): void {
+  utils.mkdirSync(target, options);
 }
 
 export function rm(target: string): void {
@@ -94,7 +316,7 @@ export function rm(target: string): void {
 }
 
 export function test(aPath: any): boolean {
-  const result: boolean = fs.existsSync(aPath);
+  const result: boolean = utils.existsSync(aPath);
   return result;
 }
 
@@ -124,7 +346,7 @@ export async function downloadFile(url: string): Promise<string> {
 
     // download the file
     mkdir(downloadsDirectory, { recursive: true });
-    const file: fs.WriteStream = fs.createWriteStream(targetPath, { autoClose: true });
+    const file: utils.WriteStream = utils.createWriteStream(targetPath, { autoClose: true });
 
     return new Promise<string>((resolve: any, reject: any) => {
       const request = http.https.get(url, (response) => {
@@ -132,7 +354,7 @@ export async function downloadFile(url: string): Promise<string> {
           baseLib.debug(`statusCode: ${response.statusCode}.`);
           baseLib.debug(`headers: ${response.headers}.`)
           console.log(`'${url}' downloaded to: '${targetPath}'`);
-          fs.writeFileSync(marker, '');
+          utils.writeFileSync(marker, '');
           request.end();
           resolve(targetPath)
         }).on('error', (error: Error) =>
@@ -140,18 +362,6 @@ export async function downloadFile(url: string): Promise<string> {
       });
     });
   }
-}
-
-export function isWin32(): boolean {
-  return os.platform().toLowerCase() === 'win32';
-}
-
-export function isLinux(): boolean {
-  return os.platform().toLowerCase() === 'linux';
-}
-
-export function isDarwin(): boolean {
-  return os.platform().toLowerCase() === 'darwin';
 }
 
 export class Downloader {
@@ -185,7 +395,7 @@ export class Downloader {
         zip.extractAllTo(targetPath, true);
 
         // write the completed file marker.
-        fs.writeFileSync(marker, '');
+        utils.writeFileSync(marker, '');
       }
 
       return targetPath;
@@ -217,9 +427,9 @@ function parseVcpkgEnvOutput(data: string): VarMap {
 
 export async function injectEnvVariables(vcpkgRoot: string, triplet: string): Promise<void> {
   if (!vcpkgRoot) {
-    vcpkgRoot = process.env[globals.outVcpkgRootPath] ?? "";
+    vcpkgRoot = process.env[vcpkgGlobals.outVcpkgRootPath] ?? "";
     if (!vcpkgRoot) {
-      throw new Error(`${globals.outVcpkgRootPath} environment variable is not set.`);
+      throw new Error(`${vcpkgGlobals.outVcpkgRootPath} environment variable is not set.`);
     }
   }
 
@@ -267,7 +477,7 @@ export async function injectEnvVariables(vcpkgRoot: string, triplet: string): Pr
 
 export async function injectVcpkgToolchain(args: string[], triplet: string): Promise<string[]> {
   args = args ?? [];
-  const vcpkgRoot: string | undefined = process.env[globals.outVcpkgRootPath];
+  const vcpkgRoot: string | undefined = process.env[vcpkgGlobals.outVcpkgRootPath];
 
   // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put aside into
   // VCPKG_CHAINLOAD_TOOLCHAIN_FILE the existing toolchain.
@@ -343,54 +553,10 @@ export function normalizePath(aPath: string): string {
   return aPath;
 }
 
-export async function wrapOp<T>(name: string, fn: () => Promise<T>): Promise<T> {
-  baseLib.beginOperation(name);
-
-  let result: T
-
-  try {
-    result = await fn();
-  } finally {
-    baseLib.endOperation();
-  }
-
-  return result
-}
-
-export function wrapOpSync<T>(name: string, fn: () => T): T {
-  baseLib.beginOperation(name);
-
-  let result: T;
-  try {
-    result = fn();
-  } finally {
-    baseLib.endOperation();
-  }
-
-  return result;
-}
-
 export class Matcher {
   constructor(private name: string, private fromPath?: string) {
     const matcherFilePath = path.join(__dirname, `${name}.json`);
     fromPath;
-    /* //?? TODO This code should be removed.
-    if (fromPath) {
-      try {
-        const content = fs.readFileSync(matcherFilePath);
-        const json: any = JSON.parse(content.toString());
-        json.problemMatcher[0].pattern[0].fromPath = fromPath;
-        fs.writeFileSync(matcherFilePath, JSON.stringify(json),
-          {
-            encoding: "utf8",
-            flag: "w+"
-          });
-        baseLib.debug(fs.readFileSync(matcherFilePath).toString());
-      } catch (err) {
-        baseLib.debug(`Failure in Matcher: ${err}`);
-      }
-    }*/
-
     baseLib.addMatcher(matcherFilePath);
   }
 

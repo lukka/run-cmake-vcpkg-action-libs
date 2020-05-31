@@ -10,7 +10,10 @@ This repository contains the core engine for:
 # Developers information
 
 ## Prerequisites
-[gulp 4](https://www.npmjs.com/package/gulp4) globally installed.
+
+Install npm, and install all dependencies:
+ 
+ > npm install
 
 ## Build and lint
 Build with `tsc` running:
@@ -20,6 +23,12 @@ Build with `tsc` running:
 Launch `lint` by:
 
  > npm run lint
+
+## Test
+
+Launch tests with:
+
+ > npm run test
 
 ## <a id='contributing'>Contributing</a>
 

@@ -8,4 +8,7 @@ token.txt
 .taskkey
 .vscode
 *.tgz
-build-run-cmake-vcpkg-libs
+/dist
+/lib
+build
+**/*.d.ts

@@ -22,6 +22,11 @@ jobs:
         node-version: '10.x'
     - run: |
         npm install
-        npm run build
+        npm run build        
+      name: npm run build
+    - run: |
         npm run lint
-      name: npm install/build/lint 
+      name: npm run lint
+    - run: |
+        npm run test
+      name: npm run test
