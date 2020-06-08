@@ -3,12 +3,12 @@
 // SPDX short identifier: MIT
 
 import * as stream from 'stream';
-import * as ifacelib from '@lukka/base-lib';
+import * as baselib from '@lukka/base-lib';
 import * as tl from 'azure-pipelines-task-lib/task';
 import * as trm from 'azure-pipelines-task-lib/toolrunner';
 import * as fs from 'fs';
 
-export class TaskToolRunner implements ifacelib.ToolRunner {
+export class TaskToolRunner implements baselib.ToolRunner {
   private readonly toolRunner: trm.ToolRunner;
 
   constructor(private path: string) {
@@ -18,7 +18,7 @@ export class TaskToolRunner implements ifacelib.ToolRunner {
     this.toolRunner = tl.tool(this.path);
   }
 
-  exec(options: ifacelib.ExecOptions): Promise<number> {
+  exec(options: baselib.ExecOptions): Promise<number> {
     const options2: trm.IExecOptions = this.convertExecOptions(options);
     options2.cwd = options.cwd;
 
@@ -37,19 +37,19 @@ export class TaskToolRunner implements ifacelib.ToolRunner {
     this.toolRunner.arg(val);
   }
 
-  execSync(options?: ifacelib.ExecOptions): Promise<ifacelib.ExecResult> {
+  execSync(options?: baselib.ExecOptions): Promise<baselib.ExecResult> {
     const res: trm.IExecSyncResult = this.toolRunner.execSync(options);
-    const res2: ifacelib.ExecResult = {
+    const res2: baselib.ExecResult = {
       stdout: res.stdout,
       stderr: res.stderr,
       code: res.code,
       error: res.error
-    } as ifacelib.ExecResult;
+    } as baselib.ExecResult;
 
     return Promise.resolve(res2);
   }
 
-  private convertExecOptions(options: ifacelib.ExecOptions): trm.IExecOptions {
+  private convertExecOptions(options: baselib.ExecOptions): trm.IExecOptions {
     const result: trm.IExecOptions = {
       cwd: options.cwd ?? process.cwd(),
       env: options.env ?? process.env,
@@ -64,7 +64,7 @@ export class TaskToolRunner implements ifacelib.ToolRunner {
   }
 }
 
-export class TaskLib implements ifacelib.BaseLib {
+export class TaskLib implements baselib.BaseLib {
 
   getInput(name: string, required: boolean): string | undefined {
     return tl.getInput(name, required);
@@ -110,22 +110,22 @@ export class TaskLib implements ifacelib.BaseLib {
     tl.warning(message);
   }
 
-  tool(name: string): ifacelib.ToolRunner {
+  tool(name: string): baselib.ToolRunner {
     return new TaskToolRunner(name);
   }
 
-  exec(name: string, args: string[], options?: ifacelib.ExecOptions): Promise<number> {
+  exec(name: string, args: string[], options?: baselib.ExecOptions): Promise<number> {
     return Promise.resolve(tl.exec(name, args, options));
   }
 
-  execSync(name: string, args: string[], options?: ifacelib.ExecOptions): Promise<ifacelib.ExecResult> {
+  execSync(name: string, args: string[], options?: baselib.ExecOptions): Promise<baselib.ExecResult> {
     const res = tl.execSync(name, args, options);
-    const res2: ifacelib.ExecResult = {
+    const res2: baselib.ExecResult = {
       code: res.code,
       stdout: res.stdout,
       stderr: res.stderr,
       error: res.error
-    } as ifacelib.ExecResult;
+    } as baselib.ExecResult;
 
     return Promise.resolve(res2);
   }

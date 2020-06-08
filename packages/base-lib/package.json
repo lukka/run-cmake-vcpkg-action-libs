@@ -17,7 +17,6 @@
   "scripts": {
     "build": "tsc -b . -v",
     "lint": "eslint src/*.ts",
-    "pack": "tsc -b . -v",
     "test": "jest"
   },
   "devDependencies": {

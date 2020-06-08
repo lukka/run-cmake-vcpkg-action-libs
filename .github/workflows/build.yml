@@ -24,7 +24,7 @@ jobs:
       with:
         node-version: 12.x
     - run: |
-        npm install -dd
+        npm install
         npm run bootstrap
         npm run build
       shell: bash

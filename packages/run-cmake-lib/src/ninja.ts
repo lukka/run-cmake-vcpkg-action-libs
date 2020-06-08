@@ -3,63 +3,69 @@
 // SPDX short identifier: MIT
 
 import * as path from 'path';
-import * as ifacelib from '@lukka/base-lib';
-import * as utils from '@lukka/base-lib/src/utils'
-
-export async function findNinjaTool(): Promise<string> {
-  const ninjaPath = await utils.getBaseLib().which('ninja', false);
-  return ninjaPath;
-};
+import * as baselib from '@lukka/base-lib';
 
 export class NinjaDownloader {
-  static baseUrl =
+  private static readonly baseUrl =
     'https://github.com/ninja-build/ninja/releases/download/v1.10.0';
 
-  static async download(url: string): Promise<string> {
+  private readonly baseUtils: baselib.BaseLibUtils;
+
+  constructor(private readonly baseLib: baselib.BaseLib) {
+    this.baseUtils = new baselib.BaseLibUtils(baseLib);
+  }
+
+  async download(url: string): Promise<string> {
     let ninjaPath = '';
 
     if (!url) {
-      if (utils.isLinux()) {
+      if (this.baseUtils.isLinux()) {
         url = `${NinjaDownloader.baseUrl}/ninja-linux.zip`;
-      } else if (utils.isDarwin()) {
+      } else if (this.baseUtils.isDarwin()) {
         url = `${NinjaDownloader.baseUrl}/ninja-mac.zip`;
-      } else if (utils.isWin32()) {
+      } else if (this.baseUtils.isWin32()) {
         url = `${NinjaDownloader.baseUrl}/ninja-win.zip`;
       }
     }
 
     // Create the name of the executable, i.e. ninja or ninja.exe .
     let ninjaExeName = 'ninja';
-    if (utils.isWin32()) {
+    if (this.baseUtils.isWin32()) {
       ninjaExeName += ".exe";
     }
 
-    ninjaPath = await utils.Downloader.downloadArchive(url);
+    ninjaPath = await this.baseUtils.downloadArchive(url);
     ninjaPath = path.join(ninjaPath, ninjaExeName);
-    if (utils.isLinux() || utils.isDarwin()) {
-      await utils.getBaseLib().exec('chmod', ['+x', ninjaPath]);
+    if (this.baseUtils.isLinux() || this.baseUtils.isDarwin()) {
+      await this.baseLib.exec('chmod', ['+x', ninjaPath]);
     }
 
     return `${ninjaPath}`;
   }
-}
 
-export async function retrieveNinjaPath(ninjaPath: string | undefined, ninjaDownloadUrl: string): Promise<string> {
-  const baseLib: ifacelib.BaseLib = utils.getBaseLib();
-  if (!ninjaPath) {
-    baseLib.debug("Path to ninja executable has not been explicitly specified on the task. Searching for it now...");
+  private async findNinjaTool(): Promise<string> {
+    const ninjaPath = await this.baseLib.which('ninja', false);
+    return ninjaPath;
+  };
 
-    ninjaPath = await findNinjaTool();
+
+
+  public async retrieveNinjaPath(ninjaPath: string | undefined, ninjaDownloadUrl: string): Promise<string> {
     if (!ninjaPath) {
-      baseLib.debug("Cannot find Ninja in PATH environment variable.");
-      ninjaPath =
-        await NinjaDownloader.download(ninjaDownloadUrl);
+      this.baseLib.debug("Path to ninja executable has not been explicitly specified on the task. Searching for it now...");
+
+      ninjaPath = await this.findNinjaTool();
       if (!ninjaPath) {
-        throw new Error("Cannot find nor download Ninja.");
+        this.baseLib.debug("Cannot find Ninja in PATH environment variable.");
+        ninjaPath =
+          await this.download(ninjaDownloadUrl);
+        if (!ninjaPath) {
+          throw new Error("Cannot find nor download Ninja.");
+        }
       }
     }
-  }
-  baseLib.debug(`Returning ninja at: ${ninjaPath}`);
-  return ninjaPath;
-}
 
+    this.baseLib.debug(`Returning ninja at: ${ninjaPath}`);
+    return ninjaPath;
+  }
+}

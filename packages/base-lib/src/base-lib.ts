@@ -5,6 +5,8 @@
 import * as stream from 'stream';
 import * as fs from 'fs';
 
+export interface VarMap { [key: string]: string };
+
 export interface ToolRunner {
   exec(options: ExecOptions): Promise<number>;
   line(line: string): void;

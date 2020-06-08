@@ -2,7 +2,7 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as ifacelib from '@lukka/base-lib';
+import * as baselib from '@lukka/base-lib';
 import * as utils from '@lukka/base-lib/src/utils'
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -11,8 +11,8 @@ import * as stripJsonComments from 'strip-json-comments';
 import * as ninjalib from './ninja';
 import * as globals from './cmake-globals'
 import * as cmakerunner from './cmake-runner'
+import * as cmakeutil from './utils'
 import { using } from "using-statement";
-import { outVcpkgRootPath } from './vcpkg-globals';
 
 export interface EnvironmentMap { [name: string]: Environment }
 
@@ -229,7 +229,7 @@ export class PropertyEvaluator {
   public constructor(
     public config: Configuration,
     public globalEnvs: EnvironmentMap,
-    private tl: ifacelib.BaseLib) {
+    private tl: baselib.BaseLib) {
     this.createLocalVars();
   }
 
@@ -450,7 +450,12 @@ export function parseConfigurations(configurationsJson: any, cmakeSettingsJson: 
 }
 
 export class CMakeSettingsJsonRunner {
+  private readonly baseUtils: baselib.BaseLibUtils;
+  private readonly cmakeUtils: cmakeutil.CMakeUtils;
+  private readonly ninjaLib: ninjalib.NinjaDownloader;
+
   constructor(
+    private readonly baseLib: baselib.BaseLib,
     private readonly cmakeSettingsJson: string,
     private readonly configurationFilter: string,
     private readonly appendedCMakeArgs: string,
@@ -462,13 +467,17 @@ export class CMakeSettingsJsonRunner {
     private readonly ninjaDownloadUrl: string,
     private readonly sourceScript: string,
     private readonly buildDir: string,
-    private readonly tl: ifacelib.BaseLib) {
+    private readonly tl: baselib.BaseLib) {
     this.configurationFilter = configurationFilter;
 
     this.buildDir = path.normalize(path.resolve(this.buildDir));
     if (!fs.existsSync(cmakeSettingsJson)) {
       throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
     }
+
+    this.baseUtils = new baselib.BaseLibUtils(this.baseLib);
+    this.cmakeUtils = new cmakeutil.CMakeUtils(this.baseUtils);
+    this.ninjaLib = new ninjalib.NinjaDownloader(this.tl);
   }
 
   private parseConfigurations(json: any): Configuration[] {
@@ -533,7 +542,7 @@ export class CMakeSettingsJsonRunner {
         let cmakeArgs: string[] = [];
 
         // Search for CMake tool and run it
-        let cmake: ifacelib.ToolRunner;
+        let cmake: baselib.ToolRunner;
         if (this.sourceScript) {
           cmake = this.tl.tool(this.sourceScript);
           cmakeArgs.push(await this.tl.which('cmake', true));
@@ -557,7 +566,7 @@ export class CMakeSettingsJsonRunner {
         // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
         console.log(`Note: the run-cmake task always ignore the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
         const artifactsDir = await this.tl.getArtifactsDir();
-        if (utils.normalizePath(this.buildDir) === utils.normalizePath(artifactsDir)) {
+        if (utils.BaseLibUtils.normalizePath(this.buildDir) === utils.BaseLibUtils.normalizePath(artifactsDir)) {
           // The build directory goes into the artifact directory in a subdir
           // named with the configuration name.
           evaledConf.buildDir = path.join(artifactsDir, configuration.name);
@@ -569,8 +578,8 @@ export class CMakeSettingsJsonRunner {
         console.log(`Overriding build directory to: '${evaledConf.buildDir}'`);
 
         cmakeArgs = cmakeArgs.concat(evaledConf.getGeneratorArgs().filter(this.notEmpty));
-        if (utils.isNinjaGenerator(cmakeArgs)) {
-          const ninjaPath: string = await ninjalib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
+        if (this.baseUtils.isNinjaGenerator(cmakeArgs)) {
+          const ninjaPath: string = await this.ninjaLib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
           cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
         }
 
@@ -588,7 +597,7 @@ export class CMakeSettingsJsonRunner {
 
         // Use vcpkg toolchain if requested.
         if (this.useVcpkgToolchain === true) {
-          cmakeArgs = await utils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet, this.tl, outVcpkgRootPath)
+          cmakeArgs = await this.cmakeUtils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet, this.tl)
         }
 
         // Add the current args in the tool, add
@@ -623,20 +632,20 @@ export class CMakeSettingsJsonRunner {
           silent: false,
           windowsVerbatimArguments: false,
           env: process.env
-        } as ifacelib.ExecOptions;
+        } as baselib.ExecOptions;
 
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
         let code = -1;
-        await using(utils.createMatcher('cmake', this.cmakeSettingsJson), async matcher => {
-          code = await utils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
+        await using(utils.Matcher.createMatcher('cmake', this.baseLib, this.cmakeSettingsJson), async matcher => {
+          code = await this.baseUtils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
         });
         if (code !== 0) {
           throw new Error(`"CMake failed with error code: '${code}'."`);
         }
 
         if (this.doBuild) {
-          await using(utils.createMatcher(cmakerunner.CMakeRunner.getBuildMatcher(this.buildDir, this.tl)), async matcher => {
-            await utils.wrapOp("Build with CMake", async () => await cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
+          await using(utils.Matcher.createMatcher(cmakerunner.CMakeRunner.getBuildMatcher(this.buildDir, this.tl), this.tl), async matcher => {
+            await this.baseUtils.wrapOp("Build with CMake", async () => await cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
               // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
               //only. They need to be put after '--', otherwise would be passed to directly to cmake.
               ` ${evaledConf.getGeneratorBuildArgs()} -- ${evaledConf.makeArgs}`,

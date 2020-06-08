@@ -14,8 +14,8 @@
     "bootstrap": "npx lerna bootstrap",
     "build": "npx lerna run build",
     "lint": "npx lerna run lint",
-    "pack": "tsc -b . -v",
-    "test": "jest"
+    "pack": "npx lerna run pack",
+    "test": "npx lerne run test"
   },
 	"devDependencies": {
 		"@types/jest": "^25.2.3",

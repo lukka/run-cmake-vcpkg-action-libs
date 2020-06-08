@@ -5,373 +5,358 @@
 import * as utils from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as ifacelib from './base-lib';
+import * as baselib from './base-lib';
 import * as admZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
+import * as baselibutils from './utils'
 
-let baseLib: ifacelib.BaseLib;
+export class BaseLibUtils {
 
-export const cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
+  public readonly cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
 
-export function setBaseLib(tl: ifacelib.BaseLib): void {
-  baseLib = tl;
-}
+  public constructor(private baseLib: baselib.BaseLib) {
+  }
 
-export function getBaseLib(): ifacelib.BaseLib {
-  return baseLib;
-}
+  public async isVcpkgSubmodule(gitPath: string, fullVcpkgPath: string): Promise<boolean> {
+    try {
+      const options: baselib.ExecOptions = {
+        cwd: process.env.BUILD_SOURCESDIRECTORY,
+        failOnStdErr: false,
+        errStream: process.stdout,
+        outStream: process.stdout,
+        ignoreReturnCode: true,
+        silent: false,
+        windowsVerbatimArguments: false,
+        env: process.env
+      } as baselib.ExecOptions;
 
-export async function isVcpkgSubmodule(gitPath: string, fullVcpkgPath: string): Promise<boolean> {
-  try {
-    const options: ifacelib.ExecOptions = {
-      cwd: process.env.BUILD_SOURCESDIRECTORY,
-      failOnStdErr: false,
-      errStream: process.stdout,
-      outStream: process.stdout,
-      ignoreReturnCode: true,
-      silent: false,
-      windowsVerbatimArguments: false,
-      env: process.env
-    } as ifacelib.ExecOptions;
+      const res: baselib.ExecResult = await this.baseLib.execSync(gitPath, ['submodule', 'status', fullVcpkgPath], options);
+      let isSubmodule = false;
+      if (res.error !== null) {
+        isSubmodule = res.code == 0;
+        let msg: string;
+        msg = `'git submodule ${fullVcpkgPath}': exit code='${res.code}' `;
+        if (res.stdout !== null) {
+          msg += `, stdout='${res.stdout.trim()}'`;
+        }
+        if (res.stderr !== null) {
+          msg += `, stderr='${res.stderr.trim()}'`;
+        }
+        msg += '.';
 
-    const res: ifacelib.ExecResult = await baseLib.execSync(gitPath, ['submodule', 'status', fullVcpkgPath], options);
-    let isSubmodule = false;
-    if (res.error !== null) {
-      isSubmodule = res.code == 0;
-      let msg: string;
-      msg = `'git submodule ${fullVcpkgPath}': exit code='${res.code}' `;
-      if (res.stdout !== null) {
-        msg += `, stdout='${res.stdout.trim()}'`;
+        this.baseLib.debug(msg);
       }
-      if (res.stderr !== null) {
-        msg += `, stderr='${res.stderr.trim()}'`;
-      }
-      msg += '.';
 
-      baseLib.debug(msg);
+      return isSubmodule;
     }
-
-    return isSubmodule;
-  }
-  catch (error) {
-    baseLib.warning(`ïsVcpkgSubmodule() failed: ${error}`);
-    return false;
-  }
-}
-
-export function throwIfErrorCode(errorCode: number): void {
-  if (errorCode !== 0) {
-    const errMsg = `Last command execution failed with error code '${errorCode}'.`;
-    baseLib.error(errMsg);
-    throw new Error(errMsg);
-  }
-}
-
-export function isWin32(): boolean {
-  return os.platform().toLowerCase() === 'win32';
-}
-
-export function isMacos(): boolean {
-  return os.platform().toLowerCase() === 'darwin';
-}
-
-// freeBSD or openBSD
-export function isBSD(): boolean {
-  return os.platform().toLowerCase().indexOf("bsd") != -1;
-}
-
-export function isLinux(): boolean {
-  return os.platform().toLowerCase() === 'linux';
-}
-
-export function isDarwin(): boolean {
-  return os.platform().toLowerCase() === 'Darwin';
-}
-
-export function getVcpkgExePath(vcpkgRoot: string): string {
-  const vcpkgExe: string = isWin32() ? "vcpkg.exe" : "vcpkg"
-  const vcpkgExePath: string = path.join(vcpkgRoot, vcpkgExe);
-  return vcpkgExePath;
-}
-
-export function directoryExists(path: string): boolean {
-  try {
-    return baseLib.stats(path).isDirectory();
-  } catch (error) {
-    baseLib.debug(`directoryExists(${path}): ${"" + error}`);
-    return false;
-  }
-}
-
-export function fileExists(path: string): boolean {
-  try {
-    return baseLib.stats(path).isFile();
-  } catch (error) {
-    baseLib.debug(`fileExists(${path}): ${"" + error}`);
-    return false;
-  }
-}
-
-export function readFile(path: string): [boolean, string] {
-  try {
-    const readString: string = utils.readFileSync(path, { encoding: 'utf8', flag: 'r' });
-    baseLib.debug(`readFile(${path})='${readString}'.`);
-    return [true, readString];
-  } catch (error) {
-    baseLib.debug(`readFile(${path}): ${"" + error}`);
-    return [false, error];
-  }
-}
-
-export function writeFile(file: string, content: string): void {
-  baseLib.debug(`Writing to file '${file}' content '${content}'.`);
-  baseLib.writeFile(file, content);
-}
-
-export function getDefaultTriplet(): string {
-  const envVar = process.env["VCPKG_DEFAULT_TRIPLET"];
-  if (envVar) {
-    return envVar;
-  } else {
-    if (isWin32()) {
-      return "x86-windows";
-    } else if (isLinux()) {
-      return "x64-linux";
-    } else if (isMacos()) {
-      return "x64-osx";
-    } else if (isBSD()) {
-      return "x64-freebsd";
+    catch (error) {
+      this.baseLib.warning(`ïsVcpkgSubmodule() failed: ${error}`);
+      return false;
     }
   }
-  return "";
-}
 
-export function extractTriplet(args: string, readFile: (path: string) => [boolean, string]): string | null {
-  let triplet: string | null = null;
-  // Split string on any 'whitespace' character
-  const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
-  let index = 0;
-  for (; index < argsSplitted.length; index++) {
-    let arg: string = argsSplitted[index].trim();
-    // remove all whitespace characters (e.g. newlines, tabs, blanks)
-    arg = arg.replace(/\s/, '')
-    if (arg === "--triplet") {
-      index++;
-      if (index < argsSplitted.length) {
-        triplet = argsSplitted[index];
-        return triplet.trim();
+  public throwIfErrorCode(errorCode: number): void {
+    if (errorCode !== 0) {
+      const errMsg = `Last command execution failed with error code '${errorCode}'.`;
+      this.baseLib.error(errMsg);
+      throw new Error(errMsg);
+    }
+  }
+
+  public isWin32(): boolean {
+    return os.platform().toLowerCase() === 'win32';
+  }
+
+  public isMacos(): boolean {
+    return os.platform().toLowerCase() === 'darwin';
+  }
+
+  // freeBSD or openBSD
+  public isBSD(): boolean {
+    return os.platform().toLowerCase().indexOf("bsd") != -1;
+  }
+
+  public isLinux(): boolean {
+    return os.platform().toLowerCase() === 'linux';
+  }
+
+  public isDarwin(): boolean {
+    return os.platform().toLowerCase() === 'Darwin';
+  }
+
+  public getVcpkgExePath(vcpkgRoot: string): string {
+    const vcpkgExe: string = this.isWin32() ? "vcpkg.exe" : "vcpkg"
+    const vcpkgExePath: string = path.join(vcpkgRoot, vcpkgExe);
+    return vcpkgExePath;
+  }
+
+  public directoryExists(path: string): boolean {
+    try {
+      return this.baseLib.stats(path).isDirectory();
+    } catch (error) {
+      this.baseLib.debug(`directoryExists(${path}): ${"" + error}`);
+      return false;
+    }
+  }
+
+  public fileExists(path: string): boolean {
+    try {
+      return this.baseLib.stats(path).isFile();
+    } catch (error) {
+      this.baseLib.debug(`fileExists(${path}): ${"" + error}`);
+      return false;
+    }
+  }
+
+  public readFile(path: string): [boolean, string] {
+    try {
+      const readString: string = utils.readFileSync(path, { encoding: 'utf8', flag: 'r' });
+      this.baseLib.debug(`readFile(${path})='${readString}'.`);
+      return [true, readString];
+    } catch (error) {
+      this.baseLib.debug(`readFile(${path}): ${"" + error}`);
+      return [false, error];
+    }
+  }
+
+  public writeFile(file: string, content: string): void {
+    this.baseLib.debug(`Writing to file '${file}' content '${content}'.`);
+    this.baseLib.writeFile(file, content);
+  }
+
+  public getDefaultTriplet(): string {
+    const envVar = process.env["VCPKG_DEFAULT_TRIPLET"];
+    if (envVar) {
+      return envVar;
+    } else {
+      if (this.isWin32()) {
+        return "x86-windows";
+      } else if (this.isLinux()) {
+        return "x64-linux";
+      } else if (this.isMacos()) {
+        return "x64-osx";
+      } else if (this.isBSD()) {
+        return "x64-freebsd";
       }
     }
-    if (arg.startsWith("@")) {
-      const [ok, content] = readFile(arg.substring(1));
-      if (ok) {
-        const t = extractTriplet(content, readFile);
-        if (t) {
-          return t.trim();
+    return "";
+  }
+
+  public static extractTriplet(args: string, readFile: (path: string) => [boolean, string]): string | null {
+    let triplet: string | null = null;
+    // Split string on any 'whitespace' character
+    const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
+    let index = 0;
+    for (; index < argsSplitted.length; index++) {
+      let arg: string = argsSplitted[index].trim();
+      // remove all whitespace characters (e.g. newlines, tabs, blanks)
+      arg = arg.replace(/\s/, '')
+      if (arg === "--triplet") {
+        index++;
+        if (index < argsSplitted.length) {
+          triplet = argsSplitted[index];
+          return triplet.trim();
+        }
+      }
+      if (arg.startsWith("@")) {
+        const [ok, content] = readFile(arg.substring(1));
+        if (ok) {
+          const t = BaseLibUtils.extractTriplet(content, readFile);
+          if (t) {
+            return t.trim();
+          }
         }
       }
     }
+    return triplet;
   }
-  return triplet;
-}
 
-export function resolveArguments(args: string, readFile: (path: string) => [boolean, string]): string {
-  let resolvedArguments = "";
+  public resolveArguments(args: string, readFile: (path: string) => [boolean, string]): string {
+    let resolvedArguments = "";
 
-  // Split string on any 'whitespace' character
-  const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
-  let index = 0;
-  for (; index < argsSplitted.length; index++) {
-    let arg: string = argsSplitted[index].trim();
-    // remove all whitespace characters (e.g. newlines, tabs, blanks)
-    arg = arg.replace(/\s/, '');
-    let isResponseFile = false;
-    if (arg.startsWith("@")) {
-      const resolvedFilePath: string = baseLib.resolve(arg);
-      if (baseLib.exist(resolvedFilePath)) {
-        const [ok, content] = readFile(resolvedFilePath);
-        if (ok && content) {
-          isResponseFile = true;
-          resolvedArguments += content;
+    // Split string on any 'whitespace' character
+    const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
+    let index = 0;
+    for (; index < argsSplitted.length; index++) {
+      let arg: string = argsSplitted[index].trim();
+      // remove all whitespace characters (e.g. newlines, tabs, blanks)
+      arg = arg.replace(/\s/, '');
+      let isResponseFile = false;
+      if (arg.startsWith("@")) {
+        const resolvedFilePath: string = this.baseLib.resolve(arg);
+        if (this.baseLib.exist(resolvedFilePath)) {
+          const [ok, content] = readFile(resolvedFilePath);
+          if (ok && content) {
+            isResponseFile = true;
+            resolvedArguments += content;
+          }
+        }
+      }
+
+      if (!isResponseFile) {
+        resolvedArguments += arg;
+      }
+    }
+
+    return resolvedArguments;
+  }
+
+  // Force 'name' env variable to have value of 'value'.
+  public setEnvVar(name: string, value: string): void {
+    // Set variable both as env var and as step variable, which might be re-used in subseqeunt steps.  
+    process.env[name] = value;
+    this.baseLib.setVariable(name, value);
+    this.baseLib.debug(`Set variable and the env variable '${name}' to value '${value}'.`);
+  }
+
+  public trimString(value?: string): string {
+    return value?.trim() ?? "";
+  }
+
+  public async wrapOp<T>(name: string, fn: () => Promise<T>): Promise<T> {
+    this.baseLib.beginOperation(name);
+
+    let result: T
+
+    try {
+      result = await fn();
+    } finally {
+      this.baseLib.endOperation();
+    }
+
+    return result
+  }
+
+  public wrapOpSync<T>(name: string, fn: () => T): T {
+    this.baseLib.beginOperation(name);
+
+    let result: T;
+    try {
+      result = fn();
+    } finally {
+      this.baseLib.endOperation();
+    }
+
+    return result;
+  }
+
+  /**
+   * Check whether the current generator selected in the command line
+   * is -G Ninja or -G Ninja Multi-Config.
+   * @export
+   * @param {string} commandLineString The command line as string
+   * @returns {boolean}
+   */
+  public isNinjaGenerator(args: string[]): boolean {
+    for (const arg of args) {
+      if (/-G[\s]*(?:\"Ninja.*\"|Ninja.*)/.test(arg))
+        return true;
+    }
+
+    return false;
+  }
+
+  public isMakeProgram(args: string[]): boolean {
+    for (const arg of args) {
+      if (/-DCMAKE_MAKE_PROGRAM/.test(arg))
+        return true;
+    }
+
+    return false;
+  }
+
+  public isToolchainFile(args: string[]): boolean {
+    for (const arg of args) {
+      if (/-DCMAKE_TOOLCHAIN_FILE/.test(arg))
+        return true;
+    }
+
+    return false;
+  }
+
+  public getToolchainFile(args: string[]): string | undefined {
+    this.baseLib.debug(`getToolchainFile(${JSON.stringify(args)})<<`);
+    for (const arg of args) {
+      const matches = /-DCMAKE_TOOLCHAIN_FILE(?::[^\s]*)?=([^\s]*)/.exec(arg);
+
+      if (matches != null) {
+        if (matches.length > 1) {
+          this.baseLib.debug(`match found=${matches[1]}`);
+          return matches[1];
         }
       }
     }
 
-    if (!isResponseFile) {
-      resolvedArguments += arg;
+    return undefined;
+  }
+
+  public removeToolchainFile(args: string[]): string[] {
+    return args.filter(a => !/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/.test(a));
+  }
+
+  public mkdir(target: string, options: utils.MakeDirectoryOptions): void {
+    utils.mkdirSync(target, options);
+  }
+
+  public rm(target: string): void {
+    del.sync(target);
+  }
+
+  public test(aPath: any): boolean {
+    const result: boolean = utils.existsSync(aPath);
+    return result;
+  }
+
+  public async downloadFile(url: string): Promise<string> {
+    const downloadsDirName = "dl";
+    // validate parameters
+    if (!url) {
+      throw new Error('downloadFile: Parameter "url" must be set.');
     }
-  }
 
-  return resolvedArguments;
-}
+    const downloadsDirectory = path.join(await this.baseLib.getBinDir(), downloadsDirName);
+    const scrubbedUrl = url.replace(/[/\:?]/g, '_');
+    const targetPath = path.join(downloadsDirectory, scrubbedUrl);
+    const marker = targetPath + '.completed';
 
-// Force 'name' env variable to have value of 'value'.
-export function setEnvVar(name: string, value: string): void {
-  // Set variable both as env var and as step variable, which might be re-used in subseqeunt steps.  
-  process.env[name] = value;
-  baseLib.setVariable(name, value);
-  baseLib.debug(`Set variable and the env variable '${name}' to value '${value}'.`);
-}
+    // skip if already downloaded
+    if (this.test(marker)) {
+      console.log(`Found downloaded file at: ${targetPath}`);
+      return Promise.resolve(targetPath);
+    } else {
+      console.log(`Downloading url '${url}' to file '${targetPath}'.`);
 
-export function trimString(value?: string): string {
-  return value?.trim() ?? "";
-}
-
-export async function wrapOp<T>(name: string, fn: () => Promise<T>): Promise<T> {
-  baseLib.beginOperation(name);
-
-  let result: T
-
-  try {
-    result = await fn();
-  } finally {
-    baseLib.endOperation();
-  }
-
-  return result
-}
-
-export function wrapOpSync<T>(name: string, fn: () => T): T {
-  baseLib.beginOperation(name);
-
-  let result: T;
-  try {
-    result = fn();
-  } finally {
-    baseLib.endOperation();
-  }
-
-  return result;
-}
-
-export function isVariableStrippingPath(variableName: string): boolean {
-  // Avoid that the PATH is minimized by MSBuild props:
-  // https://github.com/lukka/run-cmake/issues/8#issuecomment-606956604
-  return (variableName.toUpperCase() === "__VSCMD_PREINIT_PATH")
-}
-
-/**
- * Check whether the current generator selected in the command line
- * is -G Ninja or -G Ninja Multi-Config.
- * @export
- * @param {string} commandLineString The command line as string
- * @returns {boolean}
- */
-export function isNinjaGenerator(args: string[]): boolean {
-  for (const arg of args) {
-    if (/-G[\s]*(?:\"Ninja.*\"|Ninja.*)/.test(arg))
-      return true;
-  }
-
-  return false;
-}
-
-export function isMakeProgram(args: string[]): boolean {
-  for (const arg of args) {
-    if (/-DCMAKE_MAKE_PROGRAM/.test(arg))
-      return true;
-  }
-
-  return false;
-}
-
-export function isToolchainFile(args: string[]): boolean {
-  for (const arg of args) {
-    if (/-DCMAKE_TOOLCHAIN_FILE/.test(arg))
-      return true;
-  }
-
-  return false;
-}
-
-export function getToolchainFile(args: string[]): string | undefined {
-  baseLib.debug(`getToolchainFile(${JSON.stringify(args)})<<`);
-  for (const arg of args) {
-    const matches = /-DCMAKE_TOOLCHAIN_FILE(?::[^\s]*)?=([^\s]*)/.exec(arg);
-
-    if (matches != null) {
-      if (matches.length > 1) {
-        baseLib.debug(`match found=${matches[1]}`);
-        return matches[1];
+      // delete any previous partial attempt
+      if (this.test(targetPath)) {
+        this.rm(targetPath);
       }
-    }
-  }
 
-  return undefined;
-}
+      // download the file
+      this.mkdir(downloadsDirectory, { recursive: true });
+      const file: utils.WriteStream = utils.createWriteStream(targetPath, { autoClose: true });
 
-export function removeToolchainFile(args: string[]): string[] {
-  return args.filter(a => !/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/.test(a));
-}
-
-export function mkdir(target: string, options: utils.MakeDirectoryOptions): void {
-  utils.mkdirSync(target, options);
-}
-
-export function rm(target: string): void {
-  del.sync(target);
-}
-
-export function test(aPath: any): boolean {
-  const result: boolean = utils.existsSync(aPath);
-  return result;
-}
-
-export async function downloadFile(url: string): Promise<string> {
-  const downloadsDirName = "dl";
-  // validate parameters
-  if (!url) {
-    throw new Error('downloadFile: Parameter "url" must be set.');
-  }
-
-  const downloadsDirectory = path.join(await baseLib.getBinDir(), downloadsDirName);
-  const scrubbedUrl = url.replace(/[/\:?]/g, '_');
-  const targetPath = path.join(downloadsDirectory, scrubbedUrl);
-  const marker = targetPath + '.completed';
-
-  // skip if already downloaded
-  if (test(marker)) {
-    console.log(`Found downloaded file at: ${targetPath}`);
-    return Promise.resolve(targetPath);
-  } else {
-    console.log(`Downloading url '${url}' to file '${targetPath}'.`);
-
-    // delete any previous partial attempt
-    if (test(targetPath)) {
-      rm(targetPath);
-    }
-
-    // download the file
-    mkdir(downloadsDirectory, { recursive: true });
-    const file: utils.WriteStream = utils.createWriteStream(targetPath, { autoClose: true });
-
-    return new Promise<string>((resolve: any, reject: any) => {
-      const request = http.https.get(url, (response) => {
-        response.pipe(file).on('finish', () => {
-          baseLib.debug(`statusCode: ${response.statusCode}.`);
-          baseLib.debug(`headers: ${response.headers}.`)
-          console.log(`'${url}' downloaded to: '${targetPath}'`);
-          utils.writeFileSync(marker, '');
-          request.end();
-          resolve(targetPath)
-        }).on('error', (error: Error) =>
-          reject(new Error(`statusCode='${response.statusCode}', error='${error.toString()}'.`)));
+      return new Promise<string>((resolve: any, reject: any) => {
+        const request = http.https.get(url, (response) => {
+          response.pipe(file).on('finish', () => {
+            this.baseLib.debug(`statusCode: ${response.statusCode}.`);
+            this.baseLib.debug(`headers: ${response.headers}.`)
+            console.log(`'${url}' downloaded to: '${targetPath}'`);
+            utils.writeFileSync(marker, '');
+            request.end();
+            resolve(targetPath)
+          }).on('error', (error: Error) =>
+            reject(new Error(`statusCode='${response.statusCode}', error='${error.toString()}'.`)));
+        });
       });
-    });
-  }
-}
-
-export class Downloader {
-  static async downloadFile(url: string): Promise<string> {
-    return await downloadFile(url);
+    }
   }
 
   /**
    * Downloads and extracts an archive file.
    * @returns The path to the extracted content.
    */
-  static async downloadArchive(url: string): Promise<string> {
+  public async downloadArchive(url: string): Promise<string> {
     if (!url) {
       throw new Error('downloadArchive: url must be provided!');
     }
@@ -380,15 +365,15 @@ export class Downloader {
       const targetFileName: string = url.replace(/[\/\\:?]/g, '_');
       // 'x' for extracted content.
       const targetPath: string =
-        path.join(await baseLib.getBinDir(), 'x', targetFileName);
+        path.join(await this.baseLib.getBinDir(), 'x', targetFileName);
       const marker: string = targetPath + '.completed';
-      if (!test(marker)) {
+      if (!this.test(marker)) {
         // download the whole archive.
-        const archivePath = await downloadFile(url);
+        const archivePath = await this.downloadFile(url);
 
         // extract the archive overwriting anything.
         console.log(`Extracting archive '${archivePath}' ...`);
-        mkdir(targetPath, { recursive: true });
+        this.mkdir(targetPath, { recursive: true });
         const zip = new admZip(archivePath);
         zip.extractAllTo(targetPath, true);
 
@@ -401,168 +386,85 @@ export class Downloader {
       throw new Error(`Failed to download the Ninja executable: '${exception}'.`);
     }
   }
-}
 
-interface VarMap { [key: string]: string };
+  /**
+   * Get a set of commands to be run in the shell of the host OS.
+   * @export
+   * @param {string[]} args
+   * @returns {(trm.ToolRunner | undefined)}
+   */
+  public async getScriptCommand(args: string): Promise<baselib.ToolRunner | undefined> {
 
-export function parseVcpkgEnvOutput(data: string): VarMap {
-  const map: VarMap = {};
-  const regex = {
-    param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
-  };
-  const lines = data.split(/[\r\n]+/);
-  for (const line of lines) {
-    if (regex.param.test(line)) {
-      const match = line.match(regex.param);
-      if (match) {
-        map[match[1]] = match[2];
-      }
+    let tool: baselib.ToolRunner;
+    if (this.isWin32()) {
+      const cmdExe = process.env.COMSPEC ?? "cmd.exe";
+      const cmdPath: string = await this.baseLib.which(cmdExe, true);
+      tool = this.baseLib.tool(cmdPath);
+      tool.arg('/c');
+      tool.line(args);
+    } else {
+      const shPath: string = await this.baseLib.which('sh', true);
+      tool = this.baseLib.tool(shPath);
+      tool.arg('-c');
+      tool.arg(args);
+      return tool;
     }
   }
 
-  return map;
-}
-
-/**
- * Get a set of commands to be run in the shell of the host OS.
- * @export
- * @param {string[]} args
- * @returns {(trm.ToolRunner | undefined)}
- */
-export async function getScriptCommand(args: string): Promise<ifacelib.ToolRunner | undefined> {
-
-  let tool: ifacelib.ToolRunner;
-  if (isWin32()) {
-    const cmdExe = process.env.COMSPEC ?? "cmd.exe";
-    const cmdPath: string = await baseLib.which(cmdExe, true);
-    tool = baseLib.tool(cmdPath);
-    tool.arg('/c');
-    tool.line(args);
-  } else {
-    const shPath: string = await baseLib.which('sh', true);
-    tool = baseLib.tool(shPath);
-    tool.arg('-c');
-    tool.arg(args);
-    return tool;
+  /**
+   * Normalize a filesystem path with path.normalize(), then remove any trailing space.
+   *
+   * @export
+   * @param {string} aPath The string representing a filesystem path.
+   * @returns {string} The normalized path without trailing slash.
+   */
+  public static normalizePath(aPath: string): string {
+    aPath = path.normalize(aPath);
+    if (/[\\\/]$/.test(aPath) && aPath.length > 1)
+      aPath = aPath.slice(0, -1);
+    return aPath;
   }
-}
 
-/**
- * Normalize a filesystem path with path.normalize(), then remove any trailing space.
- *
- * @export
- * @param {string} aPath The string representing a filesystem path.
- * @returns {string} The normalized path without trailing slash.
- */
-export function normalizePath(aPath: string): string {
-  aPath = path.normalize(aPath);
-  if (/[\\\/]$/.test(aPath) && aPath.length > 1)
-    aPath = aPath.slice(0, -1);
-  return aPath;
+  public isVariableStrippingPath(variableName: string): boolean {
+    // Avoid that the PATH is minimized by MSBuild props:
+    // https://github.com/lukka/run-cmake/issues/8#issuecomment-606956604
+    return (variableName.toUpperCase() === "__VSCMD_PREINIT_PATH")
+  }
+
+  public parseVcpkgEnvOutput(data: string): baselib.VarMap {
+    const map: baselib.VarMap = {};
+    const regex = {
+      param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
+    };
+    const lines = data.split(/[\r\n]+/);
+    for (const line of lines) {
+      if (regex.param.test(line)) {
+        const match = line.match(regex.param);
+        if (match) {
+          map[match[1]] = match[2];
+        }
+      }
+    }
+
+    return map;
+  }
+
 }
 
 export class Matcher {
-  constructor(private name: string, private fromPath?: string) {
+  constructor(private name: string, private baseLib: baselib.BaseLib, private fromPath?: string) {
     const matcherFilePath = path.join(__dirname, `${name}.json`);
     fromPath;
-    baseLib.addMatcher(matcherFilePath);
+    this.baseLib.addMatcher(matcherFilePath);
   }
 
   dispose(): void {
-    baseLib.removeMatcher(path.join(__dirname, `${this.name}.json`));
+    this.baseLib.removeMatcher(path.join(__dirname, `${this.name}.json`));
   }
+
+  public static createMatcher(name: string, baseLib: baselib.BaseLib, fromPath?: string): Matcher {
+    return new Matcher(name, baseLib, fromPath);
+  }
+
 }
 
-export function createMatcher(name: string, fromPath?: string): Matcher {
-  return new Matcher(name, fromPath);
-}
-
-export async function injectEnvVariables(vcpkgRoot: string, triplet: string, baseLib: ifacelib.BaseLib, outVcpkgRootPath: string): Promise<void> {
-  if (!vcpkgRoot) {
-    vcpkgRoot = process.env[outVcpkgRootPath] ?? "";
-    if (!vcpkgRoot) {
-      throw new Error(`${outVcpkgRootPath} environment variable is not set.`);
-    }
-  }
-
-  // Search for CMake tool and run it
-  let vcpkgPath: string = path.join(vcpkgRoot, 'vcpkg');
-  if (isWin32()) {
-    vcpkgPath += '.exe';
-  }
-  const vcpkg: ifacelib.ToolRunner = baseLib.tool(vcpkgPath);
-  vcpkg.arg("env");
-  vcpkg.arg("--bin");
-  vcpkg.arg("--include");
-  vcpkg.arg("--tools");
-  vcpkg.arg("--python");
-  vcpkg.line(`--triplet ${triplet} set`);
-
-  const options = {
-    cwd: vcpkgRoot,
-    failOnStdErr: false,
-    errStream: process.stdout,
-    outStream: process.stdout,
-    ignoreReturnCode: true,
-    silent: false,
-    windowsVerbatimArguments: false,
-    env: process.env
-  } as ifacelib.ExecOptions;
-
-  const output = await vcpkg.execSync(options);
-  if (output.code !== 0) {
-    throw new Error(`${output.stdout}\n\n${output.stderr}`);
-  }
-
-  const map = parseVcpkgEnvOutput(output.stdout);
-  for (const key in map) {
-    if (isVariableStrippingPath(key))
-      continue;
-    if (key.toUpperCase() === "PATH") {
-      process.env[key] = process.env[key] + path.delimiter + map[key];
-    } else {
-      process.env[key] = map[key];
-    }
-    baseLib.debug(`set ${key}=${process.env[key]}`)
-  }
-}
-
-export async function injectVcpkgToolchain(args: string[], triplet: string, baseLib: ifacelib.BaseLib, outVcpkgRootPath: string): Promise<string[]> {
-  args = args ?? [];
-  const vcpkgRoot: string | undefined = process.env[outVcpkgRootPath];
-
-  // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put aside into
-  // VCPKG_CHAINLOAD_TOOLCHAIN_FILE the existing toolchain.
-  if (vcpkgRoot && vcpkgRoot.length > 1) {
-    const toolchainFile: string | undefined =
-      getToolchainFile(args);
-    args = removeToolchainFile(args);
-    const vcpkgToolchain: string =
-      path.join(vcpkgRoot, '/scripts/buildsystems/vcpkg.cmake');
-    args.push(`-DCMAKE_TOOLCHAIN_FILE=${vcpkgToolchain}`);
-    if (toolchainFile) {
-      args.push(`-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${toolchainFile}`);
-    }
-
-    // If the triplet is provided, specify the same triplet on the cmd line and set the environment for msvc.
-    if (triplet) {
-      args.push(`-DVCPKG_TARGET_TRIPLET=${triplet}`);
-
-      // For Windows build agents, inject the environment variables used
-      // for the MSVC compiler using the 'vcpkg env' command.
-      // This is not be needed for others compiler on Windows, but it should be harmless.
-      if (isWin32() && triplet) {
-        if (triplet.indexOf("windows") !== -1) {
-          process.env.CC = "cl.exe";
-          process.env.CXX = "cl.exe";
-          baseLib.setVariable("CC", "cl.exe");
-          baseLib.setVariable("CXX", "cl.exe");
-        }
-
-        await injectEnvVariables(vcpkgRoot, triplet, baseLib, outVcpkgRootPath);
-      }
-    }
-  }
-
-  return args;
-}

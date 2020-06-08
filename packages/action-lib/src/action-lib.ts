@@ -424,7 +424,7 @@ export class ActionLib implements baselib.BaseLib {
       throw new Error("GITHUB_WORKSPACE is not set.");
     }
 
-    const binPath = utils.normalizePath(path.resolve(path.join(process.env.GITHUB_WORKSPACE, "../b/")));
+    const binPath = utils.BaseLibUtils.normalizePath(path.resolve(path.join(process.env.GITHUB_WORKSPACE, "../b/")));
     if (!fs.existsSync(binPath)) {
       core.debug(`BinDir '${binPath}' does not exists, creating it...`);
       fs.mkdirSync(binPath);
@@ -438,7 +438,7 @@ export class ActionLib implements baselib.BaseLib {
       throw new Error("GITHUB_WORKSPACE env var is not set.");
     }
 
-    const srcPath = utils.normalizePath(path.resolve(process.env.GITHUB_WORKSPACE));
+    const srcPath = utils.BaseLibUtils.normalizePath(path.resolve(process.env.GITHUB_WORKSPACE));
     if (!fs.existsSync(srcPath)) {
       throw new Error(`SourceDir '${srcPath}' does not exists.`);
     }
@@ -452,7 +452,7 @@ export class ActionLib implements baselib.BaseLib {
     }
 
     //?? HACK. How to get the value of '{{ runner.temp }}' in JS's action?
-    const artifactsPath = utils.normalizePath(path.resolve(path.join(process.env.GITHUB_WORKSPACE, "../../_temp")));
+    const artifactsPath = utils.BaseLibUtils.normalizePath(path.resolve(path.join(process.env.GITHUB_WORKSPACE, "../../_temp")));
     if (!fs.existsSync(artifactsPath)) {
       core.debug(`ArtifactsDir '${artifactsPath}' does not exists, creating it...`);
       fs.mkdirSync(artifactsPath);
