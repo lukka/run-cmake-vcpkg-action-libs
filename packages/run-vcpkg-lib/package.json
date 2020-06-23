@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc -b . -v",
     "lint": "eslint src/*.ts",
-    "test": "jest"
+    "test": "jest --verbose --testTimeout 100000"
   },
   "devDependencies": {
     "@lukka/action-lib": "0.0.1",
