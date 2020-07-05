@@ -11,7 +11,7 @@ export interface BaseLibAnswerExecResult {
 export interface TaskLibAnswers {
     /*  checkPath?: { [key: string]: boolean },
       cwd?: { [key: string]: string },*/
-    exec?: { [key: string]: BaseLibAnswerExecResult } ,
+    exec?: { [key: string]: BaseLibAnswerExecResult },
     exist?: { [key: string]: boolean },
     /*find?: { [key: string]: string[] },
     findMatch?: { [key: string]: string[] },
@@ -25,7 +25,9 @@ export interface TaskLibAnswers {
 
 export type MockedCommand = keyof TaskLibAnswers;
 
+type ConsoleLogger = (msg: string) => void;
 export class MockAnswers {
+    private static defaultLogger: ConsoleLogger = (msg: string) => console.log(msg);
     private _answers: TaskLibAnswers | undefined;
 
     public reset(answers: TaskLibAnswers) {
@@ -35,9 +37,7 @@ export class MockAnswers {
         this._answers = answers;
     }
 
-    public getResponse(cmd: MockedCommand, key: string, debug: (message: string) => void = (msg: string) => {
-        console.log(msg);
-    }): any {
+    public getResponse(cmd: MockedCommand, key: string, debug: ConsoleLogger = MockAnswers.defaultLogger): any {
         debug(`looking up mock answers for ${JSON.stringify(cmd)}, key '${JSON.stringify(key)}'`);
         if (!this._answers) {
             throw new Error('Must initialize');
@@ -45,7 +45,7 @@ export class MockAnswers {
 
         if (!this._answers[cmd]) {
             debug(`no mock responses registered for ${JSON.stringify(cmd)}`);
-            return null;
+            throw new Error("No reponse found");
         }
 
         const cmd_answer = this._answers[cmd]!;
@@ -65,7 +65,7 @@ export class MockAnswers {
         }
 
         debug('mock response not found');
-        return null;
+        return new Error("No reponse found");
     }
 
     public printResponse(cmd: MockedCommand, key: string): void {
