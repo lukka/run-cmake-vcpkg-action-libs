@@ -12,3 +12,4 @@ token.txt
 /lib
 build
 **/*.d.ts
+coverage/

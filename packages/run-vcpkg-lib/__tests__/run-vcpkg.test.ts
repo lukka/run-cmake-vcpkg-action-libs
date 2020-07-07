@@ -10,7 +10,7 @@ import { ExecOptions } from 'child_process';
 import { VcpkgRunner } from '../src/vcpkg-runner';
 import * as globals from '../src/vcpkg-globals'
 import * as testutils from './utils'
-import { BaseLibUtils } from '@lukka/base-lib';
+import { BaseLibUtils, ExecResult } from '@lukka/base-lib';
 import { ActionLib, ActionToolRunner } from '@lukka/action-lib/src';
 import * as path from 'path'
 
@@ -48,7 +48,9 @@ function toolRunner(toolPath: string) {
       jest.fn(),
     exec:
       jest.fn(),
-    execSync: jest.fn().mockImplementation((options: ExecOptions) => function (options: ExecOptions) {
+    execSync: jest.fn().mockImplementation(function (this: ActionToolRunner, options: ExecOptions) {
+      const a: any = this.arg;
+      return answersMocks.getResponse('exec', a.path);
     })
   }
 }
@@ -98,7 +100,8 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           }),
         tool:
           jest.fn().mockImplementation((toolPath: string) =>
-            toolRunner(toolPath))
+            //??toolRunner(toolPath))
+            new ActionToolRunner(toolPath))
       };
     }),
     ActionToolRunner: jest.fn().mockImplementation((toolPath) => toolRunner(toolPath))
@@ -110,6 +113,13 @@ const vcpkgRoot = '/path/to/vcpkg';
 const getVcpkgExeName = function (): string { return (process.platform === "win32" ? "vcpkg.exe" : "vcpkg") };
 const vcpkgExeName = getVcpkgExeName();
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
+
+// Mock the execSync of ActionToolRunner.
+jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(function (this: ActionToolRunner, options?: ExecOptions): Promise<ExecResult> {
+  const a: any = this;
+  const aa = answersMocks.getResponse('exec', a.path);
+  return Promise.resolve({ code: aa.code, stdout: aa.stdout, stderr: aa.stderr } as ExecResult);
+});
 
 test('testing...', async () => {
   const answers: testutils.TaskLibAnswers = {

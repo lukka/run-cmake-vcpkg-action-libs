@@ -48,20 +48,12 @@ export class MockAnswers {
             throw new Error("No reponse found");
         }
 
-        const cmd_answer = this._answers[cmd]!;
+        const cmdAnswer = this._answers[cmd]!;
 
-        if (cmd_answer[key]) {
-            debug('found mock response');
-            return cmd_answer[key];
-        }
-
-        if (key && process.env['MOCK_NORMALIZE_SLASHES'] === 'true') {
-            // try normalizing the slashes
-            var key2 = key.replace(/\\/g, "/");
-            if (cmd_answer[key2]) {
-                debug('found mock response for normalized key');
-                return cmd_answer[key2];
-            }
+        const answer = cmdAnswer[key];
+        if (answer) {
+            debug(`found mock response: ${answer}`);
+            return answer;
         }
 
         debug('mock response not found');
