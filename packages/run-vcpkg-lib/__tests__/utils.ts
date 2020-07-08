@@ -28,31 +28,31 @@ export type MockedCommand = keyof TaskLibAnswers;
 type ConsoleLogger = (msg: string) => void;
 export class MockAnswers {
     private static defaultLogger: ConsoleLogger = (msg: string) => console.log(msg);
-    private _answers: TaskLibAnswers | undefined;
+    private answers: TaskLibAnswers | undefined;
 
     public reset(answers: TaskLibAnswers) {
         if (!answers) {
             throw new Error('Answers not supplied');
         }
-        this._answers = answers;
+        this.answers = answers;
     }
 
     public getResponse(cmd: MockedCommand, key: string, debug: ConsoleLogger = MockAnswers.defaultLogger): any {
-        debug(`looking up mock answers for ${JSON.stringify(cmd)}, key '${JSON.stringify(key)}'`);
-        if (!this._answers) {
+        debug(`looking up mock answers for ${JSON.stringify(cmd)}, key ${JSON.stringify(key)}`);
+        if (!this.answers) {
             throw new Error('Must initialize');
         }
 
-        if (!this._answers[cmd]) {
+        if (!this.answers[cmd]) {
             debug(`no mock responses registered for ${JSON.stringify(cmd)}`);
             throw new Error("No reponse found");
         }
 
-        const cmdAnswer = this._answers[cmd]!;
+        const cmdAnswer: any = this.answers[cmd]!;
 
         const answer = cmdAnswer[key];
         if (answer) {
-            debug(`found mock response: ${answer}`);
+            debug(`found mock response: ${JSON.stringify(answer)}`);
             return answer;
         }
 

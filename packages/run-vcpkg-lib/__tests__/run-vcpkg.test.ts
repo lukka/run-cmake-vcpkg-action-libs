@@ -33,7 +33,8 @@ jest.mock('@lukka/base-lib', jest.fn().mockImplementation(() => {
       return {
         wrapOpSync: jest.fn(),
         wrapOp: jest.fn(),
-        trimString: jest.fn()
+        trimString: jest.fn().mockImplementation((value: string) => value?.trim() ?? ""
+        )
       }
     }),
     exec: jest.fn(),
@@ -115,15 +116,23 @@ const vcpkgExeName = getVcpkgExeName();
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 
 // Mock the execSync of ActionToolRunner.
-jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(function (this: ActionToolRunner, options?: ExecOptions): Promise<ExecResult> {
-  const a: any = this;
-  const aa = answersMocks.getResponse('exec', a.path);
-  return Promise.resolve({ code: aa.code, stdout: aa.stdout, stderr: aa.stderr } as ExecResult);
-});
+jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
+  function (this: ActionToolRunner, options?: ExecOptions): Promise<ExecResult> {
+    const toolRunnerPrivateAccess: any = this;
+    const response = answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
+    console.log(response);
+    console.log(JSON.stringify(response));
+    return Promise.resolve({ code: response.code, stdout: response.stdout, stderr: response.stderr } as ExecResult);
+  });
 
 test('testing...', async () => {
   const answers: testutils.TaskLibAnswers = {
-    "exec": { "git": { code: 0, stdout: "git output" } },
+    "exec": {
+      [`${gitPath}`]:
+        { code: 0, stdout: "git output" },
+      [`${gitPath} rev-parse HEAD`]:
+        { code: 0, stdout: 'mygitref' },
+    },
     "exist": { [vcpkgRoot]: true },
     'which': {
       'git': '/usr/local/bin/git', 'sh': '/bin/bash', 'chmod': '/bin/chmod',
