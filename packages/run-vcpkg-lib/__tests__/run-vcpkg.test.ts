@@ -31,16 +31,30 @@ jest.mock('@lukka/base-lib', jest.fn().mockImplementation(() => {
   return {
     BaseLibUtils: jest.fn().mockImplementation(() => {
       return {
-        wrapOpSync: jest.fn(),
-        wrapOp: jest.fn(),
+        writeFile: jest.fn(),
+        isWin32: jest.fn().mockImplementation(() => process.platform === 'win32'),
+        throwIfErrorCode: jest.fn(),
+        directoryExists: jest.fn(),
+        isVcpkgSubmodule: jest.fn(),
+        setOutputs: jest.fn(),
+        setEnvVar: jest.fn(),
+        wrapOpSync: jest.fn().mockImplementation(<T>(name: string, fn: () => Promise<T>): Promise<T> => {
+          return Promise.resolve(fn())
+        }),
+        wrapOp: jest.fn().mockImplementation(<T>(name: string, fn: () => T): T => {
+          return fn()
+        }),
         trimString: jest.fn().mockImplementation((value: string) => value?.trim() ?? ""
-        )
+        ),
       }
     }),
     exec: jest.fn(),
     execSync: jest.fn(),
   }
 }));
+
+const MockBaseLibUtils = BaseLibUtils as jest.Mocked<typeof BaseLibUtils>;
+MockBaseLibUtils.extractTriplet = jest.fn();
 
 function toolRunner(toolPath: string) {
   return {
@@ -60,6 +74,9 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
   return {
     ActionLib: jest.fn().mockImplementation(() => {
       return {
+        execSync: jest.fn().mockImplementation(function (this: ActionLib, cmd: string, args: string[]) {
+          return answersMocks.getResponse('exec', cmd + " " + args.join(' '));
+        }),
         getInput:
           jest.fn().mockImplementation((name: string, required: boolean) =>
             inputsMocks.getInput(name, required)),
@@ -123,6 +140,15 @@ jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
     console.log(response);
     console.log(JSON.stringify(response));
     return Promise.resolve({ code: response.code, stdout: response.stdout, stderr: response.stderr } as ExecResult);
+  });
+
+jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
+  function (this: ActionToolRunner, options?: ExecOptions): Promise<number> {
+    const toolRunnerPrivateAccess: any = this;
+    const response = answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
+    console.log(response);
+    console.log(JSON.stringify(response));
+    return Promise.resolve(response.code);
   });
 
 test('testing...', async () => {

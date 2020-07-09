@@ -45,7 +45,7 @@ export class MockAnswers {
 
         if (!this.answers[cmd]) {
             debug(`no mock responses registered for ${JSON.stringify(cmd)}`);
-            throw new Error("No reponse found");
+            throw new Error("No response found");
         }
 
         const cmdAnswer: any = this.answers[cmd]!;
@@ -57,7 +57,7 @@ export class MockAnswers {
         }
 
         debug('mock response not found');
-        return new Error("No reponse found");
+        return new Error("No response found");
     }
 
     public printResponse(cmd: MockedCommand, key: string): void {
