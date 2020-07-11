@@ -390,12 +390,12 @@ export class ToolRunner extends events.EventEmitter {
 }
 */
 
-class Inputs { [name: string]: string | boolean | string[] };
+class Inputs {
+    [name: string]: string
+};
 
 export class MockInputs {
-    private readonly inputs: Inputs;
-    constructor() {
-        this.inputs = new Inputs();
+    constructor(private readonly inputs = new Inputs()) {
     }
 
     public setInput(name: string, value: string): void {
@@ -403,10 +403,16 @@ export class MockInputs {
     }
 
     public setBooleanInput(name: string, value: boolean): void {
-        this.inputs[name] = value;
+        this.inputs[name] = value.toString();
     }
 
-    public getInput(name: string, required?: boolean): string { return <string>this.inputs[name]; }
-    public getBooleanInput(name: string, required?: boolean): boolean { return <boolean>this.inputs[name]; }
-    public getDelimitedInput(name: string, separator?: string, required?: boolean): string[] { return <string[]>this.inputs[name]; };
+    public getInput(name: string, required?: boolean): string {
+        return <string>this.inputs[name];
+    }
+    public getBooleanInput(name: string, required?: boolean): boolean {
+        return this.inputs[name].toLowerCase() === "true";
+    }
+    public getDelimitedInput(name: string, separator?: string, required?: boolean): string[] {
+        return <string[]>(this.inputs[name].split('\n'));
+    };
 }

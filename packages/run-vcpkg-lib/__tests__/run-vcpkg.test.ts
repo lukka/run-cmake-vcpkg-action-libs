@@ -20,6 +20,10 @@ const inputsMocks: testutils.MockInputs = new testutils.MockInputs();
 inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
 inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
 inputsMocks.setInput(globals.vcpkgCommitId, 'newgitref');
+inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
+inputsMocks.setBooleanInput(globals.setupOnly, false);
+inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
+inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 
 // How to mock resources:
 // Howto: https://stackoverflow.com/questions/47402005/jest-mock-how-to-mock-es6-class-default-import-using-factory-parameter
@@ -54,7 +58,7 @@ jest.mock('@lukka/base-lib', jest.fn().mockImplementation(() => {
 }));
 
 const MockBaseLibUtils = BaseLibUtils as jest.Mocked<typeof BaseLibUtils>;
-MockBaseLibUtils.extractTriplet = jest.fn();
+MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
 
 function toolRunner(toolPath: string) {
   return {
@@ -147,7 +151,6 @@ jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
     const toolRunnerPrivateAccess: any = this;
     const response = answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
     console.log(response);
-    console.log(JSON.stringify(response));
     return Promise.resolve(response.code);
   });
 
@@ -158,6 +161,11 @@ test('testing...', async () => {
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
         { code: 0, stdout: 'mygitref' },
+      [`${path.join(vcpkgRoot, "vcpkg")} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
+        { 'code': 0, 'stdout': 'this is the vcpkg output' },
+      [`${vcpkgRoot}/vcpkg remove --outdated --recurse`]:
+        { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
+
     },
     "exist": { [vcpkgRoot]: true },
     'which': {
