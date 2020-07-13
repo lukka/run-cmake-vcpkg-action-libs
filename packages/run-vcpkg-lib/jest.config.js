@@ -8,5 +8,8 @@ module.exports = {
   transform: {
     '^.+\\.ts$': 'ts-jest'
   },
-  verbose: true
+  verbose: true,
+  collectCoverage: true,
+  // From: https://www.javascriptjanuary.com/blog/mocking-functionality-in-jest-at-different-scopes
+  setupFilesAfterEnv: ['./__tests__/mocks.ts'],
 }

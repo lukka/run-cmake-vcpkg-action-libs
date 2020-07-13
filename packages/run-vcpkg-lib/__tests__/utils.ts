@@ -57,7 +57,7 @@ export class MockAnswers {
         }
 
         debug('mock response not found');
-        return new Error("No response found");
+        throw new Error("No response found");
     }
 
     public printResponse(cmd: MockedCommand, key: string): void {
