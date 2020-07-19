@@ -125,7 +125,7 @@ export class VcpkgRunner {
     this.tl.setOutput(`${outVarName}`, this.vcpkgDestPath);
 
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
-    this.baseUtils.setEnvVar(this.baseUtils.cachingFormatEnvName, "Files");
+    this.baseUtils.setEnvVar(BaseLibUtils.cachingFormatEnvName, "Files");
   }
 
   private async prepareForCache(): Promise<void> {
@@ -385,7 +385,5 @@ export class VcpkgRunner {
     this.baseUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
     // Keep track of last successful build commit id.
     console.log(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
-
   }
-
 }

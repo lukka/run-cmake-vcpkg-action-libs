@@ -2,16 +2,21 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import { BaseLibUtils } from '@lukka/base-lib';
+import * as baselib from '@lukka/base-lib';
 import { ActionLib, ActionToolRunner } from '@lukka/action-lib/src';
 import { ExecOptions } from 'child_process';
 import * as testutils from './utils'
+import { assert } from 'console';
 
 export const answersMocks: testutils.MockAnswers = new testutils.MockAnswers()
 export const inputsMocks: testutils.MockInputs = new testutils.MockInputs();
 export const stdout: string[] = [];
 
-jest.mock('@lukka/base-lib', jest.fn().mockImplementation(() => {
+function testLog(msg: string) {
+  console.log(`test: ${msg}`);
+}
+
+/*jest.mock('@lukka/base-lib', jest.fn().mockImplementation(() => {
   return {
     BaseLibUtils: jest.fn().mockImplementation(() => {
       return {
@@ -21,8 +26,8 @@ jest.mock('@lukka/base-lib', jest.fn().mockImplementation(() => {
         isBSD: jest.fn().mockImplementation(() => process.platform.toLowerCase().indexOf("bsd") != -1),
         isLinux: jest.fn().mockImplementation(() => process.platform.toLowerCase() === 'linux'),
         throwIfErrorCode: jest.fn(),
-        directoryExists: jest.fn(),
-        isVcpkgSubmodule: jest.fn(),
+        directoryExists: jest.fn().mockImplementation((filePath: string) => true),
+        isVcpkgSubmodule: jest.fn().mockImplementation(() => false),
         setOutputs: jest.fn(),
         setEnvVar: jest.fn(),
         wrapOpSync: jest.fn().mockImplementation(<T>(name: string, fn: () => Promise<T>): Promise<T> => {
@@ -40,14 +45,17 @@ jest.mock('@lukka/base-lib', jest.fn().mockImplementation(() => {
     exec: jest.fn(),
     execSync: jest.fn(),
   }
-}));
+}));*/
 
 // How to mock resources:
 // Howto: https://stackoverflow.com/questions/47402005/jest-mock-how-to-mock-es6-class-default-import-using-factory-parameter
 // How to mock methods in detail: https://stackoverflow.com/questions/50091438/jest-how-to-mock-one-specific-method-of-a-class
 
-const MockBaseLibUtils = BaseLibUtils as jest.Mocked<typeof BaseLibUtils>;
+const MockBaseLibUtils = baselib.BaseLibUtils as jest.Mocked<typeof baselib.BaseLibUtils>;
 MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
+MockBaseLibUtils.prototype.readFile = jest.fn().mockImplementation(() => null);
+
+export const envVarSetDict: { [name: string]: string } = {};
 
 function toolRunner(toolPath: string) {
   return {
@@ -62,6 +70,8 @@ function toolRunner(toolPath: string) {
     })
   }
 }
+
+let lastOperationName: string = "";
 
 jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
   return {
@@ -83,16 +93,21 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           jest.fn().mockImplementation((msg: string) => console.log(`test debug: ${msg}`)),
         warning:
           jest.fn().mockImplementation((msg: string) => {
-            console.log(`test warn: ${msg}`);
+            testLog(`warn: ${msg}`);
           }),
         error:
           jest.fn().mockImplementation((msg: string) => {
-            console.log(`test err: ${msg}`);
+            testLog(`err: ${msg}`);
           }),
         beginOperation:
-          jest.fn(),
+          jest.fn().mockImplementation((operationName: string) => {
+            testLog(`beginOperation('${operationName}')`);
+            lastOperationName = operationName;
+          }),
         endOperation:
-          jest.fn(),
+          jest.fn().mockImplementation(() => {
+            testLog(`endOperation('${lastOperationName}')`);
+          }),
         setVariable:
           jest.fn(),
         setOutput:
@@ -107,16 +122,19 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           }),
         mkdirP:
           jest.fn().mockImplementation((dirPath: string) => {
-            console.log(`mkdirP(${dirPath})`)
+            testLog(`mkdirP(${dirPath})`)
           }),
         cd:
           jest.fn().mockImplementation((dirPath: string) => {
-            console.log(`cd(${dirPath})`)
+            testLog(`cd(${dirPath})`)
           }),
         tool:
           jest.fn().mockImplementation((toolPath: string) =>
             //??toolRunner(toolPath))
-            new ActionToolRunner(toolPath))
+            new ActionToolRunner(toolPath)),
+        writeFile:
+          jest.fn().mockImplementation((file: string, content: string) =>
+            testLog(`writeFile('${file}','${content}')`))
       };
     }),
     ActionToolRunner: jest.fn().mockImplementation((toolPath) => toolRunner(toolPath))

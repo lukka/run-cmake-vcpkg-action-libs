@@ -5,13 +5,54 @@
 import * as baselib from '@lukka/base-lib'
 import * as actionlib from '@lukka/action-lib'
 import { ExecOptions } from 'child_process';
-import { VcpkgRunner } from '../src/vcpkg-runner';
 import * as globals from '../src/vcpkg-globals'
 import * as testutils from './utils'
 import { ActionToolRunner, ActionLib } from '@lukka/action-lib/src';
 import * as path from 'path'
 import * as mock from './mocks'
-import { BaseLibUtils } from '@lukka/base-lib/src/utils';
+import * as assert from 'assert'
+import * as utils from '@lukka/base-lib';
+
+jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
+  function (this: utils.BaseLibUtils, file: string): [boolean, string] {
+    if (file == `${vcpkgRoot}/.artifactignore`) {
+      return [true, "!.git\n"];
+    }
+    else if (file == `${vcpkgRoot}/${globals.vcpkgLastBuiltCommitId}`) {
+      return [true, "gitref"];
+    }
+    else
+      throw `readFile called with unexpected file name: '${file}'.`;
+  });
+
+jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
+  function (this: utils.BaseLibUtils, name: string, value: string): void {
+    // Ensure they are not set twice.
+    const existingValue: string = mock.envVarSetDict[name];
+    if (existingValue) {
+      assert.fail(`Error: env var ${name} is set multiple times!`);
+    }
+
+    // Ensure their values are the expected ones.
+    if (name === utils.BaseLibUtils.cachingFormatEnvName) {
+      assert.equal(value, "Files");
+    } else if (name === globals.outVcpkgRootPath) {
+      assert.equal(value, vcpkgRoot);
+    } else if (name === globals.outVcpkgTriplet) {
+      // no check on value here...
+    } else if (name === globals.vcpkgRoot) {
+      // no check on value here...
+    } else {
+      assert.fail(`Unexpected variable name: '${name}'`);
+    }
+  });
+
+jest.spyOn(utils.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
+  function (this: utils.BaseLibUtils, gitPath: string, fullVcpkgPath: string): Promise<boolean> {
+    return Promise.resolve(true);
+  });
+
+import { VcpkgRunner } from '../src/vcpkg-runner';
 
 mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
 mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
@@ -45,11 +86,6 @@ jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
     return Promise.resolve(response.code);
   });
 
-jest.spyOn(BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
-  function (gitPath: string, fullVcpkgPath: string): Promise<boolean> {
-    return Promise.resolve(true);
-  });
-
 test('testing...', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
@@ -63,8 +99,8 @@ test('testing...', async () => {
         { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
       [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
         { 'code': 0, 'stdout': 'this is git clone ... output' },
-      [`${gitPath} submodule`]:
-        { 'code': 0, 'stdout': 'this is git submodule output' },
+      [`${gitPath} submodule status ${vcpkgRoot}`]:
+        { 'code': 0, stdout: 'this is git submodule output' },
       [`${gitPath} checkout --force newgitref`]:
         { 'code': 0, 'stdout': 'this is git checkout newgitref output' },
       [`chmod +x ${path.join(vcpkgRoot, "vcpkg")}`]:
@@ -85,6 +121,7 @@ test('testing...', async () => {
   mock.answersMocks.reset(answers);
 
   const baselib: baselib.BaseLib = new actionlib.ActionLib();
+
   baselib.getInput = jest.fn().mockImplementation((name: string, options: any) => {
     switch (name) {
       case globals.vcpkgArguments: return 'vcpkg_args';
@@ -109,12 +146,12 @@ test('testing...', async () => {
     await vcpkg.run();
   }
   catch (error) {
-    fail(`run must have succeeded, instead if failed: ${error}`);
+    throw new Error(`run must have succeeded, instead if failed: ${error} \n ${error.stack}`);
   }
 
   expect(baselib.warning).toBeCalledTimes(0);
   expect(baselib.error).toBeCalledTimes(0);
-  
+
   //??assert.ok(tr.stdout.indexOf(" --triplet triplet") != -1, "Stdout must contain the triplet argument passed to vcpkg");
 
 });

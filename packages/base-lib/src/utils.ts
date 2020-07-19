@@ -13,7 +13,7 @@ import * as baselibutils from './utils'
 
 export class BaseLibUtils {
 
-  public readonly cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
+  public static readonly cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
 
   public constructor(private baseLib: baselib.BaseLib) {
   }
@@ -37,10 +37,12 @@ export class BaseLibUtils {
         isSubmodule = res.code == 0;
         let msg: string;
         msg = `'git submodule ${fullVcpkgPath}': exit code='${res.code}' `;
-        if (res.stdout !== null) {
+        // If not null or undefined.
+        if (res.stdout) {
           msg += `, stdout='${res.stdout.trim()}'`;
         }
-        if (res.stderr !== null) {
+        // If not null or undefined.
+        if (res.stderr) {
           msg += `, stderr='${res.stderr.trim()}'`;
         }
         msg += '.';
