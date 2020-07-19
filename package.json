@@ -9,14 +9,14 @@
 	},
 	"author": "Luca Cappa (https://github.com/lukka)",
 	"license": "MIT",
-  "scripts": {
-    "clean": "rm -rf ./build/",
-    "bootstrap": "npx lerna bootstrap",
-    "build": "npx lerna run build",
-    "lint": "npx lerna run lint",
-    "pack": "npx lerna run pack",
-    "test": "npx lerna run test"
-  },
+	"scripts": {
+		"clean": "rm -rf ./build/",
+		"bootstrap": "npx lerna bootstrap",
+		"build": "npx lerna run build",
+		"lint": "npx lerna run lint",
+		"pack": "npx lerna run pack",
+		"test": "npx lerna run test"
+	},
 	"devDependencies": {
 		"@types/jest": "^25.2.3",
 		"@types/node": "^11.9.3",
@@ -46,6 +46,7 @@
 		"del": "^5.1.0",
 		"follow-redirects": "^1.9.0",
 		"minimist": ">=1.2.2",
-		"using-statement": "^0.3.1"
+		"using-statement": "^0.3.1",
+		"lodash": "^4.17.19"
 	}
 }
