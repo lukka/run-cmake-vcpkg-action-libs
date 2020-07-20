@@ -114,7 +114,10 @@ test('run-vcpkg should succeed', async () => {
     },
     "exist": { [vcpkgRoot]: true },
     'which': {
-      'git': '/usr/local/bin/git', 'sh': '/bin/bash', 'chmod': '/bin/chmod',
+      'git': '/usr/local/bin/git',
+      'sh': '/bin/bash',
+      'chmod': '/bin/chmod',
+      'cmd.exe': 'cmd.exe',
       [vcpkgExePath]: vcpkgExePath
     },
   };
