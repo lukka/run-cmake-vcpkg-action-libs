@@ -111,7 +111,10 @@ test('run-vcpkg should succeed', async () => {
       [`/bin/bash -c ${vcpkgRoot}/bootstrap-vcpkg.sh`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
       ['cmd.exe /c \\path\\to\\vcpkg\\bootstrap-vcpkg.bat']:
-        { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg.bat' }
+        { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg.bat' },
+      ['\\path\\to\\vcpkg\\vcpkg.exe remove --outdated --recurse']:
+        { 'code': 0, 'stdout': 'this is the output of vcpkg remote' }
+
     },
     "exist": { [vcpkgRoot]: true },
     'which': {
