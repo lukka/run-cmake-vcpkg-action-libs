@@ -361,6 +361,10 @@ export class ActionLib implements baselib.BaseLib {
     core.warning(message);
   }
 
+  info(message: string): void {
+    core.info(message);
+  }
+
   tool(name: string): baselib.ToolRunner {
     return new ActionToolRunner(name);
   }

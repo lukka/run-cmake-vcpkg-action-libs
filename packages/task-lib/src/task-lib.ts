@@ -110,6 +110,10 @@ export class TaskLib implements baselib.BaseLib {
     tl.warning(message);
   }
 
+  info(message: string): void {
+    console.log(message);
+  }
+
   tool(name: string): baselib.ToolRunner {
     return new TaskToolRunner(name);
   }

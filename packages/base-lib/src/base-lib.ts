@@ -27,6 +27,7 @@ export interface BaseLib {
   debug(message: string): void;
   error(message: string): void;
   warning(message: string): void;
+  info(message: string): void;
   tool(name: string): ToolRunner;
   exec(name: string, args: string[], options?: ExecOptions): Promise<number>;
   execSync(name: string, args: string[], options?: ExecOptions): Promise<ExecResult>;

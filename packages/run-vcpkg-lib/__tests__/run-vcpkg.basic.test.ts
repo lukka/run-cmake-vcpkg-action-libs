@@ -49,7 +49,7 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
   function (this: utils.BaseLibUtils, gitPath: string, fullVcpkgPath: string): Promise<boolean> {
-    return Promise.resolve(true);
+    return Promise.resolve(false);
   });
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
@@ -86,7 +86,7 @@ jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
     return Promise.resolve(response.code);
   });
 
-test('testing...', async () => {
+test('run-vcpkg should succeed', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -152,7 +152,10 @@ test('testing...', async () => {
   expect(baselib.warning).toBeCalledTimes(0);
   expect(baselib.error).toBeCalledTimes(0);
 
-  //??assert.ok(tr.stdout.indexOf(" --triplet triplet") != -1, "Stdout must contain the triplet argument passed to vcpkg");
-
+  console.log(mock.baselibInfo.mock.calls.length);
+  console.log(mock.baselibInfo.mock.calls);
+  const calls = mock.baselibInfo.mock.calls.filter((item) => {
+    return RegExp('.*vcpkg install --recurse vcpkg_args --triplet triplet.*').test(item[0])
+  });
+  expect(calls.length).toBe(1);
 });
-

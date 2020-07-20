@@ -2,54 +2,26 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
+// How to mock resources:
+// Howto: https://stackoverflow.com/questions/47402005/jest-mock-how-to-mock-es6-class-default-import-using-factory-parameter
+// How to mock methods in detail: https://stackoverflow.com/questions/50091438/jest-how-to-mock-one-specific-method-of-a-class
+
 import * as baselib from '@lukka/base-lib';
 import { ActionLib, ActionToolRunner } from '@lukka/action-lib/src';
 import { ExecOptions } from 'child_process';
 import * as testutils from './utils'
-import { assert } from 'console';
 
 export const answersMocks: testutils.MockAnswers = new testutils.MockAnswers()
 export const inputsMocks: testutils.MockInputs = new testutils.MockInputs();
-export const stdout: string[] = [];
 
+/**
+ * Generate output for the test purpose only.
+ *
+ * @param {string} msg The message.
+ */
 function testLog(msg: string) {
   console.log(`test: ${msg}`);
 }
-
-/*jest.mock('@lukka/base-lib', jest.fn().mockImplementation(() => {
-  return {
-    BaseLibUtils: jest.fn().mockImplementation(() => {
-      return {
-        writeFile: jest.fn(),
-        isWin32: jest.fn().mockImplementation(() => process.platform.toLowerCase() === 'win32'),
-        isMacos: jest.fn().mockImplementation(() => process.platform.toLowerCase() === 'darwin'),
-        isBSD: jest.fn().mockImplementation(() => process.platform.toLowerCase().indexOf("bsd") != -1),
-        isLinux: jest.fn().mockImplementation(() => process.platform.toLowerCase() === 'linux'),
-        throwIfErrorCode: jest.fn(),
-        directoryExists: jest.fn().mockImplementation((filePath: string) => true),
-        isVcpkgSubmodule: jest.fn().mockImplementation(() => false),
-        setOutputs: jest.fn(),
-        setEnvVar: jest.fn(),
-        wrapOpSync: jest.fn().mockImplementation(<T>(name: string, fn: () => Promise<T>): Promise<T> => {
-          console.log(name);
-          return Promise.resolve(fn());
-        }),
-        wrapOp: jest.fn().mockImplementation(<T>(name: string, fn: () => T): T => {
-          console.log(name);
-          return fn();
-        }),
-        trimString: jest.fn().mockImplementation((value: string) => value?.trim() ?? ""
-        ),
-      }
-    }),
-    exec: jest.fn(),
-    execSync: jest.fn(),
-  }
-}));*/
-
-// How to mock resources:
-// Howto: https://stackoverflow.com/questions/47402005/jest-mock-how-to-mock-es6-class-default-import-using-factory-parameter
-// How to mock methods in detail: https://stackoverflow.com/questions/50091438/jest-how-to-mock-one-specific-method-of-a-class
 
 const MockBaseLibUtils = baselib.BaseLibUtils as jest.Mocked<typeof baselib.BaseLibUtils>;
 MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
@@ -73,6 +45,8 @@ function toolRunner(toolPath: string) {
 
 let lastOperationName: string = "";
 
+export let baselibInfo = jest.fn();
+
 jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
   return {
     ActionLib: jest.fn().mockImplementation(() => {
@@ -93,11 +67,15 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           jest.fn().mockImplementation((msg: string) => console.log(`test debug: ${msg}`)),
         warning:
           jest.fn().mockImplementation((msg: string) => {
-            testLog(`warn: ${msg}`);
+            console.log(`warn: ${msg}`);
           }),
         error:
           jest.fn().mockImplementation((msg: string) => {
-            testLog(`err: ${msg}`);
+            console.log(`err: ${msg}`);
+          }),
+        info:
+          baselibInfo.mockImplementation((msg: string) => {
+            console.log(`info: ${msg}`);
           }),
         beginOperation:
           jest.fn().mockImplementation((operationName: string) => {
@@ -130,7 +108,6 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           }),
         tool:
           jest.fn().mockImplementation((toolPath: string) =>
-            //??toolRunner(toolPath))
             new ActionToolRunner(toolPath)),
         writeFile:
           jest.fn().mockImplementation((file: string, content: string) =>
