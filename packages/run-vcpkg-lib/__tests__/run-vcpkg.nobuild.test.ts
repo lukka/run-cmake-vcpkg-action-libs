@@ -14,8 +14,7 @@ import * as assert from 'assert'
 import * as utils from '@lukka/base-lib';
 
 // Arrange.
-const newGitRef = 'newgitref'
-const oldGitRef = 'gitref';
+const gitRef = 'mygitref'
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const getVcpkgExeName = function (): string { return (process.platform === "win32" ? "vcpkg.exe" : "vcpkg") };
@@ -28,7 +27,7 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
       return [true, "!.git\n"];
     }
     else if (file == `${vcpkgRoot}/${globals.vcpkgLastBuiltCommitId}`) {
-      return [true, oldGitRef];
+      return [true, gitRef];
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -61,15 +60,29 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
     return Promise.resolve(false);
   });
 
+jest.spyOn(utils.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
+  function (this: utils.BaseLibUtils, path: string): boolean {
+    assert.equal(path, vcpkgRoot);
+    return true;
+  });
+
+jest.spyOn(utils.BaseLibUtils.prototype, 'fileExists').mockImplementation(
+    function (this: utils.BaseLibUtils, path: string): boolean {
+      assert.equal(path, vcpkgExePath);
+      return true;
+    });
+  
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
+mock.inputsMocks.reset();
 mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
 mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
-mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
+mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
 mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
 mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
+mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
 // Mock the execSync of ActionToolRunner.
 jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
@@ -95,7 +108,7 @@ test('run-vcpkg should succeed', async () => {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
-        { code: 0, stdout: 'mygitref' },
+        { code: 0, stdout: gitRef },
       [`${path.join(vcpkgRoot, "vcpkg")} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
       [`${vcpkgRoot}/vcpkg remove --outdated --recurse`]:
@@ -104,8 +117,8 @@ test('run-vcpkg should succeed', async () => {
         { 'code': 0, 'stdout': 'this is git clone ... output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:
         { 'code': 0, stdout: 'this is git submodule output' },
-      [`${gitPath} checkout --force ${newGitRef}`]:
-        { 'code': 0, 'stdout': `this is git checkout ${newGitRef} output` },
+      [`${gitPath} checkout --force ${gitRef}`]:
+        { 'code': 0, 'stdout': `this is git checkout ${gitRef} output` },
       [`chmod +x ${path.join(vcpkgRoot, "vcpkg")}`]:
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
@@ -119,9 +132,15 @@ test('run-vcpkg should succeed', async () => {
         { 'code': 0, 'stdout': 'this is the output of vcpkg remote' },
       ['\\path\\to\\vcpkg\\vcpkg.exe install --recurse vcpkg_args --triplet triplet --clean-after-build']:
         { 'code': 0, 'stdout': 'this is the output of vcpkg install' }
-
     },
-    "exist": { [vcpkgRoot]: true },
+    "exist": {
+      [vcpkgRoot]: true,
+      [vcpkgExePath]: true
+    },
+    "stats": {
+      [vcpkgExePath]: true,
+      [vcpkgRoot]: true,
+    },
     'which': {
       'git': '/usr/local/bin/git',
       'sh': '/bin/bash',
@@ -134,19 +153,19 @@ test('run-vcpkg should succeed', async () => {
 
   const baselib: baselib.BaseLib = new actionlib.ActionLib();
 
-  baselib.getInput = jest.fn().mockImplementation((name: string, options: any) => {
-    switch (name) {
-      case globals.vcpkgArguments: return 'vcpkg_args';
-      case globals.vcpkgTriplet: return 'triplet';
-      case globals.vcpkgCommitId: return newGitRef;
-      case globals.vcpkgGitURL: return 'https://github.com/microsoft/vcpkg.git';
-    }
-  });
-  baselib.getPathInput = jest.fn().mockImplementation((name: string, options: any) => {
-    switch (name) {
-      case globals.vcpkgDirectory: return vcpkgRoot;
-    }
-  });
+  /*  baselib.getInput = jest.fn().mockImplementation((name: string, options: any) => {
+      switch (name) {
+        case globals.vcpkgArguments: return 'vcpkg_args';
+        case globals.vcpkgTriplet: return 'triplet';
+        case globals.vcpkgCommitId: return 'newgitref';
+        case globals.vcpkgGitURL: return 'https://github.com/microsoft/vcpkg.git';
+      }
+    });
+    baselib.getPathInput = jest.fn().mockImplementation((name: string, options: any) => {
+      switch (name) {
+        case globals.vcpkgDirectory: return vcpkgRoot;
+      }
+    });*/
 
   baselib.exec = jest.fn().mockImplementation((cmd: string, args: string[]) => {
     mock.answersMocks.printResponse('exec', cmd);
@@ -154,8 +173,11 @@ test('run-vcpkg should succeed', async () => {
 
   baselib.rmRF = jest.fn();
 
-  // Act.
   const vcpkg: VcpkgRunner = new VcpkgRunner(baselib);
+  // HACK: any to access private fields.
+  let vcpkgBuildMock = jest.spyOn(<any>vcpkg, 'build');
+
+  // Act.
   try {
     await vcpkg.run();
   }
@@ -166,11 +188,6 @@ test('run-vcpkg should succeed', async () => {
   // Assert.
   expect(baselib.warning).toBeCalledTimes(0);
   expect(baselib.error).toBeCalledTimes(0);
-
-  // There must be a call to execute the command 'vcpkg install' with correct arguments
-  // and triplet passed to it.
-  const calls = mock.baselibInfo.mock.calls.filter((item) => {
-    return RegExp('.*vcpkg install --recurse vcpkg_args --triplet triplet.*').test(item[0])
-  });
-  expect(calls.length).toBe(1);
+  // Build of vcpkg must not happen.
+  expect(vcpkgBuildMock).toBeCalledTimes(0);
 });

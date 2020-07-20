@@ -57,6 +57,9 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
         getInput:
           jest.fn().mockImplementation((name: string, required: boolean) =>
             inputsMocks.getInput(name, required)),
+        getPathInput:
+          jest.fn().mockImplementation((name: string, required: boolean) =>
+            inputsMocks.getInput(name, required)),
         getBoolInput:
           jest.fn().mockImplementation((name: string, required: boolean) =>
             inputsMocks.getBooleanInput(name, required)),
@@ -93,6 +96,10 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
         exist:
           jest.fn().mockImplementation((filePath: string) => {
             return answersMocks.getResponse("exist", filePath);
+          }),
+        stats:
+          jest.fn().mockImplementation((filePath: string) => {
+            return answersMocks.getResponse("stats", filePath);
           }),
         which:
           jest.fn().mockImplementation((filePath: string) => {

@@ -18,8 +18,8 @@ export interface TaskLibAnswers {
     getPlatform?: { [key: string]: task.Platform },
     ls?: { [key: string]: string },
     osType?: { [key: string]: string },
-    rmRF?: { [key: string]: { success: boolean } },
-    stats?: { [key: string]: any }, // Can't use `fs.Stats` as most existing uses don't mock all required properties*/
+    rmRF?: { [key: string]: { success: boolean } },*/
+    stats?: { [key: string]: any },
     which?: { [key: string]: string },
 }
 
@@ -395,7 +395,14 @@ class Inputs {
 };
 
 export class MockInputs {
-    constructor(private readonly inputs = new Inputs()) {
+    private inputs: Inputs;
+
+    constructor() {
+        this.inputs = new Inputs();
+    }
+
+    public reset(): void {
+        this.inputs = new Inputs();
     }
 
     public setInput(name: string, value: string): void {
