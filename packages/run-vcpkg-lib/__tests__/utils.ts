@@ -2,6 +2,15 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { assert } from 'console';
 
+/**
+ * Generate output for the test purpose only.
+ *
+ * @param {string} msg The message.
+ */
+export function testLog(msg: string) {
+    console.log(`test: ${msg}`);
+  }
+  
 export interface BaseLibAnswerExecResult {
     code: number,
     stdout?: string,
@@ -426,4 +435,10 @@ export class MockInputs {
 
 export function normalizePath(path: string): string {
     return path.replace(/\\/g, '/')
+}
+
+export function areEqualVerbose(text: string, text2: string) {
+    const result : boolean = text === text2;
+    testLog(`Compare '${text}' and '${text2}': ${result} `);
+    return result;
 }

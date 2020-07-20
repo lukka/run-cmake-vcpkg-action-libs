@@ -14,15 +14,6 @@ import * as testutils from './utils'
 export const answersMocks: testutils.MockAnswers = new testutils.MockAnswers()
 export const inputsMocks: testutils.MockInputs = new testutils.MockInputs();
 
-/**
- * Generate output for the test purpose only.
- *
- * @param {string} msg The message.
- */
-function testLog(msg: string) {
-  console.log(`test: ${msg}`);
-}
-
 const MockBaseLibUtils = baselib.BaseLibUtils as jest.Mocked<typeof baselib.BaseLibUtils>;
 MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
 MockBaseLibUtils.prototype.readFile = jest.fn().mockImplementation(() => null);
@@ -82,12 +73,12 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           }),
         beginOperation:
           jest.fn().mockImplementation((operationName: string) => {
-            testLog(`beginOperation('${operationName}')`);
+            testutils.testLog(`beginOperation('${operationName}')`);
             lastOperationName = operationName;
           }),
         endOperation:
           jest.fn().mockImplementation(() => {
-            testLog(`endOperation('${lastOperationName}')`);
+            testutils.testLog(`endOperation('${lastOperationName}')`);
           }),
         setVariable:
           jest.fn(),
@@ -107,18 +98,18 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           }),
         mkdirP:
           jest.fn().mockImplementation((dirPath: string) => {
-            testLog(`mkdirP(${dirPath})`)
+            testutils.testLog(`mkdirP(${dirPath})`)
           }),
         cd:
           jest.fn().mockImplementation((dirPath: string) => {
-            testLog(`cd(${dirPath})`)
+            testutils.testLog(`cd(${dirPath})`)
           }),
         tool:
           jest.fn().mockImplementation((toolPath: string) =>
             new ActionToolRunner(toolPath)),
         writeFile:
           jest.fn().mockImplementation((file: string, content: string) =>
-            testLog(`writeFile('${file}','${content}')`))
+            testutils.testLog(`writeFile('${file}','${content}')`))
       };
     }),
     ActionToolRunner: jest.fn().mockImplementation((toolPath) => toolRunner(toolPath))

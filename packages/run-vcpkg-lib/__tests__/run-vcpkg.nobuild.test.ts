@@ -23,14 +23,14 @@ const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseLibUtils, file: string): [boolean, string] {
-    if (testutils.normalizePath(file) == path.join(vcpkgRoot, '.artifactignore')) {
+    const normalizedFile: string = testutils.normalizePath(file);
+    if (testutils.areEqualVerbose(normalizedFile, path.join(vcpkgRoot, '.artifactignore'))) {
       return [true, "!.git\n"];
-    }
-    else if (testutils.normalizePath(file) == path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId)) {
+    } else if (testutils.areEqualVerbose(normalizedFile, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
       return [true, gitRef];
     }
     else
-      throw `readFile called with unexpected file name: '${file}'.`;
+      throw `readFile called with unexpected file name: '${normalizedFile}' ('${file}').`;
   });
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
