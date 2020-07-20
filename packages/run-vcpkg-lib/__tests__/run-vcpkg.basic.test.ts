@@ -113,7 +113,9 @@ test('run-vcpkg should succeed', async () => {
       ['cmd.exe /c \\path\\to\\vcpkg\\bootstrap-vcpkg.bat']:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg.bat' },
       ['\\path\\to\\vcpkg\\vcpkg.exe remove --outdated --recurse']:
-        { 'code': 0, 'stdout': 'this is the output of vcpkg remote' }
+        { 'code': 0, 'stdout': 'this is the output of vcpkg remote' },
+      ['\\path\\to\\vcpkg\\vcpkg.exe install --recurse vcpkg_args --triplet triplet --clean-after-build']:
+        { 'code': 0, 'stdout': 'this is the output of vcpkg install' }
 
     },
     "exist": { [vcpkgRoot]: true },
