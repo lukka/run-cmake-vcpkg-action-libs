@@ -23,10 +23,10 @@ const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseLibUtils, file: string): [boolean, string] {
-    if (file == `${vcpkgRoot}/.artifactignore`) {
+    if (testutils.normalizePath(file) == path.join(vcpkgRoot, '.artifactignore')) {
       return [true, "!.git\n"];
     }
-    else if (file == `${vcpkgRoot}/${globals.vcpkgLastBuiltCommitId}`) {
+    else if (testutils.normalizePath(file) == path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId)) {
       return [true, gitRef];
     }
     else
@@ -62,16 +62,16 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
   function (this: utils.BaseLibUtils, path: string): boolean {
-    assert.equal(path, vcpkgRoot);
+    assert.equal(testutils.normalizePath(path), vcpkgRoot);
     return true;
   });
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'fileExists').mockImplementation(
-    function (this: utils.BaseLibUtils, path: string): boolean {
-      assert.equal(path, vcpkgExePath);
-      return true;
-    });
-  
+  function (this: utils.BaseLibUtils, path: string): boolean {
+    assert.equal(testutils.normalizePath(path), vcpkgExePath);
+    return true;
+  });
+
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
 mock.inputsMocks.reset();
@@ -102,7 +102,7 @@ jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
     return Promise.resolve(response.code);
   });
 
-test('run-vcpkg should succeed', async () => {
+test('run-vcpkg must not build if vcpkg executable is up to date with sources, and it must install successfully the ports.', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -152,20 +152,6 @@ test('run-vcpkg should succeed', async () => {
   mock.answersMocks.reset(answers);
 
   const baselib: baselib.BaseLib = new actionlib.ActionLib();
-
-  /*  baselib.getInput = jest.fn().mockImplementation((name: string, options: any) => {
-      switch (name) {
-        case globals.vcpkgArguments: return 'vcpkg_args';
-        case globals.vcpkgTriplet: return 'triplet';
-        case globals.vcpkgCommitId: return 'newgitref';
-        case globals.vcpkgGitURL: return 'https://github.com/microsoft/vcpkg.git';
-      }
-    });
-    baselib.getPathInput = jest.fn().mockImplementation((name: string, options: any) => {
-      switch (name) {
-        case globals.vcpkgDirectory: return vcpkgRoot;
-      }
-    });*/
 
   baselib.exec = jest.fn().mockImplementation((cmd: string, args: string[]) => {
     mock.answersMocks.printResponse('exec', cmd);

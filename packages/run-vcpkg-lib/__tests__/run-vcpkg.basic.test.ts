@@ -24,10 +24,10 @@ const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseLibUtils, file: string): [boolean, string] {
-    if (file == `${vcpkgRoot}/.artifactignore`) {
+    if (testutils.normalizePath(file) == path.join(vcpkgRoot, '.artifactignore')) {
       return [true, "!.git\n"];
     }
-    else if (file == `${vcpkgRoot}/${globals.vcpkgLastBuiltCommitId}`) {
+    else if (testutils.normalizePath(file) == path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId)) {
       return [true, oldGitRef];
     }
     else
@@ -63,13 +63,13 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
   function (this: utils.BaseLibUtils, path: string): boolean {
-    assert.equal(path, vcpkgRoot);
+    assert.equal(testutils.normalizePath(path), vcpkgRoot);
     return true;
   });
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'fileExists').mockImplementation(
   function (this: utils.BaseLibUtils, path: string): boolean {
-    assert.equal(path, vcpkgExePath);
+    assert.equal(testutils.normalizePath(path), vcpkgExePath);
     return false;
   });
 
@@ -101,7 +101,7 @@ jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
     return Promise.resolve(response.code);
   });
 
-test('run-vcpkg should succeed', async () => {
+test('run-vcpkg must build and install successfully', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:

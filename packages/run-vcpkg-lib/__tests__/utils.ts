@@ -423,3 +423,7 @@ export class MockInputs {
         return <string[]>(this.inputs[name].split('\n'));
     };
 }
+
+export function normalizePath(path: string): string {
+    return path.replace(/\\/g, '/')
+}
