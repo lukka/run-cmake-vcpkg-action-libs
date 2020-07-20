@@ -61,6 +61,18 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
     return Promise.resolve(false);
   });
 
+jest.spyOn(utils.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
+  function (this: utils.BaseLibUtils, path: string): boolean {
+    assert.equal(path, vcpkgRoot);
+    return true;
+  });
+
+jest.spyOn(utils.BaseLibUtils.prototype, 'fileExists').mockImplementation(
+  function (this: utils.BaseLibUtils, path: string): boolean {
+    assert.equal(path, vcpkgExePath);
+    return false;
+  });
+
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
 mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
