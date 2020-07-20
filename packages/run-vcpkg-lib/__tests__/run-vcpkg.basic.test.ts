@@ -110,7 +110,8 @@ test('run-vcpkg should succeed', async () => {
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`/bin/bash -c ${vcpkgRoot}/bootstrap-vcpkg.sh`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
-
+      ['cmd.exe /c \\path\\to\\vcpkg\\bootstrap-vcpkg.bat']:
+        { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg.bat' }
     },
     "exist": { [vcpkgRoot]: true },
     'which': {
