@@ -23,14 +23,13 @@ const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseLibUtils, file: string): [boolean, string] {
-    const normalizedFile: string = testutils.normalizePath(file);
-    if (testutils.areEqualVerbose(normalizedFile, path.join(vcpkgRoot, '.artifactignore'))) {
+    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
       return [true, "!.git\n"];
-    } else if (testutils.areEqualVerbose(normalizedFile, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
+    } else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
       return [true, gitRef];
     }
     else
-      throw `readFile called with unexpected file name: '${normalizedFile}' ('${file}').`;
+      throw `readFile called with unexpected file name: '${file}'.`;
   });
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
@@ -62,13 +61,13 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
   function (this: utils.BaseLibUtils, path: string): boolean {
-    assert.equal(testutils.normalizePath(path), vcpkgRoot);
+    assert.equal(path, vcpkgRoot);
     return true;
   });
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'fileExists').mockImplementation(
   function (this: utils.BaseLibUtils, path: string): boolean {
-    assert.equal(testutils.normalizePath(path), vcpkgExePath);
+    assert.equal(path, vcpkgExePath);
     return true;
   });
 
