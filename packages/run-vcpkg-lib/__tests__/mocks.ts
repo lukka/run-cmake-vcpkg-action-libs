@@ -7,7 +7,7 @@
 // How to mock methods in detail: https://stackoverflow.com/questions/50091438/jest-how-to-mock-one-specific-method-of-a-class
 
 import * as baselib from '@lukka/base-lib';
-import { ActionLib, ActionToolRunner } from '@lukka/action-lib/src';
+import { ActionToolRunner } from '@lukka/action-lib/src';
 import { ExecOptions } from 'child_process';
 import * as testutils from './utils'
 
@@ -38,11 +38,13 @@ let lastOperationName: string = "";
 
 export let baselibInfo = jest.fn();
 
+import * as actionLib from '@lukka/action-lib';
+
 jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
   return {
     ActionLib: jest.fn().mockImplementation(() => {
       return {
-        execSync: jest.fn().mockImplementation(function (this: ActionLib, cmd: string, args: string[]) {
+        execSync: jest.fn().mockImplementation(function (this: actionLib.ActionLib, cmd: string, args: string[]) {
           return answersMocks.getResponse('exec', cmd + " " + args.join(' '));
         }),
         getInput:
@@ -109,7 +111,9 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
             new ActionToolRunner(toolPath)),
         writeFile:
           jest.fn().mockImplementation((file: string, content: string) =>
-            testutils.testLog(`writeFile('${file}','${content}')`))
+            testutils.testLog(`writeFile('${file}','${content}')`)),
+        rmRF:
+          jest.fn().mockImplementation((file: string) => testutils.testLog(`rmRf(${file})`)),
       };
     }),
     ActionToolRunner: jest.fn().mockImplementation((toolPath) => toolRunner(toolPath))
@@ -128,7 +132,7 @@ jest.mock('strip-json-comments',
   }));
 
 
-  // Mock the execSync of ActionToolRunner.
+// Mock the execSync of ActionToolRunner.
 jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
   function (this: ActionToolRunner, options?: ExecOptions): Promise<baselib.ExecResult> {
     const toolRunnerPrivateAccess: any = this;
@@ -145,4 +149,10 @@ jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
     console.log(response);
     return Promise.resolve(response.code);
   });
-  
+
+export let exportedBaselib: baselib.BaseLib = new actionLib.ActionLib();
+
+exportedBaselib.exec = jest.fn().mockImplementation((cmd: string, args: string[]) => {
+  answersMocks.printResponse('exec', cmd);
+});
+

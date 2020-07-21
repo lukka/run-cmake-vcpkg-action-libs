@@ -2,12 +2,8 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as baselib from '@lukka/base-lib'
-import * as actionlib from '@lukka/action-lib'
-import { ExecOptions } from 'child_process';
 import * as globals from '../src/vcpkg-globals'
 import * as testutils from './utils'
-import { ActionToolRunner } from '@lukka/action-lib/src';
 import * as path from 'path'
 import * as mock from './mocks'
 import * as assert from 'assert'
@@ -132,15 +128,7 @@ test('run-vcpkg must not build if vcpkg executable is up to date with sources, a
   };
   mock.answersMocks.reset(answers);
 
-  const baselib: baselib.BaseLib = new actionlib.ActionLib();
-
-  baselib.exec = jest.fn().mockImplementation((cmd: string, args: string[]) => {
-    mock.answersMocks.printResponse('exec', cmd);
-  });
-
-  baselib.rmRF = jest.fn();
-
-  const vcpkg: VcpkgRunner = new VcpkgRunner(baselib);
+  const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
   // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(<any>vcpkg, 'build');
 
@@ -153,8 +141,8 @@ test('run-vcpkg must not build if vcpkg executable is up to date with sources, a
   }
 
   // Assert.
-  expect(baselib.warning).toBeCalledTimes(0);
-  expect(baselib.error).toBeCalledTimes(0);
+  expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
+  expect(mock.exportedBaselib.error).toBeCalledTimes(0);
   // Build of vcpkg must not happen.
   expect(vcpkgBuildMock).toBeCalledTimes(0);
 });

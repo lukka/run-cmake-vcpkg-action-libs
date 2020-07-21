@@ -79,6 +79,7 @@ mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
 mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
 mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
 mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
+mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
@@ -126,30 +127,8 @@ test('run-vcpkg must build and install successfully', async () => {
   };
   mock.answersMocks.reset(answers);
 
-  const baselib: baselib.BaseLib = new actionlib.ActionLib();
-
-  baselib.getInput = jest.fn().mockImplementation((name: string, options: any) => {
-    switch (name) {
-      case globals.vcpkgArguments: return 'vcpkg_args';
-      case globals.vcpkgTriplet: return 'triplet';
-      case globals.vcpkgCommitId: return newGitRef;
-      case globals.vcpkgGitURL: return 'https://github.com/microsoft/vcpkg.git';
-    }
-  });
-  baselib.getPathInput = jest.fn().mockImplementation((name: string, options: any) => {
-    switch (name) {
-      case globals.vcpkgDirectory: return vcpkgRoot;
-    }
-  });
-
-  baselib.exec = jest.fn().mockImplementation((cmd: string, args: string[]) => {
-    mock.answersMocks.printResponse('exec', cmd);
-  });
-
-  baselib.rmRF = jest.fn();
-
   // Act.
-  const vcpkg: VcpkgRunner = new VcpkgRunner(baselib);
+  const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
   try {
     await vcpkg.run();
   }
@@ -158,8 +137,8 @@ test('run-vcpkg must build and install successfully', async () => {
   }
 
   // Assert.
-  expect(baselib.warning).toBeCalledTimes(0);
-  expect(baselib.error).toBeCalledTimes(0);
+  expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
+  expect(mock.exportedBaselib.error).toBeCalledTimes(0);
 
   // There must be a call to execute the command 'vcpkg install' with correct arguments
   // and triplet passed to it.
