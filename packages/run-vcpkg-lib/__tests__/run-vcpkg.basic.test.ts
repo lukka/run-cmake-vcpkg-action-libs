@@ -83,24 +83,6 @@ mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 
-// Mock the execSync of ActionToolRunner.
-jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
-  function (this: ActionToolRunner, options?: ExecOptions): Promise<baselib.ExecResult> {
-    const toolRunnerPrivateAccess: any = this;
-    const response = mock.answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
-    console.log(response);
-    console.log(JSON.stringify(response));
-    return Promise.resolve({ code: response.code, stdout: response.stdout, stderr: response.stderr } as baselib.ExecResult);
-  });
-
-jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
-  function (this: ActionToolRunner, options?: ExecOptions): Promise<number> {
-    const toolRunnerPrivateAccess: any = this;
-    const response = mock.answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
-    console.log(response);
-    return Promise.resolve(response.code);
-  });
-
 test('run-vcpkg must build and install successfully', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {

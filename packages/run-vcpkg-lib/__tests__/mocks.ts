@@ -126,3 +126,23 @@ jest.mock('strip-json-comments',
       })
     }
   }));
+
+
+  // Mock the execSync of ActionToolRunner.
+jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
+  function (this: ActionToolRunner, options?: ExecOptions): Promise<baselib.ExecResult> {
+    const toolRunnerPrivateAccess: any = this;
+    const response = answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
+    console.log(response);
+    console.log(JSON.stringify(response));
+    return Promise.resolve({ code: response.code, stdout: response.stdout, stderr: response.stderr } as baselib.ExecResult);
+  });
+
+jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
+  function (this: ActionToolRunner, options?: ExecOptions): Promise<number> {
+    const toolRunnerPrivateAccess: any = this;
+    const response = answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
+    console.log(response);
+    return Promise.resolve(response.code);
+  });
+  

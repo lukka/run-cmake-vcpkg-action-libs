@@ -83,24 +83,6 @@ mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
-// Mock the execSync of ActionToolRunner.
-jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
-  function (this: ActionToolRunner, options?: ExecOptions): Promise<baselib.ExecResult> {
-    const toolRunnerPrivateAccess: any = this;
-    const response = mock.answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
-    console.log(response);
-    console.log(JSON.stringify(response));
-    return Promise.resolve({ code: response.code, stdout: response.stdout, stderr: response.stderr } as baselib.ExecResult);
-  });
-
-jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
-  function (this: ActionToolRunner, options?: ExecOptions): Promise<number> {
-    const toolRunnerPrivateAccess: any = this;
-    const response = mock.answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
-    console.log(response);
-    return Promise.resolve(response.code);
-  });
-
 test('run-vcpkg must not build if vcpkg executable is up to date with sources, and it must install successfully the ports.', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
