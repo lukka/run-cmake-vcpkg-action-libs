@@ -10,13 +10,35 @@ import * as baselib from '@lukka/base-lib';
 import { ActionToolRunner } from '@lukka/action-lib/src';
 import { ExecOptions } from 'child_process';
 import * as testutils from './utils'
+import * as assert from 'assert'
 
 export const answersMocks: testutils.MockAnswers = new testutils.MockAnswers()
 export const inputsMocks: testutils.MockInputs = new testutils.MockInputs();
 
-const MockBaseLibUtils = baselib.BaseLibUtils as jest.Mocked<typeof baselib.BaseLibUtils>;
+export class VcpkgMocks {
+  public static isVcpkgSubmodule: boolean = false;
+  public static vcpkgRoot: string;
+  public static vcpkgExePath: string;
+  public static vcpkgExeExists: boolean = true;
+}
+
+export const MockBaseLibUtils = baselib.BaseLibUtils as jest.Mocked<typeof baselib.BaseLibUtils>;
 MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
 MockBaseLibUtils.prototype.readFile = jest.fn().mockImplementation(() => null);
+jest.spyOn(baselib.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
+  function (this: baselib.BaseLibUtils, gitPath: string, fullVcpkgPath: string): Promise<boolean> {
+    return Promise.resolve(VcpkgMocks.isVcpkgSubmodule);
+  });
+jest.spyOn(baselib.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
+  function (this: baselib.BaseLibUtils, path: string): boolean {
+    assert.equal(path, VcpkgMocks.vcpkgRoot);
+    return true;
+  });
+jest.spyOn(baselib.BaseLibUtils.prototype, 'fileExists').mockImplementation(
+  function (this: baselib.BaseLibUtils, path: string): boolean {
+    assert.equal(path, VcpkgMocks.vcpkgExePath);
+    return VcpkgMocks.vcpkgExeExists;
+  });
 
 export const envVarSetDict: { [name: string]: string } = {};
 
@@ -131,8 +153,8 @@ jest.mock('strip-json-comments',
     }
   }));
 
-
 // Mock the execSync of ActionToolRunner.
+
 jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
   function (this: ActionToolRunner, options?: ExecOptions): Promise<baselib.ExecResult> {
     const toolRunnerPrivateAccess: any = this;
@@ -155,4 +177,3 @@ export let exportedBaselib: baselib.BaseLib = new actionLib.ActionLib();
 exportedBaselib.exec = jest.fn().mockImplementation((cmd: string, args: string[]) => {
   answersMocks.printResponse('exec', cmd);
 });
-

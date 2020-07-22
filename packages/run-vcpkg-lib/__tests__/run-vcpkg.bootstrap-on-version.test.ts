@@ -10,25 +10,24 @@ import * as assert from 'assert'
 import * as utils from '@lukka/base-lib';
 
 // Arrange.
-const newGitRef = 'newgitref'
-const oldGitRef = 'gitref';
+const gitRef = 'mygitref'
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const getVcpkgExeName = function (): string { return (process.platform === "win32" ? "vcpkg.exe" : "vcpkg") };
 const vcpkgExeName = getVcpkgExeName();
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 
-mock.VcpkgMocks.isVcpkgSubmodule = false;
+mock.VcpkgMocks.isVcpkgSubmodule = true;
 mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
+mock.VcpkgMocks.vcpkgExeExists = true;
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseLibUtils, file: string): [boolean, string] {
     if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
       return [true, "!.git\n"];
-    }
-    else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
-      return [true, oldGitRef];
+    } else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
+      return [true, "anothergitref"];
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -58,22 +57,24 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
+mock.inputsMocks.reset();
 mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
 mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
-mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
+// Must not be provided, otherwise a warning would be triggered
+//mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
 mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
+mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
-test('run-vcpkg must build and install successfully', async () => {
+test('run-vcpkg must build (by running bootstrap) when the version of the repository is different than the last built binary, and it must install successfully the ports.', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
-        { code: 0, stdout: 'mygitref' },
+        { code: 0, stdout: "differentgitref" },
       [`${path.join(vcpkgRoot, "vcpkg")} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
       [`${vcpkgRoot}/vcpkg remove --outdated --recurse`]:
@@ -82,8 +83,8 @@ test('run-vcpkg must build and install successfully', async () => {
         { 'code': 0, 'stdout': 'this is git clone ... output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:
         { 'code': 0, stdout: 'this is git submodule output' },
-      [`${gitPath} checkout --force ${newGitRef}`]:
-        { 'code': 0, 'stdout': `this is git checkout ${newGitRef} output` },
+      [`${gitPath} checkout --force ${gitRef}`]:
+        { 'code': 0, 'stdout': `this is git checkout ${gitRef} output` },
       [`chmod +x ${path.join(vcpkgRoot, "vcpkg")}`]:
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
@@ -97,9 +98,15 @@ test('run-vcpkg must build and install successfully', async () => {
         { 'code': 0, 'stdout': 'this is the output of vcpkg remote' },
       ['\\path\\to\\vcpkg\\vcpkg.exe install --recurse vcpkg_args --triplet triplet --clean-after-build']:
         { 'code': 0, 'stdout': 'this is the output of vcpkg install' }
-
     },
-    "exist": { [vcpkgRoot]: true },
+    "exist": {
+      [vcpkgRoot]: true,
+      [vcpkgExePath]: true
+    },
+    "stats": {
+      [vcpkgExePath]: true,
+      [vcpkgRoot]: true,
+    },
     'which': {
       'git': '/usr/local/bin/git',
       'sh': '/bin/bash',
@@ -110,8 +117,11 @@ test('run-vcpkg must build and install successfully', async () => {
   };
   mock.answersMocks.reset(answers);
 
-  // Act.
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
+  // HACK: any to access private fields.
+  let vcpkgBuildMock = jest.spyOn(<any>vcpkg, 'build');
+
+  // Act.
   try {
     await vcpkg.run();
   }
@@ -122,11 +132,6 @@ test('run-vcpkg must build and install successfully', async () => {
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
-
-  // There must be a call to execute the command 'vcpkg install' with correct arguments
-  // and triplet passed to it.
-  const calls = mock.baselibInfo.mock.calls.filter((item) => {
-    return RegExp('.*vcpkg install --recurse vcpkg_args --triplet triplet.*').test(item[0])
-  });
-  expect(calls.length).toBe(1);
+  // Build of vcpkg must not happen.
+  expect(vcpkgBuildMock).toBeCalledTimes(1);
 });

@@ -17,6 +17,11 @@ const getVcpkgExeName = function (): string { return (process.platform === "win3
 const vcpkgExeName = getVcpkgExeName();
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 
+mock.VcpkgMocks.isVcpkgSubmodule = false;
+mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
+mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
+mock.VcpkgMocks.vcpkgExeExists = true;
+
 jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseLibUtils, file: string): [boolean, string] {
     if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
@@ -48,23 +53,6 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
     } else {
       assert.fail(`Unexpected variable name: '${name}'`);
     }
-  });
-
-jest.spyOn(utils.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
-  function (this: utils.BaseLibUtils, gitPath: string, fullVcpkgPath: string): Promise<boolean> {
-    return Promise.resolve(false);
-  });
-
-jest.spyOn(utils.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
-  function (this: utils.BaseLibUtils, path: string): boolean {
-    assert.equal(path, vcpkgRoot);
-    return true;
-  });
-
-jest.spyOn(utils.BaseLibUtils.prototype, 'fileExists').mockImplementation(
-  function (this: utils.BaseLibUtils, path: string): boolean {
-    assert.equal(path, vcpkgExePath);
-    return true;
   });
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
