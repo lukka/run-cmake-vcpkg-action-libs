@@ -20,7 +20,7 @@ const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 mock.VcpkgMocks.isVcpkgSubmodule = false;
 mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
-mock.VcpkgMocks.vcpkgExeExists = true;
+mock.VcpkgMocks.vcpkgExeExists = false;
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseLibUtils, file: string): [boolean, string] {
@@ -100,7 +100,6 @@ test('run-vcpkg must not build if vcpkg executable is up to date with sources, a
     },
     "exist": {
       [vcpkgRoot]: true,
-      [vcpkgExePath]: true
     },
     "stats": {
       [vcpkgExePath]: true,
@@ -132,5 +131,5 @@ test('run-vcpkg must not build if vcpkg executable is up to date with sources, a
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
   // Build of vcpkg must not happen.
-  expect(vcpkgBuildMock).toBeCalledTimes(0);
+  expect(vcpkgBuildMock).toBeCalledTimes(1);
 });
