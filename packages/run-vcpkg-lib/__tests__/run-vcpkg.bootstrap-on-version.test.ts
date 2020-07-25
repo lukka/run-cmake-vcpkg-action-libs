@@ -68,7 +68,7 @@ mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
-test('run-vcpkg must build (by running bootstrap) when the version of the repository is different than the last built binary, and it must install successfully the ports.', async () => {
+testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the version of the repository is different than the last built binary, and it must install successfully the ports.', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:

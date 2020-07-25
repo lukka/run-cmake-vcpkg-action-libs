@@ -67,7 +67,7 @@ mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 
-test('run-vcpkg must build and install successfully', async () => {
+testutils.testWithHeader('run-vcpkg must build and install successfully', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:

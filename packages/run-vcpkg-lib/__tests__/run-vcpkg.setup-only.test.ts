@@ -67,7 +67,7 @@ mock.inputsMocks.setBooleanInput(globals.setupOnly, true);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 
-test('run-vcpkg must build and must not install because it is setup only', async () => {
+testutils.testWithHeader('run-vcpkg must build and must not install because it is setup only', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -127,5 +127,4 @@ test('run-vcpkg must build and must not install because it is setup only', async
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
   expect(vcpkgBuildMock).toBeCalledTimes(1);
   expect(vcpkgInstallPackaagesMock).toBeCalledTimes(0);
-
 });
