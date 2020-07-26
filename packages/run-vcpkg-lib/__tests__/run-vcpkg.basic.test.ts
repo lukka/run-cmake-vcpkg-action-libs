@@ -10,12 +10,14 @@ import * as assert from 'assert'
 import * as utils from '@lukka/base-lib';
 
 // Arrange.
+const isWin = process.platform === "win32";
 const newGitRef = 'newgitref'
 const oldGitRef = 'gitref';
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
-const getVcpkgExeName = function (): string { return (process.platform === "win32" ? "vcpkg.exe" : "vcpkg") };
-const vcpkgExeName = getVcpkgExeName();
+const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
+const bootstrapName = isWin ? "bootstrap-vcpkg.bat" : "bootstrap-vcpkg.sh";
+const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 
 mock.VcpkgMocks.isVcpkgSubmodule = false;
@@ -74,9 +76,9 @@ testutils.testWithHeader('run-vcpkg must build and install successfully', async 
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
         { code: 0, stdout: 'mygitref' },
-      [`${path.join(vcpkgRoot, "vcpkg")} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
+      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
-      [`${vcpkgRoot}/vcpkg remove --outdated --recurse`]:
+      [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
         { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
       [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
         { 'code': 0, 'stdout': 'this is git clone ... output' },
@@ -89,15 +91,8 @@ testutils.testWithHeader('run-vcpkg must build and install successfully', async 
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
         { 'code': 0, 'stdout': 'this is the output of chmod +x bootstrap' },
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
-      [`/bin/bash -c ${vcpkgRoot}/bootstrap-vcpkg.sh`]:
-        { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
-      ['cmd.exe /c \\path\\to\\vcpkg\\bootstrap-vcpkg.bat']:
-        { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg.bat' },
-      ['\\path\\to\\vcpkg\\vcpkg.exe remove --outdated --recurse']:
-        { 'code': 0, 'stdout': 'this is the output of vcpkg remote' },
-      ['\\path\\to\\vcpkg\\vcpkg.exe install --recurse vcpkg_args --triplet triplet --clean-after-build']:
-        { 'code': 0, 'stdout': 'this is the output of vcpkg install' }
-
+      [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
+        { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' }
     },
     "exist": { [vcpkgRoot]: true },
     'which': {
@@ -116,7 +111,7 @@ testutils.testWithHeader('run-vcpkg must build and install successfully', async 
     await vcpkg.run();
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead if failed: ${error} \n ${error.stack}`);
+    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
   }
 
   // Assert.
