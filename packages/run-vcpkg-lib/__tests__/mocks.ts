@@ -59,6 +59,7 @@ function toolRunner(toolPath: string) {
 let lastOperationName: string = "";
 
 export let baselibInfo = jest.fn();
+export let baselibwriteFile = jest.fn();
 
 import * as actionLib from '@lukka/action-lib';
 
@@ -132,7 +133,7 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           jest.fn().mockImplementation((toolPath: string) =>
             new ActionToolRunner(toolPath)),
         writeFile:
-          jest.fn().mockImplementation((file: string, content: string) =>
+          baselibwriteFile.mockImplementation((file: string, content: string) =>
             testutils.testLog(`writeFile('${file}','${content}')`)),
         rmRF:
           jest.fn().mockImplementation((file: string) => testutils.testLog(`rmRf(${file})`)),
