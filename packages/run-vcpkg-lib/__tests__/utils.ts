@@ -68,7 +68,7 @@ export class MockAnswers {
             return answer;
         }
 
-        debug(`no mock found registered for cmd=${JSON.stringify(cmd)} key=${key}`);
+        debug(`no mock found registered for cmd=${JSON.stringify(cmd)} key=${key}, mocks=${JSON.stringify(this)}`);
         throw new Error("No response found");
     }
 
@@ -134,13 +134,25 @@ export class MockInputs {
     }
 
     public getInput(name: string, required?: boolean): string {
-        return <string>this.inputs[name];
+        if (!(name in this.inputs)) {
+            testLog(`input '${name}' not found`);
+            return "";
+        }
+        return this.inputs[name] as string;
     }
     public getBooleanInput(name: string, required?: boolean): boolean {
+        if (!(name in this.inputs)) {
+            testLog(`input '${name}' not found`);
+            return false;
+        }
         return this.inputs[name].toLowerCase() === "true";
     }
     public getDelimitedInput(name: string, separator?: string, required?: boolean): string[] {
-        return <string[]>(this.inputs[name].split('\n'));
+        if (!(name in this.inputs)) {
+            testLog(`input '${name}' not found`);
+            return [];
+        }
+        return (this.inputs[name].split('\n')) as string[];
     };
 }
 

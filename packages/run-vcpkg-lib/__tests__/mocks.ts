@@ -22,6 +22,10 @@ export class VcpkgMocks {
   public static vcpkgExeExists: boolean = true;
 }
 
+export class CMakeMocks {
+
+}
+
 export const MockBaseLibUtils = baselib.BaseLibUtils as jest.Mocked<typeof baselib.BaseLibUtils>;
 MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
 MockBaseLibUtils.prototype.readFile = jest.fn().mockImplementation(() => null);
@@ -82,6 +86,8 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
         getDelimitedInput:
           jest.fn().mockImplementation((name: string, separator?: string, required?: boolean) =>
             inputsMocks.getDelimitedInput(name, separator, required)),
+        isFilePathSupplied:
+          jest.fn(),
         debug:
           jest.fn().mockImplementation((msg: string) => console.log(`test debug: ${msg}`)),
         warning:
@@ -137,6 +143,8 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
             testutils.testLog(`writeFile('${file}','${content}')`)),
         rmRF:
           jest.fn().mockImplementation((file: string) => testutils.testLog(`rmRf(${file})`)),
+        addMatcher: jest.fn(),
+        removeMatcher: jest.fn,
       };
     }),
     ActionToolRunner: jest.fn().mockImplementation((toolPath) => toolRunner(toolPath))
