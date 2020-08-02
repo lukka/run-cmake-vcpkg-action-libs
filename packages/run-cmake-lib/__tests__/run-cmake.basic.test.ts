@@ -17,7 +17,7 @@ const vcpkgRoot = '/path/to/vcpkg';
 const cmakeExePath = '/usr/bin/cmake';
 const ninjaExePath = '/usr/bin/ninja';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
-const cmakeListsTxtPath = '/home/user/project/src/path/CMakeLists.txt';
+const cmakeListsTxtPath = path.join('/home/user/project/src/path/', 'CMakeLists.txt');
 
 jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseLibUtils, file: string): [boolean, string] {

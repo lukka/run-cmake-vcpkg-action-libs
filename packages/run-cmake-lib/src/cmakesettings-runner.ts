@@ -470,14 +470,14 @@ export class CMakeSettingsJsonRunner {
     private readonly tl: baselib.BaseLib) {
     this.configurationFilter = configurationFilter;
 
-    this.buildDir = path.normalize(path.resolve(this.buildDir));
-    if (!fs.existsSync(cmakeSettingsJson)) {
-      throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
-    }
-
     this.baseUtils = new baselib.BaseLibUtils(this.baseLib);
     this.cmakeUtils = new cmakeutil.CMakeUtils(this.baseUtils);
     this.ninjaLib = new ninjalib.NinjaDownloader(this.tl);
+
+    this.buildDir = path.normalize(this.baseUtils.resolvePath(this.buildDir));
+    if (!fs.existsSync(cmakeSettingsJson)) {
+      throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
+    }
   }
 
   private parseConfigurations(json: any): Configuration[] {

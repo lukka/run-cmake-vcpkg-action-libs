@@ -147,7 +147,7 @@ export class CMakeRunner {
     this.ninjaDownloadUrl = this.tl.getInput(cmakeglobals.ninjaDownloadUrl, false) ?? "";
     this.doBuild = this.tl.getBoolInput(cmakeglobals.buildWithCMake, false) ?? false;
     this.doBuildArgs = this.tl.getInput(cmakeglobals.buildWithCMakeArgs, false) ?? "";
-    this.cmakeSourceDir = path.dirname(path.resolve(this.cmakeListsTxtPath) ?? "");
+    this.cmakeSourceDir = path.dirname(this.baseUtils.resolvePath(this.cmakeListsTxtPath) ?? "");
 
     this.useVcpkgToolchainFile =
       this.tl.getBoolInput(cmakeglobals.useVcpkgToolchainFile, false) ?? false;

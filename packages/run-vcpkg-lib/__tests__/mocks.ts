@@ -3,7 +3,7 @@
 // SPDX short identifier: MIT
 
 // How to mock resources:
-// Howto: https://stackoverflow.com/questions/47402005/jest-mock-how-to-mock-es6-class-default-import-using-factory-parameter
+// How-to: https://stackoverflow.com/questions/47402005/jest-mock-how-to-mock-es6-class-default-import-using-factory-parameter
 // How to mock methods in detail: https://stackoverflow.com/questions/50091438/jest-how-to-mock-one-specific-method-of-a-class
 
 import * as baselib from '@lukka/base-lib';
@@ -11,10 +11,15 @@ import { ActionToolRunner } from '@lukka/action-lib/src';
 import { ExecOptions } from 'child_process';
 import * as testutils from './utils'
 import * as assert from 'assert'
+import * as path from 'path'
 
+// Provider of results of commands execution.
 export const answersMocks: testutils.MockAnswers = new testutils.MockAnswers()
+
+// Inputs provider.
 export const inputsMocks: testutils.MockInputs = new testutils.MockInputs();
 
+// run-vcpkg-lib specific mocks.
 export class VcpkgMocks {
   public static isVcpkgSubmodule: boolean = false;
   public static vcpkgRoot: string;
@@ -22,10 +27,12 @@ export class VcpkgMocks {
   public static vcpkgExeExists: boolean = true;
 }
 
+// run-cmake-lib specific mocks.
 export class CMakeMocks {
 
 }
 
+// Mock for baseLibUtils
 export const MockBaseLibUtils = baselib.BaseLibUtils as jest.Mocked<typeof baselib.BaseLibUtils>;
 MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
 MockBaseLibUtils.prototype.readFile = jest.fn().mockImplementation(() => null);
@@ -43,7 +50,14 @@ jest.spyOn(baselib.BaseLibUtils.prototype, 'fileExists').mockImplementation(
     assert.equal(path, VcpkgMocks.vcpkgExePath);
     return VcpkgMocks.vcpkgExeExists;
   });
+jest.spyOn(baselib.BaseLibUtils.prototype, 'resolvePath').mockImplementation(
+  function (this: baselib.BaseLibUtils, pathString: string): string {
+    return pathString;
+  });
 
+
+
+// Mock for environment variables.
 export const envVarSetDict: { [name: string]: string } = {};
 
 function toolRunner(toolPath: string) {
