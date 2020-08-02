@@ -30,7 +30,7 @@ jobs:
       shell: bash
       name: build
     - run: |
-        npx lerna run lint
+        npm run lint
       shell: bash
       name: lint
     - run: |
