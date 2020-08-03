@@ -106,7 +106,7 @@ export class CMakeRunner {
     const mode: string = this.tl.getInput(cmakeglobals.cmakeListsOrSettingsJson, true) ?? "";
     const taskMode: TaskModeType | undefined = getTargetType(mode);
     if (!taskMode) {
-      throw new Error(`ctor(): invalid task mode '${mode}'.`);
+      throw new Error(`ctor(): invalid mode '${mode}'.`);
     }
     this.taskMode = taskMode;
 
@@ -168,7 +168,7 @@ export class CMakeRunner {
     await this.configure();
   }
 
-  async configure(): Promise<void> {
+  private async configure(): Promise<void> {
     this.tl.debug('configure()<<');
 
     // Contains the '--config <CONFIG>' when using multiconfiguration generators.

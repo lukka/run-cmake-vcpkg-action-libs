@@ -61,21 +61,13 @@ mock.inputsMocks.setBooleanInput(globals.buildWithCMake, true);
 mock.inputsMocks.setInput(globals.cmakeGenerator, 'Ninja');
 mock.inputsMocks.setInput(globals.cmakeBuildType, 'Release');
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath)
-/*mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
-mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
-mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
-mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
-*/
 
-testutils.testWithHeader('run-cmake must configure and build successfully', async () => {
+testutils.testWithHeader('run-cmake must fail when a tool returns error code 1', () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
-      [`${cmakeExePath} -GNinja -DCMAKE_MAKE_PROGRAM=${ninjaExePath} -DCMAKE_BUILD_TYPE=Release ${path.dirname(cmakeListsTxtPath)}`]: { 'code': 0, "stdout": 'cmake output here' },
+      [`${cmakeExePath} -GNinja -DCMAKE_MAKE_PROGRAM=${ninjaExePath} -DCMAKE_BUILD_TYPE=Release ${path.dirname(cmakeListsTxtPath)}`]: { 'code': 1, "stdout": 'cmake error output here' },
       [`${cmakeExePath} --build .`]: { 'code': 0, "stdout": 'cmake --build output here' },
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
     },
@@ -92,13 +84,8 @@ testutils.testWithHeader('run-cmake must configure and build successfully', asyn
   mock.answersMocks.reset(answers);
 
   // Act.
-  const cmake: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
-  try {
-    await cmake.run();
-  }
-  catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
-  }
+  const cmakeRunner: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
+  expect(() => cmakeRunner.run()).rejects.toThrowError();// Assert
 
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);

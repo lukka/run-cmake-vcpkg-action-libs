@@ -56,21 +56,12 @@ function (this: utils.BaseLibUtils, name: string, value: string): void {
 */
 import { CMakeRunner } from '../src/cmake-runner';
 
-mock.inputsMocks.setInput(globals.cmakeListsOrSettingsJson, 'CMakeListsTxtBasic');
 mock.inputsMocks.setBooleanInput(globals.buildWithCMake, true);
 mock.inputsMocks.setInput(globals.cmakeGenerator, 'Ninja');
 mock.inputsMocks.setInput(globals.cmakeBuildType, 'Release');
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath)
-/*mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
-mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
-mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
-mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
-*/
 
-testutils.testWithHeader('run-cmake must configure and build successfully', async () => {
+testutils.testWithHeader('run-cmake must fail when mode is not provided', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -92,15 +83,10 @@ testutils.testWithHeader('run-cmake must configure and build successfully', asyn
   mock.answersMocks.reset(answers);
 
   // Act.
-  const cmake: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
-  try {
-    await cmake.run();
-  }
-  catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
-  }
+  expect(() => new CMakeRunner(mock.exportedBaselib)).toThrowError(new RegExp('.*mode.*'));
 
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
+  // The error related to mode error not set.
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
 });
