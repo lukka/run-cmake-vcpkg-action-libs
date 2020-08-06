@@ -6,6 +6,7 @@
     "compilerOptions": {
         "outDir": "./build",
         "baseUrl": "./",
-        "rootDir": "src"
+        "rootDir": "src",
+        "esModuleInterop": true
     }
 }

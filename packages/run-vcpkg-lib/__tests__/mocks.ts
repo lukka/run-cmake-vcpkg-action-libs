@@ -158,7 +158,8 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
         rmRF:
           jest.fn().mockImplementation((file: string) => testutils.testLog(`rmRf(${file})`)),
         addMatcher: jest.fn(),
-        removeMatcher: jest.fn,
+        removeMatcher: jest.fn(),
+        getSrcDir: jest.fn()
       };
     }),
     ActionToolRunner: jest.fn().mockImplementation((toolPath) => toolRunner(toolPath))

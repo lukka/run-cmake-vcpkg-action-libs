@@ -5,7 +5,8 @@
         "sourceMap": true,
         "strict": true,
         "outDir": "build",
-        "declaration": true
+        "declaration": true,
+        "esModuleInterop": true
     },
     "exclude": [
         "node_modules",

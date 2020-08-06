@@ -6,10 +6,9 @@ import * as utils from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as baselib from './base-lib';
-import * as admZip from 'adm-zip';
+import AdmZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
-import * as baselibutils from './utils'
 
 export class BaseLibUtils {
 
@@ -380,7 +379,7 @@ export class BaseLibUtils {
         // extract the archive overwriting anything.
         console.log(`Extracting archive '${archivePath}' ...`);
         this.mkdir(targetPath, { recursive: true });
-        const zip = new admZip(archivePath);
+        const zip = new AdmZip(archivePath);
         zip.extractAllTo(targetPath, true);
 
         // write the completed file marker.

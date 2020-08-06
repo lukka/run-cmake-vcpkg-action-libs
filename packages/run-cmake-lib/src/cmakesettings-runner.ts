@@ -7,12 +7,13 @@ import * as utils from '@lukka/base-lib/src/utils'
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as stripJsonComments from 'strip-json-comments';
+import 'strip-json-comments';
 import * as ninjalib from './ninja';
 import * as globals from './cmake-globals'
 import * as cmakerunner from './cmake-runner'
 import * as cmakeutil from './utils'
 import { using } from "using-statement";
+import stripJsonComments from 'strip-json-comments';
 
 export interface EnvironmentMap { [name: string]: Environment }
 
