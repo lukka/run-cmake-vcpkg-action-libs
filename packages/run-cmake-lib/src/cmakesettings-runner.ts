@@ -511,7 +511,7 @@ export class CMakeSettingsJsonRunner {
   }
 
   async run(): Promise<void> {
-    let content: any = fs.readFileSync(this.cmakeSettingsJson);
+    let content: any = this.baseUtils.readFile(this.cmakeSettingsJson);
     // Remove any potential BOM at the beginning.
     content = content.toString().trimLeft();
     this.tl.debug(`Content of file CMakeSettings.json: '${content}'.`);

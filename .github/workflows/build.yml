@@ -37,3 +37,7 @@ jobs:
         npm run test
       shell: bash
       name: test
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
