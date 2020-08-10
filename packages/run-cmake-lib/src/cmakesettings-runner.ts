@@ -476,7 +476,7 @@ export class CMakeSettingsJsonRunner {
     this.ninjaLib = new ninjalib.NinjaDownloader(this.tl);
 
     this.buildDir = path.normalize(this.baseUtils.resolvePath(this.buildDir));
-    if (!fs.existsSync(cmakeSettingsJson)) {
+    if (!this.baseLib.exist(cmakeSettingsJson)) {
       throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
     }
   }
@@ -511,12 +511,16 @@ export class CMakeSettingsJsonRunner {
   }
 
   async run(): Promise<void> {
-    let content: any = this.baseUtils.readFile(this.cmakeSettingsJson);
+    const [success, content]: any = this.baseUtils.readFile(this.cmakeSettingsJson);
+    if (!success) {
+      throw new Error(`Cannot read file: '${this.cmakeSettingsJson}'.`);
+    }
+
     // Remove any potential BOM at the beginning.
-    content = content.toString().trimLeft();
-    this.tl.debug(`Content of file CMakeSettings.json: '${content}'.`);
+    const contentTrimmed = content.toString().trimLeft();
+    this.tl.debug(`Content of file CMakeSettings.json: '${contentTrimmed}'.`);
     // Strip any comment out of the JSON content.
-    const cmakeSettingsJson: any = JSON.parse(stripJsonComments(content));
+    const cmakeSettingsJson: any = JSON.parse(stripJsonComments(contentTrimmed));
 
     const configurations = this.parseConfigurations(cmakeSettingsJson);
     const globalEnvs = this.parseGlobalEnvironments(cmakeSettingsJson);

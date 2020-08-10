@@ -159,14 +159,15 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           jest.fn().mockImplementation((file: string) => testutils.testLog(`rmRf(${file})`)),
         addMatcher: jest.fn(),
         removeMatcher: jest.fn(),
-        getSrcDir: jest.fn()
+        getSrcDir: jest.fn(),
+        getArtifactsDir: jest.fn().mockImplementation(()=> "")
       };
     }),
     ActionToolRunner: jest.fn().mockImplementation((toolPath) => toolRunner(toolPath))
   }
 }));
 
-jest.mock('strip-json-comments',
+/*jest.mock('strip-json-comments',
   jest.fn().mockImplementation(() => {
     return {
       ActionLib: jest.fn().mockImplementation(() => {
@@ -176,6 +177,7 @@ jest.mock('strip-json-comments',
       })
     }
   }));
+*/
 
 // Mock the execSync of ActionToolRunner.
 
