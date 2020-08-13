@@ -317,14 +317,14 @@ export class CMakeRunner {
   }
 
   /**
- * Build with CMake.
- * @export
- * @param {string} buildDir
- * @param {string} buildArgs
- * @param {trm.IExecOptions} options
- * @param {string} sourceScript
- * @returns {Promise<void>}
- */
+   * Build with CMake.
+   * @export
+   * @param {string} buildDir
+   * @param {string} buildArgs
+   * @param {trm.IExecOptions} options
+   * @param {string} sourceScript
+   * @returns {Promise<void>}
+  */
   static async build(baseLib: baselib.BaseLib, buildDir: string, buildArgs: string, options: baselib.ExecOptions): Promise<void> {
     // Run CMake with the given arguments
     const cmake: baselib.ToolRunner = baseLib.tool(await baseLib.which('cmake', true));

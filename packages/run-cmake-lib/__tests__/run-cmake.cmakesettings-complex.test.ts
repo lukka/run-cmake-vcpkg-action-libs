@@ -150,8 +150,10 @@ testutils.testWithHeader('run-cmake must successfully run with complex cmakesett
     },
   };
   mock.answersMocks.reset(answers);
+  // HACK: any to access private fields.
+  let cmakeBuildMock = jest.spyOn(<any>CMakeRunner, 'build');
 
-  // Act.
+  // Act and Assert.
   const cmake: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
   try {
     await cmake.run();
@@ -159,9 +161,8 @@ testutils.testWithHeader('run-cmake must successfully run with complex cmakesett
   catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack} `);
   }
-
-  // Assert.
   expect(() => cmake.run()).rejects.toThrowError();
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
+  expect(cmakeBuildMock).toBeCalledTimes(2);
 });
