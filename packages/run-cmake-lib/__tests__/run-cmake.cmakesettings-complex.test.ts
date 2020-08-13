@@ -17,6 +17,7 @@ const cmakeExePath = '/usr/bin/cmake';
 const ninjaExePath = '/usr/bin/ninja';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const cmakeSettingsJsonPath = path.join('/home/user/project/src/path/', 'CMakeLists.txt');
+const buildDirectory = '/path/to/build/dir/';
 
 function provideCMakeSettingsJsonFile(): string {
   const retVal: any = {
@@ -108,6 +109,9 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
     else if (testutils.areEqualVerbose(file, cmakeSettingsJsonPath)) {
       return [true, provideCMakeSettingsJsonFile()];
     }
+    else if (testutils.areEqualVerbose(file, path.join(buildDirectory, "CMakeCache.txt"))) {
+      return [true, `CMAKE_CXX_COMPILER:${isWin ? "msvc" : "gcc"}`]
+    }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
   });
@@ -119,7 +123,7 @@ mock.inputsMocks.setInput(globals.cmakeSettingsJsonPath, cmakeSettingsJsonPath);
 mock.inputsMocks.setInput(globals.configurationRegexFilter, '(.*VS|Linux.*)');
 mock.inputsMocks.setInput(globals.buildWithCMake, 'true');
 mock.inputsMocks.setInput(globals.buildWithCMakeArgs, 'this must be unused');
-mock.inputsMocks.setInput(globals.buildDirectory, '/path/to/build/dir/');
+mock.inputsMocks.setInput(globals.buildDirectory, buildDirectory);
 mock.inputsMocks.setInput(globals.useVcpkgToolchainFile, "false");
 process.env["Build.BinariesDirectory"] = "/agent/w/1/b/";
 process.env.RUNVCPKG_VCPKG_ROOT = "/vcpkg/root/";
@@ -151,7 +155,7 @@ testutils.testWithHeader('run-cmake must successfully run with complex cmakesett
   };
   mock.answersMocks.reset(answers);
   // HACK: any to access private fields.
-  let cmakeBuildMock = jest.spyOn(<any>CMakeRunner, 'build');
+  let cmakeBuildMock = jest.spyOn(CMakeRunner as any, 'build');
 
   // Act and Assert.
   const cmake: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
@@ -164,5 +168,5 @@ testutils.testWithHeader('run-cmake must successfully run with complex cmakesett
   expect(() => cmake.run()).rejects.toThrowError();
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
-  expect(cmakeBuildMock).toBeCalledTimes(2);
+  expect(cmakeBuildMock).toBeCalledTimes(2);// Two CMakeSettings.json configuratinos are being built.
 });

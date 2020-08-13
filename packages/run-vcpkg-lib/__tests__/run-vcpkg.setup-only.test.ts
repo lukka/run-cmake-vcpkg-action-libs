@@ -108,8 +108,8 @@ testutils.testWithHeader('run-vcpkg must build and must not install because it i
   // Act.
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
   // HACK: any to access private fields.
-  let vcpkgBuildMock = jest.spyOn(<any>vcpkg, 'build');
-  let vcpkgInstallPackaagesMock = jest.spyOn(<any>vcpkg, 'updatePackages');
+  let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
+  let vcpkgInstallPackaagesMock = jest.spyOn(vcpkg as any, 'updatePackages');
   try {
     await vcpkg.run();
   }

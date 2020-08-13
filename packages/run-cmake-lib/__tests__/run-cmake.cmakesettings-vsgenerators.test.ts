@@ -44,6 +44,9 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
         }]\
       }'];
     }
+    else if (testutils.areEqualVerbose(file, path.join(artifactStagingDirectory, "CMakeCache.txt"))) {
+      return [true, `CMAKE_C_COMPILER:${isWin ? "msvc" : "gcc"}`]
+    }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
   });

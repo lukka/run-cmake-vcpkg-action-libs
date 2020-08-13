@@ -1,6 +1,6 @@
 module.exports = {
   clearMocks: true,
-  moduleFileExtensions: ['js', 'ts'],
+  moduleFileExtensions: ['ts', 'js'],
   roots: ['<rootDir>/packages'],
   testEnvironment: 'node',
   testMatch: ['**/__tests__/*.test.ts'],
@@ -9,5 +9,6 @@ module.exports = {
     '^.+\\.ts$': 'ts-jest'
   },
   verbose: true,
-  collectCoverage: true
+  collectCoverage: true,
+  coveragePathIgnorePatterns: ["<rootDir>/build/", "<rootDir>/node_modules/", "<rootDir>/__tests__", "mocks.ts", '__tests__'],
 }

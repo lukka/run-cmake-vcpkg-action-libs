@@ -149,8 +149,8 @@ testutils.testWithHeader('run-cmake must skip build when generation fails with c
   mock.answersMocks.reset(answers);
 
   // HACK: any to access private fields.
-  let cmakeBuildMock = jest.spyOn(<any>CMakeRunner, 'build');
-  
+  let cmakeBuildMock = jest.spyOn(CMakeRunner as any, 'build');
+
   // Act & Assert.
   const cmake: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
   expect(() => cmake.run()).rejects.toThrowError();

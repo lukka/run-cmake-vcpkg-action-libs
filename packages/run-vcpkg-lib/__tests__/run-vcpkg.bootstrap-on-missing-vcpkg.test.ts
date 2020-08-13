@@ -113,7 +113,7 @@ testutils.testWithHeader('run-vcpkg must not build if vcpkg executable is up to 
 
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
   // HACK: any to access private fields.
-  let vcpkgBuildMock = jest.spyOn(<any>vcpkg, 'build');
+  let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 
   // Act.
   try {

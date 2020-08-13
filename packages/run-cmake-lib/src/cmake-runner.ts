@@ -10,6 +10,7 @@ import * as cmakeglobals from './cmake-globals';
 import * as ninjalib from './ninja';
 import { using } from "using-statement";
 import * as cmakelib from './utils'
+import { BaseLibUtils } from '@lukka/base-lib';
 
 enum TaskModeType {
   CMakeListsTxtBasic = 1,
@@ -366,13 +367,12 @@ export class CMakeRunner {
   public static getBuildMatcher(buildDir: string, tl: baselib.BaseLib): string {
     let cxxMatcher: string | undefined;
     let ccMatcher: string | undefined;
-
+    const utils: BaseLibUtils = new BaseLibUtils(tl);
     try {
       const cmakeCacheTxtPath = path.join(buildDir, "CMakeCache.txt");
-      const cache: Buffer = fs.readFileSync(cmakeCacheTxtPath);
+      const [ok, cacheContent] = utils.readFile(cmakeCacheTxtPath);
       tl.debug(`Loaded fileCMakeCache.txt at path='${cmakeCacheTxtPath}'`);
-      if (cache) {
-        const cacheContent = cache.toString();
+      if (ok) {
         for (const line of cacheContent.split('\n')) {
           tl.debug(`text=${line}`);
           if (line.includes("CMAKE_CXX_COMPILER:")) {

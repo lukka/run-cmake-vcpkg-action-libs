@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Luca Cappa
+// Copyright (c) 2020 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -13,7 +13,7 @@ import * as utils from '@lukka/base-lib';
 const isWin = process.platform === "win32";
 const oldGitRef = 'gitref';
 const gitPath = '/usr/local/bin/git';
-const vcpkgRoot = '/path/to/vcpkg';
+const vcpkgRoot = path.join('/path/to/', 'vcpkg');
 const cmakeExePath = '/usr/bin/cmake';
 const ninjaExePath = '/usr/bin/ninja';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
@@ -31,44 +31,30 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
       throw `readFile called with unexpected file name: '${file}'.`;
   });
 
-/*
-jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
-function (this: utils.BaseLibUtils, name: string, value: string): void {
-  // Ensure they are not set twice.
-  const existingValue: string = mock.envVarSetDict[name];
-  if (existingValue) {
-    assert.fail(`Error: env var ${name} is set multiple times!`);
-  }
-
-  // Ensure their values are the expected ones.
-  if (name === utils.BaseLibUtils.cachingFormatEnvName) {
-    assert.equal(value, "Files");
-  } else if (name === globals.buildDirectory) {
-    assert.equal(value, vcpkgRoot);
-  } else if (name === globals.outVcpkgTriplet) {
-    // no check on value here...
-  } else if (name === globals.vcpkgRoot) {
-    // no check on value here...
-  } else {
-    assert.fail(`Unexpected variable name: '${name}'`);
-  }
-});
-*/
 import { CMakeRunner } from '../src/cmake-runner';
+import * as cmakeutils from '../src/utils'
 
-mock.inputsMocks.setInput(globals.cmakeListsOrSettingsJson, 'CMakeListsTxtBasic');
+mock.inputsMocks.setInput(globals.cmakeListsOrSettingsJson, 'CMakeListsTxtAdvanced');
+mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
+mock.inputsMocks.setInput(globals.ninjaPath, ninjaExePath);
+mock.inputsMocks.setInput(globals.buildDirectory, 'buildDirPath');
 mock.inputsMocks.setBooleanInput(globals.buildWithCMake, true);
-mock.inputsMocks.setInput(globals.cmakeGenerator, 'Ninja');
-mock.inputsMocks.setInput(globals.cmakeBuildType, 'Release');
-mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath)
+mock.inputsMocks.setInput(globals.buildWithCMakeArgs, '-cmake -build -args');
+mock.inputsMocks.setInput(globals.buildDirectory, '/path/to/build/dir/');
+mock.inputsMocks.setInput(globals.cmakeAppendedArgs, '-GNinja -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=/existing/tool/chain.cmake');
 
-testutils.testWithHeader('run-cmake must configure and build successfully', async () => {
+mock.inputsMocks.setBooleanInput(globals.useVcpkgToolchainFile, true);
+mock.inputsMocks.setInput(globals.cmakeToolchainPath, cmakeListsTxtPath)
+process.env.RUNVCPKG_VCPKG_ROOT = vcpkgRoot;
+const vcpkgToolchainFile = path.join(vcpkgRoot, 'scripts/buildsystems/vcpkg.cmake');
+
+testutils.testWithHeader('run-cmake basic mode with toolchain must configure and build successfully', async () => {
   const answers: testutils.TaskLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
-      [`${cmakeExePath} -GNinja -DCMAKE_MAKE_PROGRAM=${ninjaExePath} -DCMAKE_BUILD_TYPE=Release ${path.dirname(cmakeListsTxtPath)}`]: { 'code': 0, "stdout": 'cmake output here' },
-      [`${cmakeExePath} --build .`]: { 'code': 0, "stdout": 'cmake --build output here' },
+      [`${cmakeExePath} -DCMAKE_MAKE_PROGRAM=${ninjaExePath} -GNinja -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=/existing/tool/chain.cmake -DCMAKE_TOOLCHAIN_FILE=${vcpkgToolchainFile} ${path.dirname(cmakeListsTxtPath)}`]: { 'code': 0, "stdout": 'cmake output here' },
+      [`${cmakeExePath} --build . -cmake -build -args`]: { 'code': 0, "stdout": 'cmake --build output here' },
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
     },
     "exist": { [vcpkgRoot]: true },
@@ -83,7 +69,8 @@ testutils.testWithHeader('run-cmake must configure and build successfully', asyn
   };
   mock.answersMocks.reset(answers);
 
-  // Act.
+  const injectVcpkgMock = jest.spyOn(cmakeutils.CMakeUtils.prototype, 'injectVcpkgToolchain');
+  // Act and Assert.
   const cmake: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
   try {
     await cmake.run();
@@ -92,7 +79,7 @@ testutils.testWithHeader('run-cmake must configure and build successfully', asyn
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
   }
 
-  // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
+  expect(injectVcpkgMock).toBeCalledTimes(1);
 });

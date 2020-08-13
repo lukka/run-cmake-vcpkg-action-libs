@@ -16,8 +16,6 @@ export class NinjaDownloader {
   }
 
   async download(url: string): Promise<string> {
-    let ninjaPath = '';
-
     if (!url) {
       if (this.baseUtils.isLinux()) {
         url = `${NinjaDownloader.baseUrl}/ninja-linux.zip`;
@@ -34,13 +32,13 @@ export class NinjaDownloader {
       ninjaExeName += ".exe";
     }
 
-    ninjaPath = await this.baseUtils.downloadArchive(url);
-    ninjaPath = path.join(ninjaPath, ninjaExeName);
+    const ninjaPath = await this.baseUtils.downloadArchive(url);
+    const ninjaFullPath = path.join(ninjaPath, ninjaExeName);
     if (this.baseUtils.isLinux() || this.baseUtils.isDarwin()) {
-      await this.baseLib.exec('chmod', ['+x', ninjaPath]);
+      await this.baseLib.exec('chmod', ['+x', ninjaFullPath]);
     }
 
-    return `${ninjaPath}`;
+    return ninjaFullPath;
   }
 
   private async findNinjaTool(): Promise<string> {

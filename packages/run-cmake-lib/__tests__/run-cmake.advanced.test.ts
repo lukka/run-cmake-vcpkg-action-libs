@@ -61,7 +61,7 @@ testutils.testWithHeader('run-cmake in advanced mode must configure and build su
   };
   mock.answersMocks.reset(answers);
   // HACK: any to access private fields.
-  let cmakeBuildMock = jest.spyOn(<any>CMakeRunner, 'build');
+  let cmakeBuildMock = jest.spyOn(CMakeRunner as any, 'build');
 
   // Act.
   const cmake: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
