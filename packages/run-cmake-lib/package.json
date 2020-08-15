@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@lukka/base-lib": "^0.0.1",
+    "@lukka/action-lib": "0.0.1",
     "@types/adm-zip": "^0.4.32",
     "@types/follow-redirects": "^1.8.0",
     "@types/q": "^1.5.1",

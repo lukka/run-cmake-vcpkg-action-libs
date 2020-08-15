@@ -1,7 +1,7 @@
 {
   "name": "@lukka/run-cmake-vcpkg-action-libs",
   "version": "0.0.2",
-  "description": "Libraries for running vcpkg and CMake in CI systems.",
+  "description": "Implementation of the continuous integration abstraction layer for Azure DevOps.",
   "repository": {
     "type": "git",
     "url": "https://github.com/lukka/run-cmake-vcpkg-action-libs",

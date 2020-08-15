@@ -103,6 +103,7 @@ export class Configuration {
     public readonly cmakeToolchain: string,
     public readonly variables: readonly CMakeVariable[],
     public readonly inheritEnvironments: readonly string[]) {
+    this.buildDir = path.normalize(this.buildDir);
   }
 
   /**
