@@ -125,7 +125,7 @@ process.env["Build.BinariesDirectory"] = "/agent/w/1/b/";
 process.env.RUNVCPKG_VCPKG_ROOT = "/vcpkg/root/";
 
 testutils.testWithHeader('run-cmake must skip build when generation fails with cmakesettings.json file', async () => {
-  const answers: testutils.TaskLibAnswers = {
+  const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },

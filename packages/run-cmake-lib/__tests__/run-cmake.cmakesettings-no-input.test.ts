@@ -35,7 +35,7 @@ import { CMakeRunner } from '../src/cmake-runner';
 mock.inputsMocks.setInput(globals.cmakeListsOrSettingsJson, 'CMakeListsTxtBasic');
 
 testutils.testWithHeader('run-cmake must fail when the required input is not provided', async () => {
-  const answers: testutils.TaskLibAnswers = {
+  const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },

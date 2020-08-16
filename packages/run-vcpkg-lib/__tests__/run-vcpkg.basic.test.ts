@@ -70,7 +70,7 @@ mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 
 testutils.testWithHeader('run-vcpkg must build and install successfully', async () => {
-  const answers: testutils.TaskLibAnswers = {
+  const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
@@ -94,7 +94,7 @@ testutils.testWithHeader('run-vcpkg must build and install successfully', async 
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' }
     },
-    "exist": { [vcpkgRoot]: true },
+    "exist": { [vcpkgRoot]: false },
     'which': {
       'git': '/usr/local/bin/git',
       'sh': '/bin/bash',

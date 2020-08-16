@@ -49,7 +49,7 @@ process.env.RUNVCPKG_VCPKG_ROOT = vcpkgRoot;
 const vcpkgToolchainFile = path.join(vcpkgRoot, 'scripts/buildsystems/vcpkg.cmake');
 
 testutils.testWithHeader('run-cmake basic mode with toolchain must configure and build successfully', async () => {
-  const answers: testutils.TaskLibAnswers = {
+  const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },

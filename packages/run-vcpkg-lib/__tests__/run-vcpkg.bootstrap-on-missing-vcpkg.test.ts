@@ -70,7 +70,7 @@ mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
 testutils.testWithHeader('run-vcpkg must not build if vcpkg executable is up to date with sources, and it must install successfully the ports.', async () => {
-  const answers: testutils.TaskLibAnswers = {
+  const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },

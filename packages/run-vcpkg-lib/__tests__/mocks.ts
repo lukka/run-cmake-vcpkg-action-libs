@@ -12,6 +12,7 @@ import { ExecOptions } from 'child_process';
 import * as testutils from './utils'
 import * as assert from 'assert'
 import * as path from 'path'
+import os from 'os'
 
 // Provider of results of commands execution.
 export const answersMocks: testutils.MockAnswers = new testutils.MockAnswers()
@@ -160,7 +161,8 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
         addMatcher: jest.fn(),
         removeMatcher: jest.fn(),
         getSrcDir: jest.fn(),
-        getArtifactsDir: jest.fn().mockImplementation(()=> "")
+        getArtifactsDir: jest.fn().mockImplementation(() => ""),
+        getBinDir: jest.fn().mockImplementation(() => os.tmpdir()),
       };
     }),
     ActionToolRunner: jest.fn().mockImplementation((toolPath) => toolRunner(toolPath))

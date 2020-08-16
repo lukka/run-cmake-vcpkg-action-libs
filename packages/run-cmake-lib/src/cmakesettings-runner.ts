@@ -454,7 +454,7 @@ export function parseConfigurations(configurationsJson: any, cmakeSettingsJson: 
 export class CMakeSettingsJsonRunner {
   private readonly baseUtils: baselib.BaseLibUtils;
   private readonly cmakeUtils: cmakeutil.CMakeUtils;
-  private readonly ninjaLib: ninjalib.NinjaDownloader;
+  private readonly ninjaLib: ninjalib.NinjaProvider;
 
   constructor(
     private readonly baseLib: baselib.BaseLib,
@@ -474,7 +474,7 @@ export class CMakeSettingsJsonRunner {
 
     this.baseUtils = new baselib.BaseLibUtils(this.baseLib);
     this.cmakeUtils = new cmakeutil.CMakeUtils(this.baseUtils);
-    this.ninjaLib = new ninjalib.NinjaDownloader(this.tl);
+    this.ninjaLib = new ninjalib.NinjaProvider(this.tl);
 
     this.buildDir = path.normalize(this.baseUtils.resolvePath(this.buildDir));
     if (!this.baseLib.exist(cmakeSettingsJson)) {

@@ -83,7 +83,7 @@ export class BaseLibUtils {
   }
 
   public isDarwin(): boolean {
-    return os.platform().toLowerCase() === 'Darwin';
+    return os.platform().toLowerCase() === 'darwin';
   }
 
   public getVcpkgExePath(vcpkgRoot: string): string {

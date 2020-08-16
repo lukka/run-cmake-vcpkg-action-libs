@@ -42,7 +42,7 @@ function getGenerator(generatorString: string): any {
 }
 
 export class CMakeRunner {
-  private readonly ninjaLib: ninjalib.NinjaDownloader;
+  private readonly ninjaLib: ninjalib.NinjaProvider;
   private readonly baseUtils: baselib.BaseLibUtils;
   private readonly cmakeUtils: cmakelib.CMakeUtils;
   private readonly buildDir: string = "";
@@ -102,7 +102,7 @@ export class CMakeRunner {
   public constructor(private tl: baselib.BaseLib) {
     this.baseUtils = new baselib.BaseLibUtils(this.tl);
     this.cmakeUtils = new cmakelib.CMakeUtils(this.baseUtils);
-    this.ninjaLib = new ninjalib.NinjaDownloader(this.tl);
+    this.ninjaLib = new ninjalib.NinjaProvider(this.tl);
 
     const mode: string = this.tl.getInput(cmakeglobals.cmakeListsOrSettingsJson, true) ?? "";
     const taskMode: TaskModeType | undefined = getTargetType(mode);

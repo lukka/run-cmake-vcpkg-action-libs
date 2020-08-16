@@ -95,7 +95,7 @@ mock.inputsMocks.setInput(globals.buildDirectory, artifactStagingDirectory);
 process.env["BUILD_ARTIFACTSTAGINGDIRECTORY"] = artifactStagingDirectory;
 
 testutils.testWithHeader('run-cmake using cmakesettings.json and vs generators must configure and build successfully', async () => {
-  const answers: testutils.TaskLibAnswers = {
+  const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },

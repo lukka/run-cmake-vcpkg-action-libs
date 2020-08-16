@@ -62,7 +62,7 @@ mock.inputsMocks.setInput(globals.cmakeBuildType, 'Release');
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath)
 
 testutils.testWithHeader('run-cmake must fail when mode is not provided', async () => {
-  const answers: testutils.TaskLibAnswers = {
+  const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },

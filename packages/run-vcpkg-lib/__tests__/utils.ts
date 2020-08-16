@@ -20,7 +20,7 @@ export interface BaseLibAnswerExecResult {
     stderr?: string
 }
 
-export interface TaskLibAnswers {
+export interface BaseLibAnswers {
     /*  checkPath?: { [key: string]: boolean },
       cwd?: { [key: string]: string },*/
     exec?: { [key: string]: BaseLibAnswerExecResult },
@@ -35,14 +35,14 @@ export interface TaskLibAnswers {
     which?: { [key: string]: string },
 }
 
-export type MockedCommand = keyof TaskLibAnswers;
+export type MockedCommand = keyof BaseLibAnswers;
 
 type ConsoleLogger = (msg: string) => void;
 export class MockAnswers {
     private static defaultLogger: ConsoleLogger = (msg: string) => console.log(msg);
-    private answers: TaskLibAnswers | undefined;
+    private answers: BaseLibAnswers | undefined;
 
-    public reset(answers: TaskLibAnswers) {
+    public reset(answers: BaseLibAnswers) {
         if (!answers) {
             throw new Error('Answers not supplied');
         }
@@ -63,7 +63,7 @@ export class MockAnswers {
         const cmdAnswer: any = this.answers[cmd]!;
 
         const answer = cmdAnswer[key];
-        if (answer) {
+        if (answer !== undefined) {
             debug(`found mock response: ${JSON.stringify(answer)}`);
             return answer;
         }
@@ -85,7 +85,7 @@ export class MockAnswers {
 
 let mock: MockAnswers = new MockAnswers();
 
-export function setAnswers(answers: TaskLibAnswers) {
+export function setAnswers(answers: BaseLibAnswers) {
     mock.reset(answers);
 }
 

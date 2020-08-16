@@ -69,7 +69,7 @@ mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 
 testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build and install successfully', async () => {
-  const answers: testutils.TaskLibAnswers = {
+  const answers: testutils.BaseLibAnswers = {
     "exec": {
       // Action must not call any git clone operation, only to check the submodule status.
       [`${gitPath}`]:

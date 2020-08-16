@@ -5,7 +5,7 @@
 import * as path from 'path';
 import * as baselib from '@lukka/base-lib';
 
-export class NinjaDownloader {
+export class NinjaProvider {
   private static readonly baseUrl =
     'https://github.com/ninja-build/ninja/releases/download/v1.10.0';
 
@@ -15,14 +15,14 @@ export class NinjaDownloader {
     this.baseUtils = new baselib.BaseLibUtils(baseLib);
   }
 
-  async download(url: string): Promise<string> {
+  private async download(url: string): Promise<string> {
     if (!url) {
       if (this.baseUtils.isLinux()) {
-        url = `${NinjaDownloader.baseUrl}/ninja-linux.zip`;
+        url = `${NinjaProvider.baseUrl}/ninja-linux.zip`;
       } else if (this.baseUtils.isDarwin()) {
-        url = `${NinjaDownloader.baseUrl}/ninja-mac.zip`;
+        url = `${NinjaProvider.baseUrl}/ninja-mac.zip`;
       } else if (this.baseUtils.isWin32()) {
-        url = `${NinjaDownloader.baseUrl}/ninja-win.zip`;
+        url = `${NinjaProvider.baseUrl}/ninja-win.zip`;
       }
     }
 
@@ -46,9 +46,16 @@ export class NinjaDownloader {
     return ninjaPath;
   };
 
-
-
-  public async retrieveNinjaPath(ninjaPath: string | undefined, ninjaDownloadUrl: string): Promise<string> {
+  /**
+   * Retrieve the path to 'ninja' executable. If the provided path to ninja is no existent
+   * it will download the ninja archive from the provided one, if the latter not provided from 
+   * the default URL for ths host platform.
+   * @param {(string | undefined)} ninjaPath Optional path to ninja executable.
+   * @param {string} ninjaDownloadUrl Optional URL to download ninja from.
+   * @returns {Promise<string>} The full path to the ninja executable.
+   * @memberof NinjaDownloader
+   */
+  public async retrieveNinjaPath(ninjaPath: string, ninjaDownloadUrl: string): Promise<string> {
     if (!ninjaPath) {
       this.baseLib.debug("Path to ninja executable has not been explicitly specified on the task. Searching for it now...");
 
