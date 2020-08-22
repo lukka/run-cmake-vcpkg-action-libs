@@ -3,28 +3,44 @@
 // SPDX short identifier: MIT
 
 import * as assert from 'assert';
-import * as utils from '../src/utils'
-import * as baseutillib from '@lukka/base-util-lib'
-import * as actionlib from '@lukka/action-lib'
-import path from 'path'
-import * as mock from '../../run-vcpkg-lib/__tests__/mocks'
-import * as testutils from '../../run-vcpkg-lib/__tests__/utils'
-import { BaseLib } from '@lukka/base-lib';
+import * as path from 'path';
+import * as baseutillib from '@lukka/base-util-lib';
+import * as actionlibs from '../src/action-lib';
 
-const vcpkgRoot = "/vcpkgroot/";
-const isWin = process.platform === "win32";
-jest.spyOn(baseutillib.BaseLibUtils.prototype, 'isWin32').mockImplementation(() => isWin);
-const answers: testutils.BaseLibAnswers = {
-  "exec": {
-    [`${path.join(vcpkgRoot, 'vcpkg.exe')} env --bin --include --tools --python --triplet triplet set`]:
-      { code: 0, stdout: "vcpkg output" },
-  },
-};
+function readFile(path: string): [boolean, string] {
+  if (path.indexOf("response_file_with_triplet.txt") !== -1) {
+    return [true, "--dry-run\n --triplet\n triplet\n"];
+  } else if (path.indexOf("response_file_only_with_triplet.txt") !== -1) {
+    return [true, "--triplet\ntriplet\n"];
+  } else {
+    return [true, " triplet \nis \nnot \nspecified\n"];
+  }
+}
 
-describe('BaseLibUtils tests', function () {
-  test('testing for presence of CMake flags', async () => {
-    const actionLib: actionlib.ActionLib = new actionlib.ActionLib();
-    const baseLibUtils: baseutillib.BaseLibUtils = new baseutillib.BaseLibUtils(actionLib);
+test('testing triplet extraction from arguments', async () => {
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("", readFile), null);
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--triplet triplet", readFile), "triplet");
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run --triplet triplet", readFile), "triplet");
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run --triplet tri-plet ", readFile), "tri-plet");
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run --triplet  tri-plet --dry-run", readFile), "tri-plet");
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run --triplet ", readFile), null);
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run @response_file_with_triplet.txt --triplet x", readFile), "triplet");
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run @response_file_with_no_triplet.txt --triplet x", readFile), "x");
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run @response_file_with_no_triplet.txt ", readFile), null);
+  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--recursive @response_file_only_with_triplet.txt", readFile), "triplet");
+});
+
+
+
+
+
+
+
+const baseLibUtils: baseutillib.BaseLibUtils = new baseutillib.BaseLibUtils(new actionlibs.ActionLib());
+
+
+describe('baselibs utils tests', function () {
+  test('testing for presence of flags', async () => {
     assert.ok(baseLibUtils.isNinjaGenerator(['-GNinja']));
     assert.ok(baseLibUtils.isNinjaGenerator(['-G Ninja']));
     assert.ok(!baseLibUtils.isNinjaGenerator(['-G ninja']));
@@ -62,28 +78,14 @@ describe('BaseLibUtils tests', function () {
     assert.ok(!baseLibUtils.isToolchainFile([' -DVAR=NAME ']));
   });
 
-});
-
-describe("CMakeUtils tests", function () {
-  test("CMakeUtils.injectVcpkgToolchain tests", async () => {
-    mock.answersMocks.reset(answers);
-
-    //const actionLib: actionlib.ActionLib = new actionlib.ActionLib();
-    const baseLib: BaseLib = mock.exportedBaselib;
-    const baseLibUtils: baseutillib.BaseLibUtils = new baseutillib.BaseLibUtils(baseLib);
-    const cmakeUtils = new utils.CMakeUtils(baseLibUtils);
-
-    process.env.RUNVCPKG_VCPKG_ROOT = vcpkgRoot;
-    let ret: string[] = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_TOOLCHAIN_FILE=existing.cmake'], "triplet", baseLib);
-    assert.deepEqual(ret, ['-DCMAKE_TOOLCHAIN_FILE=/vcpkgroot/scripts/buildsystems/vcpkg.cmake', '-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=existing.cmake', '-DVCPKG_TARGET_TRIPLET=triplet']);
-    ret = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_TOOLCHAIN_FILE:FILEPATH=existing.cmake'], "triplet", baseLib);
-    assert.deepEqual(ret, [`-DCMAKE_TOOLCHAIN_FILE=${path.join(vcpkgRoot, 'scripts/buildsystems/vcpkg.cmake')}`, '-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=existing.cmake', '-DVCPKG_TARGET_TRIPLET=triplet']);
-    ret = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_BUILD_TYPE=Debug'], "triplet", baseLib);
-    assert.deepEqual(ret, ['-DCMAKE_BUILD_TYPE=Debug', `-DCMAKE_TOOLCHAIN_FILE=${path.join(vcpkgRoot, 'scripts/buildsystems/vcpkg.cmake')}`, '-DVCPKG_TARGET_TRIPLET=triplet']);
-
-    process.env.RUNVCPKG_VCPKG_ROOT = "";
-    const arg: string[] = [' -DCMAKE_BUILD_TYPE=Debug'];
-    ret = await cmakeUtils.injectVcpkgToolchain(arg, "triplet", baseLib);
-    assert.deepEqual(ret, arg);
+  test('testing for path normalization', async () => {
+    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a/path/'), path.join('/a', 'path'));
+    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a/../path/'), path.normalize('/path'));
+    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/'), path.normalize('/'));
+    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a'), path.normalize('/a'));
+    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a/'), path.normalize('/a'));
+    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a/path'), path.join('/a', 'path'));
   });
 });
+
+

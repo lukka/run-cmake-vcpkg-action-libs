@@ -4,10 +4,11 @@
 
 import * as path from 'path';
 import * as baselib from '@lukka/base-lib';
+import * as baseutillib from '@lukka/base-util-lib';
 import * as vcpkgGlobals from './vcpkg-globals'
 
 export class CMakeUtils {
-  constructor(private readonly baseUtils: baselib.BaseLibUtils) {
+  constructor(private readonly baseUtils: baseutillib.BaseLibUtils) {
   }
 
   public async injectEnvVariables(vcpkgRoot: string, triplet: string, baseLib: baselib.BaseLib): Promise<void> {
@@ -18,7 +19,7 @@ export class CMakeUtils {
       }
     }
 
-    // Search for CMake tool and run it
+    // Search for vcpkg tool and run it
     let vcpkgPath: string = path.join(vcpkgRoot, 'vcpkg');
     if (this.baseUtils.isWin32()) {
       vcpkgPath += '.exe';
@@ -60,44 +61,44 @@ export class CMakeUtils {
     }
   }
 
- public async injectVcpkgToolchain(args: string[], triplet: string, baseLib: baselib.BaseLib): Promise<string[]> {
-  args = args ?? [];
-  const vcpkgRoot: string | undefined = process.env[vcpkgGlobals.outVcpkgRootPath];
+  public async injectVcpkgToolchain(args: string[], triplet: string, baseLib: baselib.BaseLib): Promise<string[]> {
+    args = args ?? [];
+    const vcpkgRoot: string | undefined = process.env[vcpkgGlobals.outVcpkgRootPath];
 
-  // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put aside into
-  // VCPKG_CHAINLOAD_TOOLCHAIN_FILE the existing toolchain.
-  if (vcpkgRoot && vcpkgRoot.length > 1) {
-    const toolchainFile: string | undefined =
-      this.baseUtils.getToolchainFile(args);
-    args = this.baseUtils.removeToolchainFile(args);
-    const vcpkgToolchain: string =
-      path.join(vcpkgRoot, '/scripts/buildsystems/vcpkg.cmake');
-    args.push(`-DCMAKE_TOOLCHAIN_FILE=${vcpkgToolchain}`);
-    if (toolchainFile) {
-      args.push(`-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${toolchainFile}`);
-    }
+    // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put aside into
+    // VCPKG_CHAINLOAD_TOOLCHAIN_FILE the existing toolchain.
+    if (vcpkgRoot && vcpkgRoot.length > 1) {
+      const toolchainFile: string | undefined =
+        this.baseUtils.getToolchainFile(args);
+      args = this.baseUtils.removeToolchainFile(args);
+      const vcpkgToolchain: string =
+        path.join(vcpkgRoot, '/scripts/buildsystems/vcpkg.cmake');
+      args.push(`-DCMAKE_TOOLCHAIN_FILE=${vcpkgToolchain}`);
+      if (toolchainFile) {
+        args.push(`-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${toolchainFile}`);
+      }
 
-    // If the triplet is provided, specify the same triplet on the cmd line and set the environment for msvc.
-    if (triplet) {
-      args.push(`-DVCPKG_TARGET_TRIPLET=${triplet}`);
+      // If the triplet is provided, specify the same triplet on the cmd line and set the environment for msvc.
+      if (triplet) {
+        args.push(`-DVCPKG_TARGET_TRIPLET=${triplet}`);
 
-      // For Windows build agents, inject the environment variables used
-      // for the MSVC compiler using the 'vcpkg env' command.
-      // This is not be needed for others compiler on Windows, but it should be harmless.
-      if (this.baseUtils.isWin32() && triplet) {
-        if (triplet.indexOf("windows") !== -1) {
-          process.env.CC = "cl.exe";
-          process.env.CXX = "cl.exe";
-          baseLib.setVariable("CC", "cl.exe");
-          baseLib.setVariable("CXX", "cl.exe");
+        // For Windows build agents, inject the environment variables used
+        // for the MSVC compiler using the 'vcpkg env' command.
+        // This is not be needed for others compiler on Windows, but it should be harmless.
+        if (this.baseUtils.isWin32() && triplet) {
+          if (triplet.indexOf("windows") !== -1) {
+            process.env.CC = "cl.exe";
+            process.env.CXX = "cl.exe";
+            baseLib.setVariable("CC", "cl.exe");
+            baseLib.setVariable("CXX", "cl.exe");
+          }
+
+          await this.injectEnvVariables(vcpkgRoot, triplet, baseLib);
         }
-
-        await this.injectEnvVariables(vcpkgRoot, triplet, baseLib);
       }
     }
-  }
 
-  return args;
-}
+    return args;
+  }
 
 }

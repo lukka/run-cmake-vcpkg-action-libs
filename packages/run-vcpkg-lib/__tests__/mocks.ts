@@ -7,6 +7,7 @@
 // How to mock methods in detail: https://stackoverflow.com/questions/50091438/jest-how-to-mock-one-specific-method-of-a-class
 
 import * as baselib from '@lukka/base-lib';
+import * as baseutillib from '@lukka/base-util-lib';
 import { ActionToolRunner } from '@lukka/action-lib/src';
 import { ExecOptions } from 'child_process';
 import * as testutils from './utils'
@@ -34,25 +35,25 @@ export class CMakeMocks {
 }
 
 // Mock for baseLibUtils
-export const MockBaseLibUtils = baselib.BaseLibUtils as jest.Mocked<typeof baselib.BaseLibUtils>;
+export const MockBaseLibUtils = baseutillib.BaseLibUtils as jest.Mocked<typeof baseutillib.BaseLibUtils>;
 MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
 MockBaseLibUtils.prototype.readFile = jest.fn().mockImplementation(() => null);
-jest.spyOn(baselib.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
-  function (this: baselib.BaseLibUtils, gitPath: string, fullVcpkgPath: string): Promise<boolean> {
+jest.spyOn(baseutillib.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
+  function (this: baseutillib.BaseLibUtils, gitPath: string, fullVcpkgPath: string): Promise<boolean> {
     return Promise.resolve(VcpkgMocks.isVcpkgSubmodule);
   });
-jest.spyOn(baselib.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
-  function (this: baselib.BaseLibUtils, path: string): boolean {
+jest.spyOn(baseutillib.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
+  function (this: baseutillib.BaseLibUtils, path: string): boolean {
     assert.equal(path, VcpkgMocks.vcpkgRoot);
     return true;
   });
-jest.spyOn(baselib.BaseLibUtils.prototype, 'fileExists').mockImplementation(
-  function (this: baselib.BaseLibUtils, path: string): boolean {
+jest.spyOn(baseutillib.BaseLibUtils.prototype, 'fileExists').mockImplementation(
+  function (this: baseutillib.BaseLibUtils, path: string): boolean {
     assert.equal(path, VcpkgMocks.vcpkgExePath);
     return VcpkgMocks.vcpkgExeExists;
   });
-jest.spyOn(baselib.BaseLibUtils.prototype, 'resolvePath').mockImplementation(
-  function (this: baselib.BaseLibUtils, pathString: string): string {
+jest.spyOn(baseutillib.BaseLibUtils.prototype, 'resolvePath').mockImplementation(
+  function (this: baseutillib.BaseLibUtils, pathString: string): string {
     return pathString;
   });
 

@@ -6,10 +6,11 @@ import * as globals from '../src/cmake-globals'
 import * as settingsRunner from '../src/cmakesettings-runner'
 import * as path from 'path'
 import * as assert from 'assert'
-import * as utils from '@lukka/base-lib';
+import * as utils from '@lukka/base-util-lib';
+import * as baselib from '@lukka/base-lib';
 import * as actions from '@lukka/action-lib'
 
-const baseLib: utils.BaseLib = new actions.ActionLib();
+const baseLib: baselib.BaseLib = new actions.ActionLib();
 const isWin = process.platform === "win32";
 const homeEnvVar = isWin ? "%HOME%" : "$HOME";
 const configurationType = "aVeryCustomConfigurationType";

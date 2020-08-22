@@ -5,7 +5,7 @@
 import * as path from 'path';
 import * as baselib from '@lukka/base-lib';
 import * as globals from './vcpkg-globals';
-import { BaseLibUtils } from '@lukka/base-lib';
+import * as baseutillib from '@lukka/base-util-lib';
 
 export class VcpkgRunner {
   private readonly vcpkgDestPath: string;
@@ -26,11 +26,11 @@ export class VcpkgRunner {
   private readonly cleanAfterBuild: boolean = false;
   private readonly doNotUpdateVcpkg: boolean = false;
   private readonly pathToLastBuiltCommitId: string;
-  private readonly baseUtils: baselib.BaseLibUtils;
+  private readonly baseUtils: baseutillib.BaseLibUtils;
   private static readonly overlayArgName = "--overlay-ports=";
 
   public constructor(private tl: baselib.BaseLib) {
-    this.baseUtils = new baselib.BaseLibUtils(tl);
+    this.baseUtils = new baseutillib.BaseLibUtils(tl);
     this.setupOnly = this.tl.getBoolInput(globals.setupOnly, false) ?? false;
 
     this.vcpkgArgs = this.tl.getInput(globals.vcpkgArguments, this.setupOnly === false) ?? "";
@@ -125,7 +125,7 @@ export class VcpkgRunner {
     this.tl.setOutput(`${outVarName}`, this.vcpkgDestPath);
 
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
-    this.baseUtils.setEnvVar(BaseLibUtils.cachingFormatEnvName, "Files");
+    this.baseUtils.setEnvVar(baseutillib.BaseLibUtils.cachingFormatEnvName, "Files");
   }
 
   private async prepareForCache(): Promise<void> {
@@ -184,7 +184,7 @@ export class VcpkgRunner {
     // Get the triplet specified in the task.
     let vcpkgTripletUsed = this.vcpkgTriplet;
     // Extract triplet from arguments for vcpkg.
-    const extractedTriplet: string | null = baselib.BaseLibUtils.extractTriplet(installCmd,
+    const extractedTriplet: string | null = baseutillib.BaseLibUtils.extractTriplet(installCmd,
       this.baseUtils.readFile);
     // Append triplet, only if provided by the user in the task arguments
     if (extractedTriplet !== null) {

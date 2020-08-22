@@ -7,7 +7,7 @@ import * as testutils from './utils'
 import * as path from 'path'
 import * as mock from './mocks'
 import * as assert from 'assert'
-import * as utils from '@lukka/base-lib';
+import * as utils from '@lukka/base-util-lib';
 
 // Arrange.
 const isWin = process.platform === "win32";
@@ -114,7 +114,7 @@ testutils.testWithHeader('run-vcpkg must not build (i.e. running bootstrap) when
   mock.answersMocks.reset(answers);
 
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
-  // HACK: any to access private fields.
+  // HACK: cast to 'any' to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 
   // Act.

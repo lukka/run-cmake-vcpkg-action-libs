@@ -7,7 +7,7 @@ import * as testutils from '../../run-vcpkg-lib/__tests__/utils'
 import * as path from 'path'
 import * as mock from '../../run-vcpkg-lib/__tests__/mocks'
 import * as ninja from '../src/ninja'
-import * as utils from '@lukka/base-lib';
+import * as utils from '@lukka/base-util-lib';
 
 // Arrange.
 const isWin = process.platform === "win32";
@@ -31,7 +31,7 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
       throw `readFile called with unexpected file name: '${file}'.`;
   });
 
-testutils.testWithHeader('ninja could be downloaded successfully', async () => {
+testutils.testWithHeader('ninja: it must be downloaded successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       "chmod": { code: 0 }
@@ -49,7 +49,8 @@ testutils.testWithHeader('ninja could be downloaded successfully', async () => {
   };
   mock.answersMocks.reset(answers);
 
-  // Act.
+  // Act and Assert.
+  // 
   const ninjaDownloader: ninja.NinjaProvider = new ninja.NinjaProvider(mock.exportedBaselib);
   try {
     await ninjaDownloader.retrieveNinjaPath(/*no input provided*/"", "");
@@ -57,7 +58,12 @@ testutils.testWithHeader('ninja could be downloaded successfully', async () => {
   catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
   }
+});
 
-  // Assert.
-
+testutils.testWithHeader('ninja: when explicitly provided, that must be returned.', async () => {
+  const ninjaDownloader: ninja.NinjaProvider = new ninja.NinjaProvider(mock.exportedBaselib);
+  // Act and Assert.
+  const dummyNinja = "dummy/path/for/ninja";
+  const ninjaPath = await ninjaDownloader.retrieveNinjaPath(dummyNinja, "");
+  expect(ninjaPath).toStrictEqual(dummyNinja);
 });

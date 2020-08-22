@@ -2,10 +2,10 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as utils from 'fs';
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as baselib from './base-lib';
+import * as baselib from '@lukka/base-lib';
 import AdmZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
@@ -116,7 +116,7 @@ export class BaseLibUtils {
 
   public readFile(path: string): [boolean, string] {
     try {
-      const readString: string = utils.readFileSync(path, { encoding: 'utf8', flag: 'r' });
+      const readString: string = fs.readFileSync(path, { encoding: 'utf8', flag: 'r' });
       this.baseLib.debug(`readFile(${path})='${readString}'.`);
       return [true, readString];
     } catch (error) {
@@ -300,8 +300,8 @@ export class BaseLibUtils {
     return args.filter(a => !/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/.test(a));
   }
 
-  public mkdir(target: string, options: utils.MakeDirectoryOptions): void {
-    utils.mkdirSync(target, options);
+  public mkdir(target: string, options: fs.MakeDirectoryOptions): void {
+    fs.mkdirSync(target, options);
   }
 
   public rm(target: string): void {
@@ -309,7 +309,7 @@ export class BaseLibUtils {
   }
 
   public test(aPath: any): boolean {
-    const result: boolean = utils.existsSync(aPath);
+    const result: boolean = fs.existsSync(aPath);
     return result;
   }
 
@@ -339,7 +339,7 @@ export class BaseLibUtils {
 
       // download the file
       this.mkdir(downloadsDirectory, { recursive: true });
-      const file: utils.WriteStream = utils.createWriteStream(targetPath, { autoClose: true });
+      const file: fs.WriteStream = fs.createWriteStream(targetPath, { autoClose: true });
 
       return new Promise<string>((resolve: any, reject: any) => {
         const request = http.https.get(url, (response) => {
@@ -347,7 +347,7 @@ export class BaseLibUtils {
             this.baseLib.debug(`statusCode: ${response.statusCode}.`);
             this.baseLib.debug(`headers: ${response.headers}.`)
             console.log(`'${url}' downloaded to: '${targetPath}'`);
-            utils.writeFileSync(marker, '');
+            fs.writeFileSync(marker, '');
             request.end();
             resolve(targetPath)
           }).on('error', (error: Error) =>
@@ -383,7 +383,7 @@ export class BaseLibUtils {
         zip.extractAllTo(targetPath, true);
 
         // write the completed file marker.
-        utils.writeFileSync(marker, '');
+        fs.writeFileSync(marker, '');
       }
 
       return targetPath;

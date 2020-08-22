@@ -3,7 +3,7 @@
 // SPDX short identifier: MIT
 
 import * as baselib from '@lukka/base-lib';
-import * as utils from '@lukka/base-lib/src/utils'
+import * as baseutillib from '@lukka/base-util-lib'
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -452,7 +452,7 @@ export function parseConfigurations(configurationsJson: any, cmakeSettingsJson: 
 }
 
 export class CMakeSettingsJsonRunner {
-  private readonly baseUtils: baselib.BaseLibUtils;
+  private readonly baseUtils: baseutillib.BaseLibUtils;
   private readonly cmakeUtils: cmakeutil.CMakeUtils;
   private readonly ninjaLib: ninjalib.NinjaProvider;
 
@@ -472,7 +472,7 @@ export class CMakeSettingsJsonRunner {
     private readonly tl: baselib.BaseLib) {
     this.configurationFilter = configurationFilter;
 
-    this.baseUtils = new baselib.BaseLibUtils(this.baseLib);
+    this.baseUtils = new baseutillib.BaseLibUtils(this.baseLib);
     this.cmakeUtils = new cmakeutil.CMakeUtils(this.baseUtils);
     this.ninjaLib = new ninjalib.NinjaProvider(this.tl);
 
@@ -572,7 +572,7 @@ export class CMakeSettingsJsonRunner {
         // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
         console.log(`Note: the run-cmake task always ignore the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
         const artifactsDir = await this.tl.getArtifactsDir();
-        if (utils.BaseLibUtils.normalizePath(this.buildDir) === utils.BaseLibUtils.normalizePath(artifactsDir)) {
+        if (baseutillib.BaseLibUtils.normalizePath(this.buildDir) === baseutillib.BaseLibUtils.normalizePath(artifactsDir)) {
           // The build directory goes into the artifact directory in a subdir
           // named with the configuration name.
           evaledConf.buildDir = path.join(artifactsDir, configuration.name);
@@ -642,7 +642,7 @@ export class CMakeSettingsJsonRunner {
 
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
         let code = -1;
-        await using(utils.Matcher.createMatcher('cmake', this.baseLib, this.cmakeSettingsJson), async matcher => {
+        await using(baseutillib.Matcher.createMatcher('cmake', this.baseLib, this.cmakeSettingsJson), async matcher => {
           code = await this.baseUtils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
         });
         if (code !== 0) {
@@ -650,7 +650,7 @@ export class CMakeSettingsJsonRunner {
         }
 
         if (this.doBuild) {
-          await using(utils.Matcher.createMatcher(cmakerunner.CMakeRunner.getBuildMatcher(this.buildDir, this.tl), this.tl), async matcher => {
+          await using(baseutillib.Matcher.createMatcher(cmakerunner.CMakeRunner.getBuildMatcher(this.buildDir, this.tl), this.tl), async matcher => {
             await this.baseUtils.wrapOp("Build with CMake", async () => await cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
               // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
               //only. They need to be put after '--', otherwise would be passed to directly to cmake.

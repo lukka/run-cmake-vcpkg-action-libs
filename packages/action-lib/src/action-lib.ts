@@ -4,7 +4,7 @@
 
 import * as stream from 'stream';
 import * as baselib from '@lukka/base-lib';
-import * as utils from '@lukka/base-lib/src/utils';
+import * as utils from '@lukka/base-util-lib';
 import * as core from '@actions/core';
 import * as execIfaces from '@actions/exec/lib/interfaces';
 import * as toolrunner from '@actions/exec/lib/toolrunner';
