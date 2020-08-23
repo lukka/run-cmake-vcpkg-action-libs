@@ -18,7 +18,7 @@
 		"testlerna": "npx lerna run test",
 		"test": "npx jest --verbose",
 		"version": "npx lerna version minor --yes",
-		"publish": "npx lerna publish --yes"
+		"publish": "npx lerna changed && npx lerna publish --yes"
 	},
 	"devDependencies": {
 		"@types/jest": "^25.2.3",
