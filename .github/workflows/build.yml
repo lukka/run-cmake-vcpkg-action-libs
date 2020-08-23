@@ -60,11 +60,11 @@ jobs:
         name: copy the .npmrc to $HOME so that it gets used by 'lerna publish'
       - run: npm install
       - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
-      - run: npm run publish -- minor --dist-tag beta
+      - run: npm run publish -- minor --dist-tag beta --registry https://npm.pkg.github.com
         if: contains(github.ref, 'refs/heads/prerelease')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: npm run publish -- minor
+      - run: npm run publish -- minor --registry https://npm.pkg.github.com
         if: contains(github.ref, 'refs/heads/release')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
