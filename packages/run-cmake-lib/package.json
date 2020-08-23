@@ -31,7 +31,7 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@lukka/action-lib": "^0.1.0",
+    "@lukka/action-lib": "^0.2.0",
     "@lukka/base-lib": "^0.2.0",
     "@lukka/base-util-lib": "^0.2.0",
     "@types/adm-zip": "^0.4.32",
