@@ -3,9 +3,9 @@
   "version": "0.5.0",
   "description": "Implementation of the continuous integration abstraction layer for Azure DevOps Pipelines.",
   "repository": {
-    "type": "git",
-    "url": "https://github.com/lukka/run-cmake-vcpkg-action-libs",
-    "directory": "run-cmake-vcpkg-action-libs"
+    "type" : "git",
+    "url": "ssh://git@github.com:lukka/run-cmake-vcpkg-action-libs.git",
+    "directory": "packages/task-lib"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/lukka"

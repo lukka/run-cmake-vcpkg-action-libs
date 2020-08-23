@@ -3,9 +3,9 @@
   "version": "0.5.0",
   "description": "Utilities library for Continuous integration systems.",
   "repository": {
-    "type": "git",
-    "url": "https://github.com/lukka/run-cmake-vcpkg-action-libs",
-    "directory": "run-cmake-vcpkg-action-libs"
+    "type" : "git",
+    "url": "ssh://git@github.com:lukka/run-cmake-vcpkg-action-libs.git",
+    "directory": "packages/base-util-lib"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/lukka"
