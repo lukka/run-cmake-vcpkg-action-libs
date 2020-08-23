@@ -41,3 +41,26 @@ jobs:
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-github-registry:
+    needs: build
+    runs-on: ubuntu-latest
+    if:
+      contains('
+      refs/heads/release
+      refs/heads/prerelease
+      ', github.ref)
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+          registry-url: https://npm.pkg.github.com/
+          scope: '@lukka'
+      - run: npm install
+      - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
+      - run: npm version --minor
+      - run: git push --tags && git push
+      - run: npm publish --tag beta
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}

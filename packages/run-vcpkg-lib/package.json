@@ -1,7 +1,7 @@
 {
   "name": "@lukka/run-vcpkg-lib",
   "version": "0.0.2",
-  "description": "vcpkg runner in continuous integration systems.",
+  "description": "vcpkg runner for continuous integration systems.",
   "repository": {
     "type": "git",
     "url": "https://github.com/lukka/run-cmake-vcpkg-action-libs",

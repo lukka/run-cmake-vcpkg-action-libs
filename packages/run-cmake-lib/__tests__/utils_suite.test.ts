@@ -12,6 +12,7 @@ import * as testutils from '../../run-vcpkg-lib/__tests__/utils'
 import { BaseLib } from '@lukka/base-lib';
 
 const vcpkgRoot = "/vcpkgroot/";
+const vcpkgCMakeToolchain = path.join(vcpkgRoot, "scripts/buildsystems/vcpkg.cmake");
 const isWin = process.platform === "win32";
 jest.spyOn(baseutillib.BaseLibUtils.prototype, 'isWin32').mockImplementation(() => isWin);
 const answers: testutils.BaseLibAnswers = {
@@ -75,11 +76,11 @@ describe("CMakeUtils tests", function () {
 
     process.env.RUNVCPKG_VCPKG_ROOT = vcpkgRoot;
     let ret: string[] = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_TOOLCHAIN_FILE=existing.cmake'], "triplet", baseLib);
-    assert.deepEqual(ret, ['-DCMAKE_TOOLCHAIN_FILE=/vcpkgroot/scripts/buildsystems/vcpkg.cmake', '-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=existing.cmake', '-DVCPKG_TARGET_TRIPLET=triplet']);
+    assert.deepEqual(ret, [`-DCMAKE_TOOLCHAIN_FILE=${vcpkgCMakeToolchain}`, '-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=existing.cmake', '-DVCPKG_TARGET_TRIPLET=triplet']);
     ret = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_TOOLCHAIN_FILE:FILEPATH=existing.cmake'], "triplet", baseLib);
-    assert.deepEqual(ret, [`-DCMAKE_TOOLCHAIN_FILE=${path.join(vcpkgRoot, 'scripts/buildsystems/vcpkg.cmake')}`, '-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=existing.cmake', '-DVCPKG_TARGET_TRIPLET=triplet']);
+    assert.deepEqual(ret, [`-DCMAKE_TOOLCHAIN_FILE=${vcpkgCMakeToolchain}`, '-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=existing.cmake', '-DVCPKG_TARGET_TRIPLET=triplet']);
     ret = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_BUILD_TYPE=Debug'], "triplet", baseLib);
-    assert.deepEqual(ret, ['-DCMAKE_BUILD_TYPE=Debug', `-DCMAKE_TOOLCHAIN_FILE=${path.join(vcpkgRoot, 'scripts/buildsystems/vcpkg.cmake')}`, '-DVCPKG_TARGET_TRIPLET=triplet']);
+    assert.deepEqual(ret, ['-DCMAKE_BUILD_TYPE=Debug', `-DCMAKE_TOOLCHAIN_FILE=${vcpkgCMakeToolchain}`, '-DVCPKG_TARGET_TRIPLET=triplet']);
 
     process.env.RUNVCPKG_VCPKG_ROOT = "";
     const arg: string[] = [' -DCMAKE_BUILD_TYPE=Debug'];
