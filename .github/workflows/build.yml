@@ -61,11 +61,11 @@ jobs:
       - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
       - run: npm run version
       - run: git push --tags && git push
-      - run: npm publish --tag beta
+      - run: npm run publish -- --tag beta
         if: contains(github.ref, 'refs/heads/prerelease')
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      - run: npm publish
+      - run: npm run publish
         if: contains(github.ref, 'refs/heads/release')
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
