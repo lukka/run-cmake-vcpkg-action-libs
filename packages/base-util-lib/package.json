@@ -1,9 +1,9 @@
 {
   "name": "@lukka/base-util-lib",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Utilities library for Continuous integration systems.",
   "repository": {
-    "type" : "git",
+    "type": "git",
     "url": "ssh://git@github.com:lukka/run-cmake-vcpkg-action-libs.git",
     "directory": "packages/base-util-lib"
   },
@@ -20,7 +20,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@lukka/base-lib": "^0.5.0",
+    "@lukka/base-lib": "^0.6.0",
     "@types/jest": "^25.2.3",
     "@types/node": "^11.9.3",
     "jest": "^26.0.1",
