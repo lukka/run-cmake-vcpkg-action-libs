@@ -56,14 +56,10 @@ jobs:
           node-version: 12.x
           registry-url: https://npm.pkg.github.com/
           scope: '@lukka'
+      - run: cp ${{ github.workspace }}/.npmrc ~/.npmrc
+        name: copy the .npmrc to $HOME so that it gets used by 'lerna publish'
       - run: npm install
       - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
-      - name: Set Node.js 12.x
-        uses: actions/setup-node@v1
-        with:
-          node-version: 12.x
-          registry-url: https://npm.pkg.github.com/
-          scope: '@lukka'
       - run: npm run publish -- minor --dist-tag beta
         if: contains(github.ref, 'refs/heads/prerelease')
         env:

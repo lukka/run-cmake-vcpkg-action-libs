@@ -8,6 +8,7 @@
     "directory": "packages/run-vcpkg-lib"
   },
   "publishConfig": {
+    "access": "public",
     "registry": "https://npm.pkg.github.com/lukka"
   },
   "author": "Luca Cappa (https://github.com/lukka)",

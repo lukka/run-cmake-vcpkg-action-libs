@@ -8,6 +8,7 @@
     "directory": "packages/task-lib"
   },
   "publishConfig": {
+    "access": "public",
     "registry": "https://npm.pkg.github.com/lukka"
   },
   "author": "Luca Cappa (https://github.com/lukka)",

@@ -1,9 +1,9 @@
 [![Action Status](https://github.com/lukka/run-cmake-vcpkg-action-libs/workflows/build/badge.svg)](https://github.com/lukka/run-cmake-vcpkg-action-libs/actions) 
 
 [![Coverage Status](https://coveralls.io/repos/github/lukka/run-cmake-vcpkg-action-libs/badge.svg?branch=npm_pkg)](https://coveralls.io/github/lukka/run-cmake-vcpkg-action-libs?branch=npm_pkg)
-# Core libraries for run-vcpkg and run-cmake 
+# Core npm packages for run-vcpkg and run-cmake 
 
-This repository contains the core engine for:
+This repository contains the npm packages for:
   - [**run-cmake** GitHub action](https://github.com/marketplace/actions/run-cmake);
   - [**run-vcpkg** GitHub action](https://github.com/marketplace/actions/run-vcpkg);
   - [CppBuildTasks AzureDevops extension](https://marketplace.visualstudio.com/items?itemName=lucappa.cmake-ninja-vcpkg-tasks)
@@ -15,6 +15,7 @@ This repository contains the core engine for:
 Install npm, and install all dependencies:
  
  > npm install
+ > npm run bootstrap
 
 ## Build and lint
 Build with `tsc` running:
