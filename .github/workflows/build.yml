@@ -1,4 +1,4 @@
-name: 'build'
+name: 'build and publish'
 
 on:
   pull_request:
@@ -42,25 +42,30 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-github-registry:
+  publish-to-github-registry:
     needs: build
     runs-on: ubuntu-latest
-    if:
-      contains('
-      refs/heads/release
-      refs/heads/prerelease
-      ', github.ref)
+    # https://github.community/t/passing-an-array-literal-to-contains-function-causes-syntax-error/17213
+    if: contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/heads/prerelease')
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
+
+      - name: Set Node.js 12.x
+        uses: actions/setup-node@v1
         with:
-          node-version: 12
+          node-version: 12.x
           registry-url: https://npm.pkg.github.com/
           scope: '@lukka'
+
       - run: npm install
       - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
-      - run: npm version --minor
+      - run: npm run version
       - run: git push --tags && git push
       - run: npm publish --tag beta
+        if: contains(github.ref, 'refs/heads/prerelease')
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - run: npm publish
+        if: contains(github.ref, 'refs/heads/release')
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}

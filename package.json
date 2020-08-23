@@ -16,7 +16,8 @@
 		"lint": "npx lerna run lint",
 		"pack": "npx lerna run pack",
 		"testlerna": "npx lerna run test",
-		"test": "npx jest --verbose"
+		"test": "npx jest --verbose",
+		"version": "npx lerna version minor"
 	},
 	"devDependencies": {
 		"@types/jest": "^25.2.3",

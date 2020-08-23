@@ -1,7 +1,7 @@
 [![Action Status](https://github.com/lukka/run-cmake-vcpkg-action-libs/workflows/build/badge.svg)](https://github.com/lukka/run-cmake-vcpkg-action-libs/actions) 
 
 [![Coverage Status](https://coveralls.io/repos/github/lukka/run-cmake-vcpkg-action-libs/badge.svg?branch=npm_pkg)](https://coveralls.io/github/lukka/run-cmake-vcpkg-action-libs?branch=npm_pkg)
-# Core of run-vcpkg and run-cmake 
+# Core libraries for run-vcpkg and run-cmake 
 
 This repository contains the core engine for:
   - [**run-cmake** GitHub action](https://github.com/marketplace/actions/run-cmake);

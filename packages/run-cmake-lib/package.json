@@ -17,7 +17,8 @@
   "scripts": {
     "build": "tsc -b . -v",
     "lint": "eslint src/*.ts",
-    "test": "jest"
+    "test": "jest",
+    "version": "npm version minor"
   },
   "devDependencies": {
     "@types/jest": "^25.2.3",
