@@ -1,6 +1,6 @@
 {
   "name": "@lukka/run-vcpkg-lib",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "vcpkg runner for continuous integration systems.",
   "repository": {
     "type": "git",
@@ -32,9 +32,9 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@lukka/action-lib": "^0.11.0",
-    "@lukka/base-lib": "^0.11.0",
-    "@lukka/base-util-lib": "^0.11.0",
+    "@lukka/action-lib": "^0.12.0",
+    "@lukka/base-lib": "^0.12.0",
+    "@lukka/base-util-lib": "^0.12.0",
     "@types/adm-zip": "^0.4.32",
     "@types/follow-redirects": "^1.8.0",
     "@types/q": "^1.5.1",
