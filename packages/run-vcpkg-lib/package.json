@@ -13,8 +13,8 @@
   },
   "author": "Luca Cappa (https://github.com/lukka)",
   "license": "MIT",
-  "main": "build/src/index.js",
-  "types": "build/src/index.d.ts",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "scripts": {
     "build": "tsc -b . -v",
     "lint": "eslint src/*.ts",
@@ -50,6 +50,7 @@
   },
   "files": [
     "build",
+    "./build",
     "!__tests__"
   ]
 }

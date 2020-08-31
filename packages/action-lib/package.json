@@ -53,6 +53,7 @@
   },
   "files": [
     "build",
+    "./build",
     "!__tests__"
   ]
 }

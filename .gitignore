@@ -1,5 +1,7 @@
 node_modules
-**/*.js
+node_modules/
+packages/*/node_modules/
+packages/*/build/
 *.map
 *.js.log
 token.txt
@@ -11,5 +13,4 @@ token.txt
 /dist
 /lib
 build
-**/*.d.ts
 coverage/
