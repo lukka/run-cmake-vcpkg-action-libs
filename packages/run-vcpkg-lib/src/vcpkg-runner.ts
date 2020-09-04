@@ -120,8 +120,7 @@ export class VcpkgRunner {
     // The output variable must have a different name than the
     // one set with setVariable(), as the former get a prefix added out of our control.
     const outVarName = `${globals.outVcpkgRootPath}_OUT`;
-    this.tl.info(`Set task output variable '${outVarName}' to value: ${
-      this.vcpkgDestPath}`);
+    this.tl.info(`Set task output variable '${outVarName}' to value: ${this.vcpkgDestPath}`);
     this.tl.setOutput(`${outVarName}`, this.vcpkgDestPath);
 
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
@@ -185,7 +184,7 @@ export class VcpkgRunner {
     let vcpkgTripletUsed = this.vcpkgTriplet;
     // Extract triplet from arguments for vcpkg.
     const extractedTriplet: string | null = baseutillib.BaseLibUtils.extractTriplet(installCmd,
-      this.baseUtils.readFile);
+      (p: string) => this.baseUtils.readFile(p));
     // Append triplet, only if provided by the user in the task arguments
     if (extractedTriplet !== null) {
       if (vcpkgTripletUsed) {
@@ -217,8 +216,7 @@ export class VcpkgRunner {
       this.baseUtils.setEnvVar(globals.outVcpkgTriplet, vcpkgTripletUsed);
 
       // Set output variable containing the use triplet
-      this.tl.info(`Set task output variable '${outVarName}' to value: ${
-        vcpkgTripletUsed}`);
+      this.tl.info(`Set task output variable '${outVarName}' to value: ${vcpkgTripletUsed}`);
       this.tl.setVariable(outVarName, vcpkgTripletUsed);
     } else {
       this.tl.info(`${globals.outVcpkgTriplet}' nor '${outVarName}' have NOT been set by the step since there is no default triplet specified.`);
