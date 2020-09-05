@@ -1,6 +1,6 @@
 {
   "name": "@lukka/run-cmake-lib",
-  "version": "0.12.1-alpha.4",
+  "version": "0.12.1-alpha.5",
   "description": "CMake runner for continuous integration systems.",
   "repository": {
     "type": "git",
@@ -32,9 +32,9 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@lukka/action-lib": "^0.12.1-alpha.4",
-    "@lukka/base-lib": "^0.12.1-alpha.4",
-    "@lukka/base-util-lib": "^0.12.1-alpha.4",
+    "@lukka/action-lib": "^0.12.1-alpha.5",
+    "@lukka/base-lib": "^0.12.1-alpha.5",
+    "@lukka/base-util-lib": "^0.12.1-alpha.5",
     "@types/adm-zip": "^0.4.32",
     "@types/follow-redirects": "^1.8.0",
     "@types/q": "^1.5.1",
