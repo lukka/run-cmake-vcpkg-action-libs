@@ -1,5 +1,7 @@
 node_modules
-**/*.js
+node_modules/
+packages/*/node_modules/
+packages/*/build/
 *.map
 *.js.log
 token.txt
@@ -8,4 +10,7 @@ token.txt
 .taskkey
 .vscode
 *.tgz
-build-run-cmake-vcpkg-libs
+/dist
+/lib
+build
+coverage/

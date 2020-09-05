@@ -1,0 +1,80 @@
+name: 'build and publish'
+
+on:
+  pull_request:
+    types: [opened, synchronize, edit]
+    paths-ignore:
+    - '**.md'
+  push:
+    paths-ignore:
+    - '**.md'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set Node.js 12.x
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12.x
+    - run: |
+        npm install
+        npm run bootstrap
+        npm run build
+      shell: bash
+      name: build
+    - run: |
+        npm run lint
+      shell: bash
+      name: lint
+    - run: |
+        npm run test
+      shell: bash
+      name: test
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-to-github-registry:
+    needs: build
+    runs-on: ubuntu-latest
+    # https://github.community/t/passing-an-array-literal-to-contains-function-causes-syntax-error/17213
+    if: contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/heads/prerelease')
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set Node.js 12.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+          registry-url: https://npm.pkg.github.com/
+          scope: '@lukka'
+      - run: |
+          npm install
+          npm run bootstrap
+          npm run build
+        shell: bash
+        name: build
+      - run: |
+          npm run lint
+        shell: bash
+        name: lint
+      - run: |
+          npm run test
+        shell: bash
+        name: test
+      - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
+      - run: npm run publish -- prerelease --dist-tag=prerelease --registry https://npm.pkg.github.com
+        if: contains(github.ref, 'refs/heads/prerelease')
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm run publish -- minor --registry https://npm.pkg.github.com
+        if: contains(github.ref, 'refs/heads/release')
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

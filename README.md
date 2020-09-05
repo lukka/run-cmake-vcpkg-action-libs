@@ -1,8 +1,9 @@
-[![Action Status](https://github.com/lukka/run-cmake-vcpkg-action-libs/workflows/build/badge.svg)](https://github.com/lukka/run-cmake-vcpkg-action-libs/actions)
+[![Action Status](https://github.com/lukka/run-cmake-vcpkg-action-libs/workflows/build/badge.svg)](https://github.com/lukka/run-cmake-vcpkg-action-libs/actions) 
 
-# Core of run-vcpkg and run-cmake 
+[![Coverage Status](https://coveralls.io/repos/github/lukka/run-cmake-vcpkg-action-libs/badge.svg?branch=npm_pkg)](https://coveralls.io/github/lukka/run-cmake-vcpkg-action-libs?branch=npm_pkg)
+# Core npm packages for run-vcpkg and run-cmake 
 
-This repository contains the core engine for:
+This repository contains the npm packages for:
   - [**run-cmake** GitHub action](https://github.com/marketplace/actions/run-cmake);
   - [**run-vcpkg** GitHub action](https://github.com/marketplace/actions/run-vcpkg);
   - [CppBuildTasks AzureDevops extension](https://marketplace.visualstudio.com/items?itemName=lucappa.cmake-ninja-vcpkg-tasks)
@@ -10,7 +11,11 @@ This repository contains the core engine for:
 # Developers information
 
 ## Prerequisites
-[gulp 4](https://www.npmjs.com/package/gulp4) globally installed.
+
+Install npm, and install all dependencies:
+ 
+ > npm install
+ > npm run bootstrap
 
 ## Build and lint
 Build with `tsc` running:
@@ -20,6 +25,12 @@ Build with `tsc` running:
 Launch `lint` by:
 
  > npm run lint
+
+## Test
+
+Launch tests with:
+
+ > npm run test
 
 ## <a id='contributing'>Contributing</a>
 
