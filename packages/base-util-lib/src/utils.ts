@@ -93,7 +93,7 @@ export class BaseLibUtils {
   }
 
   public resolvePath(pathString: string): string {
-    return path.resolve(pathString);
+    return path.normalize(pathString);
   }
 
   public directoryExists(path: string): boolean {
@@ -189,7 +189,7 @@ export class BaseLibUtils {
       arg = arg.replace(/\s/, '');
       let isResponseFile = false;
       if (arg.startsWith("@")) {
-        const resolvedFilePath: string = this.baseLib.resolve(arg);
+        const resolvedFilePath: string = BaseLibUtils.normalizePath(arg);
         if (this.baseLib.exist(resolvedFilePath)) {
           const [ok, content] = readFile(resolvedFilePath);
           if (ok && content) {

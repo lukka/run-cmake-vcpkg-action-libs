@@ -74,7 +74,7 @@ jobs:
         if: contains(github.ref, 'refs/heads/prerelease')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: npm run publish -- minor --registry https://npm.pkg.github.com
+      - run: npm run publish -- patch --registry https://npm.pkg.github.com
         if: contains(github.ref, 'refs/heads/release')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

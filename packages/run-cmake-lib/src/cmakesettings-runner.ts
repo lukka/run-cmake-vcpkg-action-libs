@@ -470,7 +470,6 @@ export class CMakeSettingsJsonRunner {
     private readonly sourceScript: string,
     private readonly buildDir: string) {
     this.baseLib.debug(`CMakeSettingsJsonRunner()<<`);
-    this.baseLib.debug(`buildDir={buildDir}`);
 
     this.configurationFilter = configurationFilter;
 
@@ -478,8 +477,9 @@ export class CMakeSettingsJsonRunner {
     this.cmakeUtils = new cmakeutil.CMakeUtils(this.baseUtils);
     this.ninjaLib = new ninjalib.NinjaProvider(this.baseLib);
 
-    this.baseLib.debug(buildDir);
-    this.buildDir = path.normalize(this.baseUtils.resolvePath(buildDir));
+    this.baseLib.debug(`buildDir=${buildDir}`);
+    this.buildDir = baseutillib.BaseLibUtils.normalizePath(buildDir);
+    this.baseLib.debug(`normalized buildDir=${buildDir}`);
     if (!this.baseLib.exist(cmakeSettingsJson)) {
       throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
     }

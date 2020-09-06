@@ -36,7 +36,6 @@ export interface BaseLib {
   mkdirP(path: string): Promise<void>;
   cd(path: string): void;
   writeFile(path: string, content: string): void;
-  resolve(path: string): string;
   stats(path: string): fs.Stats;
   exist(path: string): Promise<boolean>;
   getBinDir(): string;
