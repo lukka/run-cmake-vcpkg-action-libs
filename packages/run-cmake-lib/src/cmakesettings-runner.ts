@@ -468,27 +468,31 @@ export class CMakeSettingsJsonRunner {
     private readonly ninjaPath: string,
     private readonly ninjaDownloadUrl: string,
     private readonly sourceScript: string,
-    private readonly buildDir: string,
-    private readonly tl: baselib.BaseLib) {
+    private readonly buildDir: string) {
+    this.baseLib.debug(`CMakeSettingsJsonRunner()<<`);
+    this.baseLib.debug(`buildDir={buildDir}`);
+
     this.configurationFilter = configurationFilter;
 
     this.baseUtils = new baseutillib.BaseLibUtils(this.baseLib);
     this.cmakeUtils = new cmakeutil.CMakeUtils(this.baseUtils);
-    this.ninjaLib = new ninjalib.NinjaProvider(this.tl);
+    this.ninjaLib = new ninjalib.NinjaProvider(this.baseLib);
 
-    this.buildDir = path.normalize(this.baseUtils.resolvePath(this.buildDir));
+    this.baseLib.debug(buildDir);
+    this.buildDir = path.normalize(this.baseUtils.resolvePath(buildDir));
     if (!this.baseLib.exist(cmakeSettingsJson)) {
       throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
     }
+    this.baseLib.debug(`CMakeSettingsJsonRunner()>>`);
   }
 
   private parseConfigurations(json: any): Configuration[] {
     let configurations: Configuration[] = [];
     if (json.configurations) {
       configurations = parseConfigurations(json.configurations, this.cmakeSettingsJson,
-        this.tl.getSrcDir());
+        this.baseLib.getSrcDir());
     }
-    this.tl.debug(`CMakeSettings.json parsed configurations: '${String(configurations)}'.`);
+    this.baseLib.debug(`CMakeSettings.json parsed configurations: '${String(configurations)}'.`);
 
     return configurations;
   }
@@ -503,9 +507,9 @@ export class CMakeSettingsJsonRunner {
     if (json.environments != null) {
       globalEnvs = CMakeSettingsJsonRunner.parseEnvironments(json.environments);
     }
-    this.tl.debug("CMakeSettings.json parsed global environments.");
+    this.baseLib.debug("CMakeSettings.json parsed global environments.");
     for (const envName in globalEnvs) {
-      this.tl.debug(`'${envName}'=${String(globalEnvs[envName])}`);
+      this.baseLib.debug(`'${envName}'=${String(globalEnvs[envName])}`);
     }
 
     return globalEnvs;
@@ -519,7 +523,7 @@ export class CMakeSettingsJsonRunner {
 
     // Remove any potential BOM at the beginning.
     const contentTrimmed = content.toString().trimLeft();
-    this.tl.debug(`Content of file CMakeSettings.json: '${contentTrimmed}'.`);
+    this.baseLib.debug(`Content of file CMakeSettings.json: '${contentTrimmed}'.`);
     // Strip any comment out of the JSON content.
     const cmakeSettingsJson: any = JSON.parse(stripJsonComments(contentTrimmed));
 
@@ -531,7 +535,7 @@ export class CMakeSettingsJsonRunner {
       return regex.test(configuration.name);
     });
 
-    this.tl.debug(
+    this.baseLib.debug(
       `CMakeSettings.json filtered configurations: '${String(filteredConfigurations)}'."`);
 
     if (filteredConfigurations.length === 0) {
@@ -543,22 +547,22 @@ export class CMakeSettingsJsonRunner {
     for (const configuration of filteredConfigurations) {
       const msg = `Process configuration: '${configuration.name}'.`;
       try {
-        this.tl.beginOperation(msg)
+        this.baseLib.beginOperation(msg)
         console.log(msg);
         let cmakeArgs: string[] = [];
 
         // Search for CMake tool and run it
         let cmake: baselib.ToolRunner;
         if (this.sourceScript) {
-          cmake = this.tl.tool(this.sourceScript);
-          cmakeArgs.push(await this.tl.which('cmake', true));
+          cmake = this.baseLib.tool(this.sourceScript);
+          cmakeArgs.push(await this.baseLib.which('cmake', true));
         } else {
-          cmake = this.tl.tool(await this.tl.which('cmake', true));
+          cmake = this.baseLib.tool(await this.baseLib.which('cmake', true));
         }
 
         // Evaluate all variables in the configuration.
         const evaluator: PropertyEvaluator =
-          new PropertyEvaluator(configuration, globalEnvs, this.tl);
+          new PropertyEvaluator(configuration, globalEnvs, this.baseLib);
         const evaledConf: Configuration = configuration.evaluate(evaluator);
 
         // Set all variable in the configuration in the process environment.
@@ -571,7 +575,7 @@ export class CMakeSettingsJsonRunner {
         // Instead if users did not provided a specific path, let's force it to
         // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
         console.log(`Note: the run-cmake task always ignore the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
-        const artifactsDir = await this.tl.getArtifactsDir();
+        const artifactsDir = await this.baseLib.getArtifactsDir();
         if (baseutillib.BaseLibUtils.normalizePath(this.buildDir) === baseutillib.BaseLibUtils.normalizePath(artifactsDir)) {
           // The build directory goes into the artifact directory in a subdir
           // named with the configuration name.
@@ -603,7 +607,7 @@ export class CMakeSettingsJsonRunner {
 
         // Use vcpkg toolchain if requested.
         if (this.useVcpkgToolchain === true) {
-          cmakeArgs = await this.cmakeUtils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet, this.tl)
+          cmakeArgs = await this.cmakeUtils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet, this.baseLib)
         }
 
         // Add the current args in the tool, add
@@ -627,7 +631,7 @@ export class CMakeSettingsJsonRunner {
         // Append user provided CMake arguments.
         cmake.line(this.appendedCMakeArgs);
 
-        await this.tl.mkdirP(evaledConf.buildDir);
+        await this.baseLib.mkdirP(evaledConf.buildDir);
 
         const options = {
           cwd: evaledConf.buildDir,
@@ -640,7 +644,7 @@ export class CMakeSettingsJsonRunner {
           env: process.env
         } as baselib.ExecOptions;
 
-        this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
+        this.baseLib.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
         let code = -1;
         await using(baseutillib.Matcher.createMatcher('cmake', this.baseLib, this.cmakeSettingsJson), async matcher => {
           code = await this.baseUtils.wrapOp("Generate project files with CMake", () => cmake.exec(options));
@@ -650,8 +654,8 @@ export class CMakeSettingsJsonRunner {
         }
 
         if (this.doBuild) {
-          await using(baseutillib.Matcher.createMatcher(cmakerunner.CMakeRunner.getBuildMatcher(this.buildDir, this.tl), this.tl), async matcher => {
-            await this.baseUtils.wrapOp("Build with CMake", async () => await cmakerunner.CMakeRunner.build(this.tl, evaledConf.buildDir,
+          await using(baseutillib.Matcher.createMatcher(cmakerunner.CMakeRunner.getBuildMatcher(this.buildDir, this.baseLib), this.baseLib), async matcher => {
+            await this.baseUtils.wrapOp("Build with CMake", async () => await cmakerunner.CMakeRunner.build(this.baseLib, evaledConf.buildDir,
               // CMakeSettings.json contains in buildCommandArgs the arguments to the make program
               //only. They need to be put after '--', otherwise would be passed to directly to cmake.
               ` ${evaledConf.getGeneratorBuildArgs()} -- ${evaledConf.makeArgs}`,
@@ -662,7 +666,7 @@ export class CMakeSettingsJsonRunner {
         // Restore the original PATH environment variable.
         process.env.PATH = originalPath;
       } finally {
-        this.tl.endOperation();
+        this.baseLib.endOperation();
       }
     }
   }
