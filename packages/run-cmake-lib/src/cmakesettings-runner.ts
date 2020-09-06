@@ -102,6 +102,10 @@ export class Configuration {
     public readonly cmakeToolchain: string,
     public readonly variables: readonly CMakeVariable[],
     public readonly inheritEnvironments: readonly string[]) {
+      baseutillib.BaseLibUtils.throwIfUndefined(name, "name");
+      baseutillib.BaseLibUtils.throwIfUndefined(buildDir, "buildDir");
+      baseutillib.BaseLibUtils.throwIfUndefined(cmakeSettingsJsonPath, "cmakeSettingsJsonPath");
+      this.buildDir = path.normalize(buildDir);
   }
 
   /**
