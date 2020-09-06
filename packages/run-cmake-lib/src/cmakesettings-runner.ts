@@ -5,7 +5,6 @@
 import * as baselib from '@lukka/base-lib';
 import * as baseutillib from '@lukka/base-util-lib'
 import * as crypto from 'crypto';
-import * as fs from 'fs';
 import * as path from 'path';
 import 'strip-json-comments';
 import * as ninjalib from './ninja';
@@ -103,7 +102,6 @@ export class Configuration {
     public readonly cmakeToolchain: string,
     public readonly variables: readonly CMakeVariable[],
     public readonly inheritEnvironments: readonly string[]) {
-    this.buildDir = path.normalize(buildDir);
   }
 
   /**
