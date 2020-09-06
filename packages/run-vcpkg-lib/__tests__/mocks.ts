@@ -52,12 +52,6 @@ jest.spyOn(baseutillib.BaseLibUtils.prototype, 'fileExists').mockImplementation(
     assert.equal(path, VcpkgMocks.vcpkgExePath);
     return VcpkgMocks.vcpkgExeExists;
   });
-jest.spyOn(baseutillib.BaseLibUtils.prototype, 'resolvePath').mockImplementation(
-  function (this: baseutillib.BaseLibUtils, pathString: string): string {
-    return pathString;
-  });
-
-
 
 // Mock for environment variables.
 export const envVarSetDict: { [name: string]: string } = {};

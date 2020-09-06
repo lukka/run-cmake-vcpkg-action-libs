@@ -92,10 +92,6 @@ export class BaseLibUtils {
     return vcpkgExePath;
   }
 
-  public resolvePath(pathString: string): string {
-    return path.normalize(pathString);
-  }
-
   public directoryExists(path: string): boolean {
     try {
       return this.baseLib.stats(path).isDirectory();

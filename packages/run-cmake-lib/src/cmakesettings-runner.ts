@@ -103,7 +103,7 @@ export class Configuration {
     public readonly cmakeToolchain: string,
     public readonly variables: readonly CMakeVariable[],
     public readonly inheritEnvironments: readonly string[]) {
-    this.buildDir = path.normalize(this.buildDir);
+    this.buildDir = path.normalize(buildDir);
   }
 
   /**
@@ -479,7 +479,7 @@ export class CMakeSettingsJsonRunner {
 
     this.baseLib.debug(`buildDir=${buildDir}`);
     this.buildDir = baseutillib.BaseLibUtils.normalizePath(buildDir);
-    this.baseLib.debug(`normalized buildDir=${buildDir}`);
+    this.baseLib.debug(`normalized buildDir=${this.buildDir}`);
     if (!this.baseLib.exist(cmakeSettingsJson)) {
       throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
     }
@@ -574,7 +574,7 @@ export class CMakeSettingsJsonRunner {
         // 2. the default location in CMakeSettings.json is under the source tree, whose content is not deleted upon each build run.
         // Instead if users did not provided a specific path, let's force it to
         // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
-        console.log(`Note: the run-cmake task always ignore the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
+        console.log(`Note: run-cmake always ignores the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
         const artifactsDir = await this.baseLib.getArtifactsDir();
         if (baseutillib.BaseLibUtils.normalizePath(this.buildDir) === baseutillib.BaseLibUtils.normalizePath(artifactsDir)) {
           // The build directory goes into the artifact directory in a subdir
