@@ -84,21 +84,21 @@ export class CMakeRunner {
       [RunCMakeModeType.CMakeListsTxtAdvanced, RunCMakeModeType.CMakeListsTxtBasic]
   };
 
-/*
-  // Unfortunately there is not a way to discriminate between a value provided by the user
-  // from a default value (not provided by the user), hence it is not possible to identify
-  // what the user provided.  
-  private static warnIfUnused(inputName: string, taskMode: TaskModeType): void {
-    if (inputName in CMakeRunner.modePerInput) {
-      const usedInMode: TaskModeType[] = CMakeRunner.modePerInput[name];
-      if (usedInMode) {
-        if (usedInMode.indexOf(taskMode) < 0) { }
-
-        //??this.tl.warning(`The input '${inputName}' is ignored in mode '${taskMode}'`);
+  /*
+    // Unfortunately there is not a way to discriminate between a value provided by the user
+    // from a default value (not provided by the user), hence it is not possible to identify
+    // what the user provided.  
+    private static warnIfUnused(inputName: string, taskMode: TaskModeType): void {
+      if (inputName in CMakeRunner.modePerInput) {
+        const usedInMode: TaskModeType[] = CMakeRunner.modePerInput[name];
+        if (usedInMode) {
+          if (usedInMode.indexOf(taskMode) < 0) { }
+  
+          //??this.tl.warning(`The input '${inputName}' is ignored in mode '${taskMode}'`);
+        }
       }
     }
-  }
-*/
+  */
 
   public constructor(private tl: baselib.BaseLib) {
     this.baseUtils = new baseutillib.BaseLibUtils(this.tl);
@@ -166,8 +166,8 @@ export class CMakeRunner {
 
   async run(): Promise<void> {
     this.tl.debug('run()<<');
-
     await this.configure();
+    this.tl.debug('run()>>');
   }
 
   private async configure(): Promise<void> {
@@ -246,10 +246,8 @@ export class CMakeRunner {
           cmake.arg(arg);
         }
 
-
         // Ensure the build directory is existing.
         await this.tl.mkdirP(this.buildDir);
-
 
         const options = {
           cwd: this.buildDir,
@@ -273,9 +271,11 @@ export class CMakeRunner {
         }
 
         if (this.doBuild) {
-          await using(baseutillib.Matcher.createMatcher(CMakeRunner.getBuildMatcher(this.buildDir, this.tl), this.tl), async matcher => {
-            await this.baseUtils.wrapOp("Build with CMake", async () => await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments + this.doBuildArgs, options))
-          });
+          await using(baseutillib.Matcher.createMatcher(CMakeRunner.getBuildMatcher(
+            this.buildDir, this.tl), this.tl), async matcher => {
+              await this.baseUtils.wrapOp("Build with CMake", async () =>
+                await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments +   this.doBuildArgs, options))
+            });
         }
 
         break;
@@ -294,8 +294,7 @@ export class CMakeRunner {
           this.ninjaPath,
           this.ninjaDownloadUrl,
           this.sourceScript,
-          this.buildDir,
-          this.tl);
+          this.buildDir);
         await this.baseUtils.wrapOp("Run CMake with CMakeSettings.json", async () => await cmakeJson.run());
         break;
       }
