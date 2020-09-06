@@ -1,6 +1,6 @@
 {
   "name": "@lukka/action-lib",
-  "version": "0.13.1-alpha.2",
+  "version": "0.2.0-alpha.0",
   "description": "Implementation of the continuous integration abstraction layer for GitHub Actions.",
   "repository": {
     "type": "git",

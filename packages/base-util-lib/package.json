@@ -1,6 +1,6 @@
 {
   "name": "@lukka/base-util-lib",
-  "version": "0.13.1-alpha.2",
+  "version": "0.2.0-alpha.0",
   "description": "Utilities library for Continuous integration systems.",
   "repository": {
     "type": "git",

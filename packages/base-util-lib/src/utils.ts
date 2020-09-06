@@ -412,20 +412,6 @@ export class BaseLibUtils {
     }
   }
 
-  /**
-   * Normalize a filesystem path with path.normalize(), then remove any trailing space.
-   *
-   * @export
-   * @param {string} aPath The string representing a filesystem path.
-   * @returns {string} The normalized path without trailing slash.
-   */
-  public static normalizePath(aPath: string): string {
-    aPath = path.normalize(aPath);
-    if (/[\\\/]$/.test(aPath) && aPath.length > 1)
-      aPath = aPath.slice(0, -1);
-    return aPath;
-  }
-
   public isVariableStrippingPath(variableName: string): boolean {
     // Avoid that the PATH is minimized by MSBuild props:
     // https://github.com/lukka/run-cmake/issues/8#issuecomment-606956604
@@ -448,6 +434,25 @@ export class BaseLibUtils {
     }
 
     return map;
+  }
+
+  /**
+   * Normalize a filesystem path with path.normalize(), then remove any trailing space.
+   *
+   * @export
+   * @param {string} aPath The string representing a filesystem path.
+   * @returns {string} The normalized path without trailing slash.
+   */
+  public static normalizePath(aPath: string): string {
+    aPath = path.normalize(aPath);
+    if (/[\\\/]$/.test(aPath) && aPath.length > 1)
+      aPath = aPath.slice(0, -1);
+    return aPath;
+  }
+
+  public static throwIfUndefined<T>(obj: T, name: string): void {
+    if (obj === undefined)
+      throw new Error(`Agument '${name}' is undefined`);
   }
 }
 
