@@ -32,6 +32,10 @@ Launch tests with:
 
  > npm run test
 
+## Publish
+
+Publishing is triggered creating a new commit on a `release/*`or `prerelease/*` branch.
+
 ## <a id='contributing'>Contributing</a>
 
 The software is provided as is, there is no warranty of any kind. All users are encouraged to improve the [source code](https://github.com/lukka/run-cmake-vcpkg-action-libs) with fixes and new features.
