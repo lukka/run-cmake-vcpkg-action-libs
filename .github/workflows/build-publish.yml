@@ -27,6 +27,7 @@ jobs:
         npm install
         npm run bootstrap
         npm run build
+        npm run pack
       shell: bash
       name: build
     - run: |
@@ -42,10 +43,10 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Create packages artifacts
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: packages
-        path: packages
+        path: ${{ github.workspace }}/packages/**/*.tgz
       if: runner.os == 'Linux'
 
   publish-to-github-registry:
@@ -54,15 +55,30 @@ jobs:
     # Inspired from https://github.community/t/passing-an-array-literal-to-contains-function-causes-syntax-error/17213
     if: contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/heads/prerelease')
     steps:
-      - name: Download NPM package tgz files
-        uses: actions/download-artifact@v1
-        with:
-          name: packages
+
       - name: Set Node.js 12.x
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
           registry-url: https://registry.npmjs.org
+      # Since 'lerna publish' does not work with tgz, let's build the Linux package again.
+      # Ideally the package tgz files created in the previous job could just be reused.
+      - uses: actions/checkout@v2
+      - run: |
+          npm install
+          npm run bootstrap
+          npm run build
+          npm run pack
+        shell: bash
+        name: build
+      - run: |
+          npm run lint
+        shell: bash
+        name: lint
+      - run: |
+          npm run test
+        shell: bash
+        name: test
       - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
       - name: Publish prerelease packages to registry.npmjs.org
         run: npm run publish -- prerelease --dist-tag=prerelease --registry https://registry.npmjs.org
