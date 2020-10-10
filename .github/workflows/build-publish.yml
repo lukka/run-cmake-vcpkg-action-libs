@@ -41,6 +41,12 @@ jobs:
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create packages artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: packages
+        path: packages
+      if: runner.os == 'Linux'
 
   publish-to-github-registry:
     needs: build
@@ -48,33 +54,23 @@ jobs:
     # Inspired from https://github.community/t/passing-an-array-literal-to-contains-function-causes-syntax-error/17213
     if: contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/heads/prerelease')
     steps:
-      - uses: actions/checkout@v2
+      - name: Download NPM package tgz files
+        uses: actions/download-artifact@v1
+        with:
+          name: packages
       - name: Set Node.js 12.x
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
-          registry-url: https://npm.pkg.github.com/
-          scope: '@lukka'
-      - run: |
-          npm install
-          npm run bootstrap
-          npm run build
-        shell: bash
-        name: build
-      - run: |
-          npm run lint
-        shell: bash
-        name: lint
-      - run: |
-          npm run test
-        shell: bash
-        name: test
+          registry-url: https://registry.npmjs.org
       - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
-      - run: npm run publish -- prerelease --dist-tag=prerelease --registry https://npm.pkg.github.com
+      - name: Publish prerelease packages to registry.npmjs.org
+        run: npm run publish -- prerelease --dist-tag=prerelease --registry https://registry.npmjs.org
         if: contains(github.ref, 'refs/heads/prerelease')
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: npm run publish -- patch --registry https://npm.pkg.github.com
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      - name: Publish release packages to registry.npmjs.org
+        run: npm run publish -- patch --registry https://registry.npmjs.org
         if: contains(github.ref, 'refs/heads/release')
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

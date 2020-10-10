@@ -18,7 +18,8 @@
   "scripts": {
     "build": "tsc -b . -v",
     "lint": "eslint src/*.ts",
-    "test": "jest"
+    "test": "jest",
+    "pack": "npm pack"
   },
   "devDependencies": {
     "@types/jest": "^25.2.3",
@@ -32,9 +33,9 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@actions/core": "^1.2.3",
-    "@actions/exec": "^1.0.3",
-    "@actions/github": "^2.1.1",
+    "@actions/core": "^1.2.6",
+    "@actions/exec": "^1.0.4",
+    "@actions/github": "^4.0.0",
     "@actions/io": "^1.0.2",
     "@lukka/base-lib": "^0.14.0-alpha.0",
     "@lukka/base-util-lib": "^0.14.0-alpha.0",

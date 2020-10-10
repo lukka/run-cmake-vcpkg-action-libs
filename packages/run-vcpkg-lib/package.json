@@ -18,7 +18,8 @@
   "scripts": {
     "build": "tsc -b . -v",
     "lint": "eslint src/*.ts",
-    "test": "jest --verbose --testTimeout 100000"
+    "test": "jest --verbose --testTimeout 100000",
+    "pack": "npm pack"
   },
   "devDependencies": {
     "@types/jest": "^25.2.3",

@@ -274,7 +274,7 @@ export class CMakeRunner {
           await using(baseutillib.Matcher.createMatcher(CMakeRunner.getBuildMatcher(
             this.buildDir, this.tl), this.tl), async matcher => {
               await this.baseUtils.wrapOp("Build with CMake", async () =>
-                await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments +   this.doBuildArgs, options))
+                await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments + this.doBuildArgs, options))
             });
         }
 
