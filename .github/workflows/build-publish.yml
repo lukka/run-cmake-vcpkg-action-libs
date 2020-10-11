@@ -1,13 +1,6 @@
-name: 'build and publish'
+name: 'build/test and publish'
 
-on:
-  pull_request:
-    types: [opened, synchronize, edit]
-    paths-ignore:
-    - '**.md'
-  push:
-    paths-ignore:
-    - '**.md'
+on: [ pull_request, push]
 
 jobs:
   build:
