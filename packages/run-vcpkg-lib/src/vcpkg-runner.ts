@@ -363,6 +363,7 @@ export class VcpkgRunner {
       if (!this.baseUtils.isWin32()) {
         await this.tl.execSync('chmod', ["+x", vcpkgExePath])
       }
+      this.tl.info(`vcpkg executable exists at: '${vcpkgExePath}'.`);
     }
     return needRebuild;
   }
