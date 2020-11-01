@@ -9,6 +9,7 @@ import * as baselib from '@lukka/base-lib';
 import AdmZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
+import { performance } from 'perf_hooks'
 
 export class BaseUtilLib {
 
@@ -219,11 +220,12 @@ export class BaseUtilLib {
     this.baseLib.beginOperation(name);
 
     let result: T
-
+    const startTime = performance.now();
     try {
       result = await fn();
     } finally {
       this.baseLib.endOperation();
+      this.baseLib.info(`Elapsed: ${performance.now() - startTime} msec`);
     }
 
     return result
@@ -233,10 +235,12 @@ export class BaseUtilLib {
     this.baseLib.beginOperation(name);
 
     let result: T;
+    const startTime = performance.now();
     try {
       result = fn();
     } finally {
       this.baseLib.endOperation();
+      this.baseLib.info(`Elapsed: ${performance.now() - startTime} msec`);
     }
 
     return result;

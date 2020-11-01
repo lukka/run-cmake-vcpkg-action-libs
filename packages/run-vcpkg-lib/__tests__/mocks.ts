@@ -12,7 +12,6 @@ import { ActionToolRunner } from '@lukka/action-lib/src';
 import { ExecOptions } from 'child_process';
 import * as testutils from './utils'
 import * as assert from 'assert'
-import * as path from 'path'
 import os from 'os'
 
 // Provider of results of commands execution.
