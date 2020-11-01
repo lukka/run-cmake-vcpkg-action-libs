@@ -4,16 +4,16 @@
 
 import * as path from 'path';
 import * as baselib from '@lukka/base-lib';
-import * as baselibutils from '@lukka/base-util-lib'
+import * as BaseUtilLib from '@lukka/base-util-lib'
 
 export class NinjaProvider {
   private static readonly baseUrl =
     'https://github.com/ninja-build/ninja/releases/download/v1.10.0';
 
-  private readonly baseUtils: baselibutils.BaseLibUtils;
+  private readonly baseUtils: BaseUtilLib.BaseUtilLib;
 
   constructor(private readonly baseLib: baselib.BaseLib) {
-    this.baseUtils = new baselibutils.BaseLibUtils(baseLib);
+    this.baseUtils = new BaseUtilLib.BaseUtilLib(baseLib);
   }
 
   private async download(url: string): Promise<string> {

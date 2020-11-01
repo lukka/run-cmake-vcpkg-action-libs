@@ -18,16 +18,16 @@ function readFile(path: string): [boolean, string] {
 }
 
 test('testing triplet extraction from arguments', async () => {
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("", readFile), null);
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--triplet triplet", readFile), "triplet");
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run --triplet triplet", readFile), "triplet");
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run --triplet tri-plet ", readFile), "tri-plet");
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run --triplet  tri-plet --dry-run", readFile), "tri-plet");
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run --triplet ", readFile), null);
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run @response_file_with_triplet.txt --triplet x", readFile), "triplet");
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run @response_file_with_no_triplet.txt --triplet x", readFile), "x");
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--dry-run @response_file_with_no_triplet.txt ", readFile), null);
-  assert.strictEqual(baseutillib.BaseLibUtils.extractTriplet("--recursive @response_file_only_with_triplet.txt", readFile), "triplet");
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("", readFile), null);
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--triplet triplet", readFile), "triplet");
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--dry-run --triplet triplet", readFile), "triplet");
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--dry-run --triplet tri-plet ", readFile), "tri-plet");
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--dry-run --triplet  tri-plet --dry-run", readFile), "tri-plet");
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--dry-run --triplet ", readFile), null);
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--dry-run @response_file_with_triplet.txt --triplet x", readFile), "triplet");
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--dry-run @response_file_with_no_triplet.txt --triplet x", readFile), "x");
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--dry-run @response_file_with_no_triplet.txt ", readFile), null);
+  assert.strictEqual(baseutillib.BaseUtilLib.extractTriplet("--recursive @response_file_only_with_triplet.txt", readFile), "triplet");
 });
 
 
@@ -36,55 +36,55 @@ test('testing triplet extraction from arguments', async () => {
 
 
 
-const baseLibUtils: baseutillib.BaseLibUtils = new baseutillib.BaseLibUtils(new actionlibs.ActionLib());
+const BaseUtilLib: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(new actionlibs.ActionLib());
 
 
 describe('baselibs utils tests', function () {
   test('testing for presence of flags', async () => {
-    assert.ok(baseLibUtils.isNinjaGenerator(['-GNinja']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G Ninja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-G ninja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-g Ninja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-Gninja']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G"Ninja"']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G Ninja"']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G  Ninja"']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G  "Ninja"']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-G  "Ninja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-g"Ninja"']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-gNinja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-g"Ninja']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-GNinja']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G Ninja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-G ninja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g Ninja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-Gninja']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G"Ninja"']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G Ninja"']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G  Ninja"']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G  "Ninja"']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-G  "Ninja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g"Ninja"']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-gNinja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g"Ninja']));
 
-    assert.ok(baseLibUtils.isMakeProgram(['-DCMAKE_MAKE_PROGRAM=']));
-    assert.ok(!baseLibUtils.isMakeProgram(['-D CMAKE_MAKE_PROGRAM=']));
-    assert.ok(!baseLibUtils.isMakeProgram(['-dCMAKE_MAKE_PROGRAM=']));
-    assert.ok(!baseLibUtils.isMakeProgram(['-d CMAKE_MAKE_PROGRAM=']));
-    assert.ok(!baseLibUtils.isMakeProgram(['']));
-    assert.ok(!baseLibUtils.isMakeProgram([' ']));
+    assert.ok(BaseUtilLib.isMakeProgram(['-DCMAKE_MAKE_PROGRAM=']));
+    assert.ok(!BaseUtilLib.isMakeProgram(['-D CMAKE_MAKE_PROGRAM=']));
+    assert.ok(!BaseUtilLib.isMakeProgram(['-dCMAKE_MAKE_PROGRAM=']));
+    assert.ok(!BaseUtilLib.isMakeProgram(['-d CMAKE_MAKE_PROGRAM=']));
+    assert.ok(!BaseUtilLib.isMakeProgram(['']));
+    assert.ok(!BaseUtilLib.isMakeProgram([' ']));
 
-    assert.ok(baseLibUtils.isToolchainFile(['-DCMAKE_TOOLCHAIN_FILE']));
-    assert.ok(baseLibUtils.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE']));
-    assert.ok(!baseLibUtils.isToolchainFile([' -dCMAKE_TOOLCHAIN_FILE']));
+    assert.ok(BaseUtilLib.isToolchainFile(['-DCMAKE_TOOLCHAIN_FILE']));
+    assert.ok(BaseUtilLib.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE']));
+    assert.ok(!BaseUtilLib.isToolchainFile([' -dCMAKE_TOOLCHAIN_FILE']));
 
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']).length === 0);
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILEPATH=/path/to/file.cmake ']).length === 0);
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILE=/path/to/file.cmake ']).length === 0);
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:STRING="/path/to/file.cmake" ']).length === 0);
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake" ']).length === 0);
-    assert.deepEqual(baseLibUtils.removeToolchainFile(['-DVAR=NAME', '-DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake']), ['-DVAR=NAME']);
-    assert.deepEqual(baseLibUtils.removeToolchainFile(['-DVAR=NAME ', '-DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake"']), ['-DVAR=NAME ']);
-    assert.deepEqual(baseLibUtils.removeToolchainFile(['-DVAR=NAME ', ' -DCMAKE_TOOLCHAIN_FILE=c:\\path\\to\\file.cmake']), ['-DVAR=NAME ']);
-    assert.ok(baseLibUtils.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']));
-    assert.ok(!baseLibUtils.isToolchainFile([' -DVAR=NAME ']));
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']).length === 0);
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILEPATH=/path/to/file.cmake ']).length === 0);
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILE=/path/to/file.cmake ']).length === 0);
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:STRING="/path/to/file.cmake" ']).length === 0);
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake" ']).length === 0);
+    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME', '-DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake']), ['-DVAR=NAME']);
+    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME ', '-DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake"']), ['-DVAR=NAME ']);
+    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME ', ' -DCMAKE_TOOLCHAIN_FILE=c:\\path\\to\\file.cmake']), ['-DVAR=NAME ']);
+    assert.ok(BaseUtilLib.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']));
+    assert.ok(!BaseUtilLib.isToolchainFile([' -DVAR=NAME ']));
   });
 
   test('testing for path normalization', async () => {
-    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a/path/'), path.join('/a', 'path'));
-    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a/../path/'), path.normalize('/path'));
-    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/'), path.normalize('/'));
-    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a'), path.normalize('/a'));
-    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a/'), path.normalize('/a'));
-    assert.strictEqual(baseutillib.BaseLibUtils.normalizePath('/a/path'), path.join('/a', 'path'));
+    assert.strictEqual(baseutillib.BaseUtilLib.normalizePath('/a/path/'), path.join('/a', 'path'));
+    assert.strictEqual(baseutillib.BaseUtilLib.normalizePath('/a/../path/'), path.normalize('/path'));
+    assert.strictEqual(baseutillib.BaseUtilLib.normalizePath('/'), path.normalize('/'));
+    assert.strictEqual(baseutillib.BaseUtilLib.normalizePath('/a'), path.normalize('/a'));
+    assert.strictEqual(baseutillib.BaseUtilLib.normalizePath('/a/'), path.normalize('/a'));
+    assert.strictEqual(baseutillib.BaseUtilLib.normalizePath('/a/path'), path.join('/a', 'path'));
   });
 });
 

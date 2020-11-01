@@ -26,11 +26,11 @@ export class VcpkgRunner {
   private readonly cleanAfterBuild: boolean = false;
   private readonly doNotUpdateVcpkg: boolean = false;
   private readonly pathToLastBuiltCommitId: string;
-  private readonly baseUtils: baseutillib.BaseLibUtils;
+  private readonly baseUtils: baseutillib.BaseUtilLib;
   private static readonly overlayArgName = "--overlay-ports=";
 
   public constructor(private tl: baselib.BaseLib) {
-    this.baseUtils = new baseutillib.BaseLibUtils(tl);
+    this.baseUtils = new baseutillib.BaseUtilLib(tl);
     this.setupOnly = this.tl.getBoolInput(globals.setupOnly, false) ?? false;
 
     this.vcpkgArgs = this.tl.getInput(globals.vcpkgArguments, this.setupOnly === false) ?? "";
@@ -77,7 +77,7 @@ export class VcpkgRunner {
     }
 
     let needRebuild = false;
-    const currentCommitId = await this.getCommitId();
+    const currentCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.options.cwd);
     if (this.doNotUpdateVcpkg) {
       this.tl.info(`Skipping any check to update vcpkg directory (${this.vcpkgDestPath}).`);
     } else {
@@ -124,7 +124,7 @@ export class VcpkgRunner {
     this.tl.setOutput(`${outVarName}`, this.vcpkgDestPath);
 
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
-    this.baseUtils.setEnvVar(baseutillib.BaseLibUtils.cachingFormatEnvName, "Files");
+    this.baseUtils.setEnvVar(baseutillib.BaseUtilLib.cachingFormatEnvName, "Files");
   }
 
   private async prepareForCache(): Promise<void> {
@@ -183,7 +183,7 @@ export class VcpkgRunner {
     // Get the triplet specified in the task.
     let vcpkgTripletUsed = this.vcpkgTriplet;
     // Extract triplet from arguments for vcpkg.
-    const extractedTriplet: string | null = baseutillib.BaseLibUtils.extractTriplet(installCmd,
+    const extractedTriplet: string | null = baseutillib.BaseUtilLib.extractTriplet(installCmd,
       (p: string) => this.baseUtils.readFile(p));
     // Append triplet, only if provided by the user in the task arguments
     if (extractedTriplet !== null) {
@@ -229,27 +229,41 @@ export class VcpkgRunner {
   }
 
   /**
-   * Get the commit id of the vcpkg directory specified in 'vcpkgDirectory' input.
-   * @private
-   * @returns {Promise<string>} the commit id
+   *
+   * Get the commit id of the repository at the directory specified in 'path' parameter.
+   * @static
+   * @param {baseutillib.BaseUtilLib} baseUtilLib The BaseUtilLib instance to use.
+   * @param {string} path Path of the repository.
+   * @returns {Promise<string>} The commit id of the repository at given path.
    * @memberof VcpkgRunner
    */
-  private async getCommitId(): Promise<string> {
-    this.tl.debug("getCommitId()<<");
+  public static async getCommitId(baseUtilLib: baseutillib.BaseUtilLib, path: string): Promise<string> {
+    const options = {
+      cwd: path,
+      failOnStdErr: false,
+      errStream: process.stdout,
+      outStream: process.stdout,
+      ignoreReturnCode: true,
+      silent: false,
+      windowsVerbatimArguments: false,
+      env: process.env
+    } as baselib.ExecOptions;
+
+    baseUtilLib.baseLib.debug("getCommitId()<<");
     let currentCommitId = "";
-    const gitPath = await this.tl.which('git', true);
+    const gitPath = await baseUtilLib.baseLib.which('git', true);
     // Use git to verify whether the repo is up to date.
-    const gitRunner: baselib.ToolRunner = this.tl.tool(gitPath);
+    const gitRunner: baselib.ToolRunner = baseUtilLib.baseLib.tool(gitPath);
     gitRunner.arg(['rev-parse', 'HEAD']);
-    this.tl.info(`Fetching the commit id at ${this.options.cwd}`);
-    const res: baselib.ExecResult = await gitRunner.execSync(this.options);
+    baseUtilLib.baseLib.info(`Fetching the commit id at ${path}`);
+    const res: baselib.ExecResult = await gitRunner.execSync(options);
     if (res.code === 0) {
-      currentCommitId = this.baseUtils.trimString(res.stdout);
-      this.tl.debug(`git rev-parse: code=${res.code}, stdout=${this.baseUtils.trimString(res.stdout)}, stderr=${this.baseUtils.trimString(res.stderr)}`);
+      currentCommitId = baseUtilLib.trimString(res.stdout);
+      baseUtilLib.baseLib.debug(`git rev-parse: code=${res.code}, stdout=${baseUtilLib.trimString(res.stdout)}, stderr=${baseUtilLib.trimString(res.stderr)}`);
     } else /* if (res.code !== 0) */ {
-      this.tl.debug(`error executing git: code=${res.code}, stdout=${this.baseUtils.trimString(res.stdout)}, stderr=${this.baseUtils.trimString(res.stderr)}`);
+      baseUtilLib.baseLib.debug(`error executing git: code=${res.code}, stdout=${baseUtilLib.trimString(res.stdout)}, stderr=${baseUtilLib.trimString(res.stderr)}`);
     }
-    this.tl.debug(`getCommitId()>> -> ${currentCommitId}`);
+    baseUtilLib.baseLib.debug(`getCommitId()>> -> ${currentCommitId}`);
     return currentCommitId;
   }
 
@@ -349,6 +363,7 @@ export class VcpkgRunner {
       if (!this.baseUtils.isWin32()) {
         await this.tl.execSync('chmod', ["+x", vcpkgExePath])
       }
+      this.tl.info(`vcpkg executable exists at: '${vcpkgExePath}'.`);
     }
     return needRebuild;
   }
@@ -379,7 +394,7 @@ export class VcpkgRunner {
     }
 
     // After a build, refetch the commit id of the vcpkg's repo, and store it into the file.
-    const builtCommitId = await this.getCommitId();
+    const builtCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.options.cwd);
     this.baseUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
     // Keep track of last successful build commit id.
     this.tl.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);

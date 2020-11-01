@@ -18,8 +18,8 @@ const ninjaExePath = '/usr/bin/ninja';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const cmakeListsTxtPath = path.join('/home/user/project/src/path/', 'CMakeLists.txt');
 
-jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseLibUtils, file: string): [boolean, string] {
+jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
+  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
     if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
       return [true, "!.git\n"];
     }

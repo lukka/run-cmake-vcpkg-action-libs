@@ -8,7 +8,7 @@ import * as baseutillib from '@lukka/base-util-lib';
 import * as vcpkgGlobals from './vcpkg-globals'
 
 export class CMakeUtils {
-  constructor(private readonly baseUtils: baseutillib.BaseLibUtils) {
+  constructor(private readonly baseUtils: baseutillib.BaseUtilLib) {
   }
 
   public async injectEnvVariables(vcpkgRoot: string, triplet: string, baseLib: baselib.BaseLib): Promise<void> {

@@ -14,7 +14,7 @@ import { BaseLib } from '@lukka/base-lib';
 const vcpkgRoot = "/vcpkgroot/";
 const vcpkgCMakeToolchain = path.join(vcpkgRoot, "scripts/buildsystems/vcpkg.cmake");
 const isWin = process.platform === "win32";
-jest.spyOn(baseutillib.BaseLibUtils.prototype, 'isWin32').mockImplementation(() => isWin);
+jest.spyOn(baseutillib.BaseUtilLib.prototype, 'isWin32').mockImplementation(() => isWin);
 const answers: testutils.BaseLibAnswers = {
   "exec": {
     [`${path.join(vcpkgRoot, 'vcpkg.exe')} env --bin --include --tools --python --triplet triplet set`]:
@@ -22,45 +22,45 @@ const answers: testutils.BaseLibAnswers = {
   },
 };
 
-describe('BaseLibUtils tests', function () {
+describe('BaseUtilLib tests', function () {
   test('testing for presence of CMake flags', async () => {
     const actionLib: actionlib.ActionLib = new actionlib.ActionLib();
-    const baseLibUtils: baseutillib.BaseLibUtils = new baseutillib.BaseLibUtils(actionLib);
-    assert.ok(baseLibUtils.isNinjaGenerator(['-GNinja']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G Ninja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-G ninja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-g Ninja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-Gninja']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G"Ninja"']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G Ninja"']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G  Ninja"']));
-    assert.ok(baseLibUtils.isNinjaGenerator(['-G  "Ninja"']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-G  "Ninja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-g"Ninja"']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-gNinja']));
-    assert.ok(!baseLibUtils.isNinjaGenerator(['-g"Ninja']));
+    const BaseUtilLib: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(actionLib);
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-GNinja']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G Ninja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-G ninja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g Ninja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-Gninja']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G"Ninja"']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G Ninja"']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G  Ninja"']));
+    assert.ok(BaseUtilLib.isNinjaGenerator(['-G  "Ninja"']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-G  "Ninja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g"Ninja"']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-gNinja']));
+    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g"Ninja']));
 
-    assert.ok(baseLibUtils.isMakeProgram(['-DCMAKE_MAKE_PROGRAM=']));
-    assert.ok(!baseLibUtils.isMakeProgram(['-D CMAKE_MAKE_PROGRAM=']));
-    assert.ok(!baseLibUtils.isMakeProgram(['-dCMAKE_MAKE_PROGRAM=']));
-    assert.ok(!baseLibUtils.isMakeProgram(['-d CMAKE_MAKE_PROGRAM=']));
-    assert.ok(!baseLibUtils.isMakeProgram(['']));
-    assert.ok(!baseLibUtils.isMakeProgram([' ']));
+    assert.ok(BaseUtilLib.isMakeProgram(['-DCMAKE_MAKE_PROGRAM=']));
+    assert.ok(!BaseUtilLib.isMakeProgram(['-D CMAKE_MAKE_PROGRAM=']));
+    assert.ok(!BaseUtilLib.isMakeProgram(['-dCMAKE_MAKE_PROGRAM=']));
+    assert.ok(!BaseUtilLib.isMakeProgram(['-d CMAKE_MAKE_PROGRAM=']));
+    assert.ok(!BaseUtilLib.isMakeProgram(['']));
+    assert.ok(!BaseUtilLib.isMakeProgram([' ']));
 
-    assert.ok(baseLibUtils.isToolchainFile(['-DCMAKE_TOOLCHAIN_FILE']));
-    assert.ok(baseLibUtils.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE']));
-    assert.ok(!baseLibUtils.isToolchainFile([' -dCMAKE_TOOLCHAIN_FILE']));
+    assert.ok(BaseUtilLib.isToolchainFile(['-DCMAKE_TOOLCHAIN_FILE']));
+    assert.ok(BaseUtilLib.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE']));
+    assert.ok(!BaseUtilLib.isToolchainFile([' -dCMAKE_TOOLCHAIN_FILE']));
 
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']).length === 0);
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILEPATH=/path/to/file.cmake ']).length === 0);
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILE=/path/to/file.cmake ']).length === 0);
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:STRING="/path/to/file.cmake" ']).length === 0);
-    assert.ok(baseLibUtils.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake" ']).length === 0);
-    assert.deepEqual(baseLibUtils.removeToolchainFile(['-DVAR=NAME', '-DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake']), ['-DVAR=NAME']);
-    assert.deepEqual(baseLibUtils.removeToolchainFile(['-DVAR=NAME ', '-DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake"']), ['-DVAR=NAME ']);
-    assert.deepEqual(baseLibUtils.removeToolchainFile(['-DVAR=NAME ', ' -DCMAKE_TOOLCHAIN_FILE=c:\\path\\to\\file.cmake']), ['-DVAR=NAME ']);
-    assert.ok(baseLibUtils.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']));
-    assert.ok(!baseLibUtils.isToolchainFile([' -DVAR=NAME ']));
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']).length === 0);
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILEPATH=/path/to/file.cmake ']).length === 0);
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILE=/path/to/file.cmake ']).length === 0);
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:STRING="/path/to/file.cmake" ']).length === 0);
+    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake" ']).length === 0);
+    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME', '-DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake']), ['-DVAR=NAME']);
+    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME ', '-DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake"']), ['-DVAR=NAME ']);
+    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME ', ' -DCMAKE_TOOLCHAIN_FILE=c:\\path\\to\\file.cmake']), ['-DVAR=NAME ']);
+    assert.ok(BaseUtilLib.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']));
+    assert.ok(!BaseUtilLib.isToolchainFile([' -DVAR=NAME ']));
   });
 
 });
@@ -71,8 +71,8 @@ describe("CMakeUtils tests", function () {
 
     //const actionLib: actionlib.ActionLib = new actionlib.ActionLib();
     const baseLib: BaseLib = mock.exportedBaselib;
-    const baseLibUtils: baseutillib.BaseLibUtils = new baseutillib.BaseLibUtils(baseLib);
-    const cmakeUtils = new utils.CMakeUtils(baseLibUtils);
+    const BaseUtilLib: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(baseLib);
+    const cmakeUtils = new utils.CMakeUtils(BaseUtilLib);
 
     process.env.RUNVCPKG_VCPKG_ROOT = vcpkgRoot;
     let ret: string[] = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_TOOLCHAIN_FILE=existing.cmake'], "triplet", baseLib);

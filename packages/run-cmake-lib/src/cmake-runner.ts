@@ -42,7 +42,7 @@ function getGenerator(generatorString: string): any {
 
 export class CMakeRunner {
   private readonly ninjaLib: ninjalib.NinjaProvider;
-  private readonly baseUtils: baseutillib.BaseLibUtils;
+  private readonly baseUtils: baseutillib.BaseUtilLib;
   private readonly cmakeUtils: cmakelib.CMakeUtils;
   private readonly buildDir: string = "";
   private readonly appendedArgs: string;
@@ -101,7 +101,7 @@ export class CMakeRunner {
   */
 
   public constructor(private tl: baselib.BaseLib) {
-    this.baseUtils = new baseutillib.BaseLibUtils(this.tl);
+    this.baseUtils = new baseutillib.BaseUtilLib(this.tl);
     this.cmakeUtils = new cmakelib.CMakeUtils(this.baseUtils);
     this.ninjaLib = new ninjalib.NinjaProvider(this.tl);
 
@@ -149,7 +149,7 @@ export class CMakeRunner {
     this.ninjaDownloadUrl = this.tl.getInput(cmakeglobals.ninjaDownloadUrl, false) ?? "";
     this.doBuild = this.tl.getBoolInput(cmakeglobals.buildWithCMake, false) ?? false;
     this.doBuildArgs = this.tl.getInput(cmakeglobals.buildWithCMakeArgs, false) ?? "";
-    this.cmakeSourceDir = path.dirname(baseutillib.BaseLibUtils.normalizePath(this.cmakeListsTxtPath) ?? "");
+    this.cmakeSourceDir = path.dirname(baseutillib.BaseUtilLib.normalizePath(this.cmakeListsTxtPath) ?? "");
 
     this.useVcpkgToolchainFile =
       this.tl.getBoolInput(cmakeglobals.useVcpkgToolchainFile, false) ?? false;
@@ -367,7 +367,7 @@ export class CMakeRunner {
   public static getBuildMatcher(buildDir: string, tl: baselib.BaseLib): string {
     let cxxMatcher: string | undefined;
     let ccMatcher: string | undefined;
-    const utils: baseutillib.BaseLibUtils = new baseutillib.BaseLibUtils(tl);
+    const utils: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(tl);
     try {
       const cmakeCacheTxtPath = path.join(buildDir, "CMakeCache.txt");
       const [ok, cacheContent] = utils.readFile(cmakeCacheTxtPath);

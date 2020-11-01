@@ -9,12 +9,13 @@ import * as baselib from '@lukka/base-lib';
 import AdmZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
+import { performance } from 'perf_hooks'
 
-export class BaseLibUtils {
+export class BaseUtilLib {
 
   public static readonly cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
 
-  public constructor(private baseLib: baselib.BaseLib) {
+  public constructor(public readonly baseLib: baselib.BaseLib) {
   }
 
   public async isVcpkgSubmodule(gitPath: string, fullVcpkgPath: string): Promise<boolean> {
@@ -163,7 +164,7 @@ export class BaseLibUtils {
       if (arg.startsWith("@")) {
         const [ok, content] = readFile(arg.substring(1));
         if (ok) {
-          const t = BaseLibUtils.extractTriplet(content, readFile);
+          const t = BaseUtilLib.extractTriplet(content, readFile);
           if (t) {
             return t.trim();
           }
@@ -185,7 +186,7 @@ export class BaseLibUtils {
       arg = arg.replace(/\s/, '');
       let isResponseFile = false;
       if (arg.startsWith("@")) {
-        const resolvedFilePath: string = BaseLibUtils.normalizePath(arg);
+        const resolvedFilePath: string = BaseUtilLib.normalizePath(arg);
         if (this.baseLib.exist(resolvedFilePath)) {
           const [ok, content] = readFile(resolvedFilePath);
           if (ok && content) {
@@ -219,11 +220,12 @@ export class BaseLibUtils {
     this.baseLib.beginOperation(name);
 
     let result: T
-
+    const startTime = performance.now();
     try {
       result = await fn();
     } finally {
       this.baseLib.endOperation();
+      this.baseLib.info(`⏱ elapsed: ${((performance.now() - startTime) / 1000.).toFixed(3)} seconds`);
     }
 
     return result
@@ -233,10 +235,12 @@ export class BaseLibUtils {
     this.baseLib.beginOperation(name);
 
     let result: T;
+    const startTime = performance.now();
     try {
       result = fn();
     } finally {
       this.baseLib.endOperation();
+      this.baseLib.info(`⏱ elapsed: ${((performance.now() - startTime) / 1000.).toFixed(3)} seconds`);
     }
 
     return result;

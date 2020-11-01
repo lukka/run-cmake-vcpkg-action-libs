@@ -21,8 +21,8 @@ const cmakeListsTxtPath = path.join(targetPath, 'CMakeLists.txt');
 const cmakeSettingsJsonPath = path.join(targetPath, 'CMakeSettings.json');
 const artifactStagingDirectory = "/agent/w/1/a/";
 
-jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseLibUtils, file: string): [boolean, string] {
+jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
+  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
     if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
       return [true, "!.git\n"];
     }
@@ -61,8 +61,8 @@ jest.spyOn(fs, 'chmodSync').mockImplementation(function (filePath: fs.PathLike, 
 */
 
 /*
-jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
-function (this: utils.BaseLibUtils, name: string, value: string): void {
+jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
+function (this: utils.BaseUtilLib, name: string, value: string): void {
   // Ensure they are not set twice.
   const existingValue: string = mock.envVarSetDict[name];
   if (existingValue) {
@@ -70,7 +70,7 @@ function (this: utils.BaseLibUtils, name: string, value: string): void {
   }
 
   // Ensure their values are the expected ones.
-  if (name === utils.BaseLibUtils.cachingFormatEnvName) {
+  if (name === utils.BaseUtilLib.cachingFormatEnvName) {
     assert.equal(value, "Files");
   } else if (name === globals.buildDirectory) {
     assert.equal(value, vcpkgRoot);
