@@ -14,7 +14,7 @@ export class BaseLibUtils {
 
   public static readonly cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
 
-  public constructor(private baseLib: baselib.BaseLib) {
+  public constructor(public readonly baseLib: baselib.BaseLib) {
   }
 
   public async isVcpkgSubmodule(gitPath: string, fullVcpkgPath: string): Promise<boolean> {
