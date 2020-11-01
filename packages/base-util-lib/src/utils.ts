@@ -219,11 +219,12 @@ export class BaseUtilLib {
     this.baseLib.beginOperation(name);
 
     let result: T
-
+    const startTime = performance.now();
     try {
       result = await fn();
     } finally {
       this.baseLib.endOperation();
+      this.baseLib.info(`Elapsed: ${performance.now() - startTime} msec`);
     }
 
     return result
@@ -233,10 +234,12 @@ export class BaseUtilLib {
     this.baseLib.beginOperation(name);
 
     let result: T;
+    const startTime = performance.now();
     try {
       result = fn();
     } finally {
       this.baseLib.endOperation();
+      this.baseLib.info(`Elapsed: ${performance.now() - startTime} msec`);
     }
 
     return result;
