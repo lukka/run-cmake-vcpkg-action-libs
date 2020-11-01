@@ -34,21 +34,21 @@ export class CMakeMocks {
 
 }
 
-// Mock for baseLibUtils
-export const MockBaseLibUtils = baseutillib.BaseLibUtils as jest.Mocked<typeof baseutillib.BaseLibUtils>;
-MockBaseLibUtils.extractTriplet = jest.fn().mockImplementation(() => null);
-MockBaseLibUtils.prototype.readFile = jest.fn().mockImplementation(() => null);
-jest.spyOn(baseutillib.BaseLibUtils.prototype, 'isVcpkgSubmodule').mockImplementation(
-  function (this: baseutillib.BaseLibUtils, gitPath: string, fullVcpkgPath: string): Promise<boolean> {
+// Mock for BaseUtilLib
+export const MockBaseUtilLib = baseutillib.BaseUtilLib as jest.Mocked<typeof baseutillib.BaseUtilLib>;
+MockBaseUtilLib.extractTriplet = jest.fn().mockImplementation(() => null);
+MockBaseUtilLib.prototype.readFile = jest.fn().mockImplementation(() => null);
+jest.spyOn(baseutillib.BaseUtilLib.prototype, 'isVcpkgSubmodule').mockImplementation(
+  function (this: baseutillib.BaseUtilLib, gitPath: string, fullVcpkgPath: string): Promise<boolean> {
     return Promise.resolve(VcpkgMocks.isVcpkgSubmodule);
   });
-jest.spyOn(baseutillib.BaseLibUtils.prototype, 'directoryExists').mockImplementation(
-  function (this: baseutillib.BaseLibUtils, path: string): boolean {
+jest.spyOn(baseutillib.BaseUtilLib.prototype, 'directoryExists').mockImplementation(
+  function (this: baseutillib.BaseUtilLib, path: string): boolean {
     assert.equal(path, VcpkgMocks.vcpkgRoot);
     return true;
   });
-jest.spyOn(baseutillib.BaseLibUtils.prototype, 'fileExists').mockImplementation(
-  function (this: baseutillib.BaseLibUtils, path: string): boolean {
+jest.spyOn(baseutillib.BaseUtilLib.prototype, 'fileExists').mockImplementation(
+  function (this: baseutillib.BaseUtilLib, path: string): boolean {
     assert.equal(path, VcpkgMocks.vcpkgExePath);
     return VcpkgMocks.vcpkgExeExists;
   });

@@ -26,11 +26,11 @@ export class VcpkgRunner {
   private readonly cleanAfterBuild: boolean = false;
   private readonly doNotUpdateVcpkg: boolean = false;
   private readonly pathToLastBuiltCommitId: string;
-  private readonly baseUtils: baseutillib.BaseLibUtils;
+  private readonly baseUtils: baseutillib.BaseUtilLib;
   private static readonly overlayArgName = "--overlay-ports=";
 
   public constructor(private tl: baselib.BaseLib) {
-    this.baseUtils = new baseutillib.BaseLibUtils(tl);
+    this.baseUtils = new baseutillib.BaseUtilLib(tl);
     this.setupOnly = this.tl.getBoolInput(globals.setupOnly, false) ?? false;
 
     this.vcpkgArgs = this.tl.getInput(globals.vcpkgArguments, this.setupOnly === false) ?? "";
@@ -124,7 +124,7 @@ export class VcpkgRunner {
     this.tl.setOutput(`${outVarName}`, this.vcpkgDestPath);
 
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
-    this.baseUtils.setEnvVar(baseutillib.BaseLibUtils.cachingFormatEnvName, "Files");
+    this.baseUtils.setEnvVar(baseutillib.BaseUtilLib.cachingFormatEnvName, "Files");
   }
 
   private async prepareForCache(): Promise<void> {
@@ -183,7 +183,7 @@ export class VcpkgRunner {
     // Get the triplet specified in the task.
     let vcpkgTripletUsed = this.vcpkgTriplet;
     // Extract triplet from arguments for vcpkg.
-    const extractedTriplet: string | null = baseutillib.BaseLibUtils.extractTriplet(installCmd,
+    const extractedTriplet: string | null = baseutillib.BaseUtilLib.extractTriplet(installCmd,
       (p: string) => this.baseUtils.readFile(p));
     // Append triplet, only if provided by the user in the task arguments
     if (extractedTriplet !== null) {
@@ -232,12 +232,12 @@ export class VcpkgRunner {
    *
    * Get the commit id of the repository at the directory specified in 'path' parameter.
    * @static
-   * @param {baseutillib.BaseLibUtils} baseUtilLib The baseLibUtils instance to use.
+   * @param {baseutillib.BaseUtilLib} baseUtilLib The BaseUtilLib instance to use.
    * @param {string} path Path of the repository.
    * @returns {Promise<string>} The commit id of the repository at given path.
    * @memberof VcpkgRunner
    */
-  public static async getCommitId(baseUtilLib: baseutillib.BaseLibUtils, path: string): Promise<string> {
+  public static async getCommitId(baseUtilLib: baseutillib.BaseUtilLib, path: string): Promise<string> {
     const options = {
       cwd: path,
       failOnStdErr: false,

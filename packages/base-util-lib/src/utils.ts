@@ -10,7 +10,7 @@ import AdmZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
 
-export class BaseLibUtils {
+export class BaseUtilLib {
 
   public static readonly cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
 
@@ -163,7 +163,7 @@ export class BaseLibUtils {
       if (arg.startsWith("@")) {
         const [ok, content] = readFile(arg.substring(1));
         if (ok) {
-          const t = BaseLibUtils.extractTriplet(content, readFile);
+          const t = BaseUtilLib.extractTriplet(content, readFile);
           if (t) {
             return t.trim();
           }
@@ -185,7 +185,7 @@ export class BaseLibUtils {
       arg = arg.replace(/\s/, '');
       let isResponseFile = false;
       if (arg.startsWith("@")) {
-        const resolvedFilePath: string = BaseLibUtils.normalizePath(arg);
+        const resolvedFilePath: string = BaseUtilLib.normalizePath(arg);
         if (this.baseLib.exist(resolvedFilePath)) {
           const [ok, content] = readFile(resolvedFilePath);
           if (ok && content) {

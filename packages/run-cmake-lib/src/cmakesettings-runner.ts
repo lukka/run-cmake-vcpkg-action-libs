@@ -102,9 +102,9 @@ export class Configuration {
     public readonly cmakeToolchain: string,
     public readonly variables: readonly CMakeVariable[],
     public readonly inheritEnvironments: readonly string[]) {
-      baseutillib.BaseLibUtils.throwIfUndefined(name, "name");
-      baseutillib.BaseLibUtils.throwIfUndefined(buildDir, "buildDir");
-      baseutillib.BaseLibUtils.throwIfUndefined(cmakeSettingsJsonPath, "cmakeSettingsJsonPath");
+      baseutillib.BaseUtilLib.throwIfUndefined(name, "name");
+      baseutillib.BaseUtilLib.throwIfUndefined(buildDir, "buildDir");
+      baseutillib.BaseUtilLib.throwIfUndefined(cmakeSettingsJsonPath, "cmakeSettingsJsonPath");
       this.buildDir = path.normalize(buildDir);
   }
 
@@ -454,7 +454,7 @@ export function parseConfigurations(configurationsJson: any, cmakeSettingsJson: 
 }
 
 export class CMakeSettingsJsonRunner {
-  private readonly baseUtils: baseutillib.BaseLibUtils;
+  private readonly baseUtils: baseutillib.BaseUtilLib;
   private readonly cmakeUtils: cmakeutil.CMakeUtils;
   private readonly ninjaLib: ninjalib.NinjaProvider;
 
@@ -475,12 +475,12 @@ export class CMakeSettingsJsonRunner {
 
     this.configurationFilter = configurationFilter;
 
-    this.baseUtils = new baseutillib.BaseLibUtils(this.baseLib);
+    this.baseUtils = new baseutillib.BaseUtilLib(this.baseLib);
     this.cmakeUtils = new cmakeutil.CMakeUtils(this.baseUtils);
     this.ninjaLib = new ninjalib.NinjaProvider(this.baseLib);
 
     this.baseLib.debug(`buildDir=${buildDir}`);
-    this.buildDir = baseutillib.BaseLibUtils.normalizePath(buildDir);
+    this.buildDir = baseutillib.BaseUtilLib.normalizePath(buildDir);
     this.baseLib.debug(`normalized buildDir=${this.buildDir}`);
     if (!this.baseLib.exist(cmakeSettingsJson)) {
       throw new Error(`File '${cmakeSettingsJson}' does not exist.`);
@@ -578,7 +578,7 @@ export class CMakeSettingsJsonRunner {
         // "$(Build.ArtifactStagingDirectory)/{name}" which should be empty.
         console.log(`Note: run-cmake always ignores the 'buildRoot' value specified in the CMakeSettings.json (buildRoot=${configuration.buildDir}). User can override the default value by setting the '${globals.buildDirectory}' input.`);
         const artifactsDir = await this.baseLib.getArtifactsDir();
-        if (baseutillib.BaseLibUtils.normalizePath(this.buildDir) === baseutillib.BaseLibUtils.normalizePath(artifactsDir)) {
+        if (baseutillib.BaseUtilLib.normalizePath(this.buildDir) === baseutillib.BaseUtilLib.normalizePath(artifactsDir)) {
           // The build directory goes into the artifact directory in a subdir
           // named with the configuration name.
           evaledConf.buildDir = path.join(artifactsDir, configuration.name);

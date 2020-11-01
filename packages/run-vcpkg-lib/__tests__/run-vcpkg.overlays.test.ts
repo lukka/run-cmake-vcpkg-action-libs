@@ -25,8 +25,8 @@ mock.VcpkgMocks.isVcpkgSubmodule = false;
 mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
 
-jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseLibUtils, file: string): [boolean, string] {
+jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
+  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
     if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
       return [true, "!.git\n"];
     }
@@ -40,8 +40,8 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'readFile').mockImplementation(
       throw `readFile called with unexpected file name: '${file}'.`;
   });
 
-jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
-  function (this: utils.BaseLibUtils, name: string, value: string): void {
+jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
+  function (this: utils.BaseUtilLib, name: string, value: string): void {
     // Ensure they are not set twice.
     const existingValue: string = mock.envVarSetDict[name];
     if (existingValue) {
@@ -49,7 +49,7 @@ jest.spyOn(utils.BaseLibUtils.prototype, 'setEnvVar').mockImplementation(
     }
 
     // Ensure their values are the expected ones.
-    if (name === utils.BaseLibUtils.cachingFormatEnvName) {
+    if (name === utils.BaseUtilLib.cachingFormatEnvName) {
       assert.equal(value, "Files");
     } else if (name === globals.outVcpkgRootPath) {
       assert.equal(value, vcpkgRoot);
