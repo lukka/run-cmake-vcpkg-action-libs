@@ -15,6 +15,9 @@ import * as assert from 'assert'
 import * as path from 'path'
 import os from 'os'
 
+// Ensure global.performance is part of the environment.
+global.performance = require('perf_hooks').performance;
+
 // Provider of results of commands execution.
 export const answersMocks: testutils.MockAnswers = new testutils.MockAnswers()
 

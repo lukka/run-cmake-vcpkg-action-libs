@@ -13,4 +13,4 @@ token.txt
 /dist
 /lib
 build
-coverage/
+coverage/*
