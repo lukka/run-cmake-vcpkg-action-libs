@@ -130,7 +130,7 @@ async function exec(commandPath: string, args: string[], execOptions?: execIface
     }
 
     child.on('error', (error: Error) => {
-      core.warning(`${error}`);
+      core.debug(`${error}`);
       // Wait one second to get still some output.
       setTimeout(
         () => {
