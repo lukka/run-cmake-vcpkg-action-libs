@@ -1,6 +1,6 @@
 {
   "name": "@lukka/base-util-lib",
-  "version": "1.0.1-alpha.3",
+  "version": "1.0.3",
   "description": "Utilities library for Continuous integration systems.",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@lukka/base-lib": "^1.0.1-alpha.3",
+    "@lukka/base-lib": "^1.0.3",
     "@types/jest": "^25.2.3",
     "@types/node": "^11.9.3",
     "jest": "^26.0.1",
