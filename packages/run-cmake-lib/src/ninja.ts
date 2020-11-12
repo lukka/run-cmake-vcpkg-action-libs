@@ -8,7 +8,7 @@ import * as BaseUtilLib from '@lukka/base-util-lib'
 
 export class NinjaProvider {
   private static readonly baseUrl =
-    'https://github.com/ninja-build/ninja/releases/download/v1.10.0';
+    'https://github.com/ninja-build/ninja/releases/download/v1.10.1';
 
   private readonly baseUtils: BaseUtilLib.BaseUtilLib;
 
