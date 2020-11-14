@@ -5,6 +5,7 @@
 // How to mock resources:
 // How-to: https://stackoverflow.com/questions/47402005/jest-mock-how-to-mock-es6-class-default-import-using-factory-parameter
 // How to mock methods in detail: https://stackoverflow.com/questions/50091438/jest-how-to-mock-one-specific-method-of-a-class
+// How to mock an exported function: https://github.com/facebook/jest/issues/936#issuecomment-630155771
 
 import * as baselib from '@lukka/base-lib';
 import * as baseutillib from '@lukka/base-util-lib';
@@ -43,12 +44,12 @@ jest.spyOn(baseutillib.BaseUtilLib.prototype, 'isVcpkgSubmodule').mockImplementa
   });
 jest.spyOn(baseutillib.BaseUtilLib.prototype, 'directoryExists').mockImplementation(
   function (this: baseutillib.BaseUtilLib, path: string): boolean {
-    assert.equal(path, VcpkgMocks.vcpkgRoot);
+    assert.strictEqual(path, VcpkgMocks.vcpkgRoot);
     return true;
   });
 jest.spyOn(baseutillib.BaseUtilLib.prototype, 'fileExists').mockImplementation(
   function (this: baseutillib.BaseUtilLib, path: string): boolean {
-    assert.equal(path, VcpkgMocks.vcpkgExePath);
+    assert.strictEqual(path, VcpkgMocks.vcpkgExePath);
     return VcpkgMocks.vcpkgExeExists;
   });
 

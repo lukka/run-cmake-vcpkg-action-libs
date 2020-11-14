@@ -7,6 +7,7 @@ export const vcpkgGitURL = 'vcpkgGitURL';
 export const vcpkgCommitId = 'vcpkgGitCommitId';
 export const outVcpkgRootPath = "RUNVCPKG_VCPKG_ROOT";
 export const outVcpkgTriplet = "RUNVCPKG_VCPKG_TRIPLET";
+export const outVarVcpkgTriplet = "RUNVCPKG_VCPKG_TRIPLET_OUT";
 export const vcpkgTriplet = "vcpkgTriplet";
 export const vcpkgDirectory = "vcpkgDirectory";
 export const vcpkgArtifactIgnoreEntries = "vcpkgArtifactIgnoreEntries";

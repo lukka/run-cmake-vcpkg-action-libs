@@ -50,39 +50,6 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
       throw `readFile called with unexpected file name: '${file}'.`;
   });
 
-/*jest.spyOn(fs, 'statSync').mockImplementation(function (filePath: fs.PathLike) {
-  const s: fs.Stats = new fs.Stats();
-  s.mode = 0x600;
-  return s;
-});
-jest.spyOn(fs, 'chmodSync').mockImplementation(function (filePath: fs.PathLike, mode: string | number): void {
-  // Nothing to do
-});
-*/
-
-/*
-jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
-function (this: utils.BaseUtilLib, name: string, value: string): void {
-  // Ensure they are not set twice.
-  const existingValue: string = mock.envVarSetDict[name];
-  if (existingValue) {
-    assert.fail(`Error: env var ${name} is set multiple times!`);
-  }
-
-  // Ensure their values are the expected ones.
-  if (name === utils.BaseUtilLib.cachingFormatEnvName) {
-    assert.equal(value, "Files");
-  } else if (name === globals.buildDirectory) {
-    assert.equal(value, vcpkgRoot);
-  } else if (name === globals.outVcpkgTriplet) {
-    // no check on value here...
-  } else if (name === globals.vcpkgRoot) {
-    // no check on value here...
-  } else {
-    assert.fail(`Unexpected variable name: '${name}'`);
-  }
-});
-*/
 import { CMakeRunner } from '../src/cmake-runner';
 
 mock.inputsMocks.setInput(globals.cmakeListsOrSettingsJson, 'CMakeSettingsJson');

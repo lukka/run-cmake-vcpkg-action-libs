@@ -45,9 +45,9 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 
     // Ensure their values are the expected ones.
     if (name === utils.BaseUtilLib.cachingFormatEnvName) {
-      assert.equal(value, "Files");
+      assert.strictEqual(value, "Files");
     } else if (name === globals.outVcpkgRootPath) {
-      assert.equal(value, vcpkgRoot);
+      assert.strictEqual(value, vcpkgRoot);
     } else if (name === globals.outVcpkgTriplet) {
       // no check on value here...
     } else if (name === globals.vcpkgRoot) {

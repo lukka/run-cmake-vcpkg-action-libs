@@ -133,18 +133,18 @@ describe('PropertyEvaluator tests', function () {
     evaluatedConfiguration.setEnvironment(environmentsMap);
 
     // Assert on evaluation.
-    assert.equal(evaluatedConfiguration.type, configurationType);
-    assert.equal(evaluatedConfiguration.buildDir, path.join(homeEnvVar, ".vs/projectDirName/build/Emscripten Linux Release/"), "buildDir must be right");
-    assert.equal(evaluatedConfiguration.cmakeArgs, "Release Releaseenv Releasenoname Releaseused Releaseused2 ${CONFIGURATIONunused}", "cmake args must be right");
-    assert.equal(evaluatedConfiguration.generator, "Unix Makefiles", "cmake generator must be right");
+    assert.strictEqual(evaluatedConfiguration.type, configurationType);
+    assert.strictEqual(evaluatedConfiguration.buildDir, path.join(homeEnvVar, ".vs/projectDirName/build/Emscripten Linux Release/"), "buildDir must be right");
+    assert.strictEqual(evaluatedConfiguration.cmakeArgs, "Release Releaseenv Releasenoname Releaseused Releaseused2 ${CONFIGURATIONunused}", "cmake args must be right");
+    assert.strictEqual(evaluatedConfiguration.generator, "Unix Makefiles", "cmake generator must be right");
 
     // Asserts on environments.
-    assert.equal(process.env["CONFIGURATIONenv"], "Releaseenv");
-    assert.equal(process.env["CONFIGURATIONnoname"], "Releasenoname");
-    assert.equal(process.env["envGlobalVarName"], "envGlobalVarValue");
+    assert.strictEqual(process.env["CONFIGURATIONenv"], "Releaseenv");
+    assert.strictEqual(process.env["CONFIGURATIONnoname"], "Releasenoname");
+    assert.strictEqual(process.env["envGlobalVarName"], "envGlobalVarValue");
     // Environment without a name are automatically inherited by any configuration.
-    assert.equal(process.env["noNameGlobalVarName"], "noNameGlobalVarValue");
-    assert.equal(process.env["emptyNameGlobalVarName"], "emptyNameGlobalVarValue");
+    assert.strictEqual(process.env["noNameGlobalVarName"], "noNameGlobalVarValue");
+    assert.strictEqual(process.env["emptyNameGlobalVarName"], "emptyNameGlobalVarValue");
     assert.ok(!process.env["customEnvVarName"], "customEnvVarName must not be defined, as it is not inherited");
     done();
   });
@@ -171,20 +171,20 @@ describe('PropertyEvaluator tests', function () {
     evaluatedConfiguration.setEnvironment(environmentsMap);
 
     // Assert on evaluation.
-    assert.equal(evaluatedConfiguration.type, configurationType);
-    assert.equal(evaluatedConfiguration.buildDir, path.join("/local", "projectDirName", "build", "Windows Release"), "build dir must be right");
-    assert.equal(evaluatedConfiguration.cmakeArgs, "Release Releaseenv Releasenoname Releaseused Releaseused2 ${CONFIGURATIONunused}", "cmakeArgs must be right");
-    assert.equal(evaluatedConfiguration.generator, "Ninja", "cmake generator must be right");
+    assert.strictEqual(evaluatedConfiguration.type, configurationType);
+    assert.strictEqual(evaluatedConfiguration.buildDir, path.join("/local", "projectDirName", "build", "Windows Release"), "build dir must be right");
+    assert.strictEqual(evaluatedConfiguration.cmakeArgs, "Release Releaseenv Releasenoname Releaseused Releaseused2 ${CONFIGURATIONunused}", "cmakeArgs must be right");
+    assert.strictEqual(evaluatedConfiguration.generator, "Ninja", "cmake generator must be right");
 
     // Asserts on environments.
-    assert.equal(process.env["CONFIGURATIONenv"], "Releaseenv");
-    assert.equal(process.env["CONFIGURATIONnoname"], "Releasenoname");
-    assert.equal(process.env["envGlobalVarName"], "envGlobalVarValue");
-    assert.equal(process.env["CONFIGURATIONused2"], "Releaseused2");
+    assert.strictEqual(process.env["CONFIGURATIONenv"], "Releaseenv");
+    assert.strictEqual(process.env["CONFIGURATIONnoname"], "Releasenoname");
+    assert.strictEqual(process.env["envGlobalVarName"], "envGlobalVarValue");
+    assert.strictEqual(process.env["CONFIGURATIONused2"], "Releaseused2");
     // Environment without a name are automatically inherited by any configuration.
-    assert.equal(process.env["noNameGlobalVarName"], "noNameGlobalVarValue");
-    assert.equal(process.env["emptyNameGlobalVarName"], "emptyNameGlobalVarValue");
-    assert.equal(process.env["customEnvVarName"], "customEnvVarValue", "customEnvVarName must be defined, as it is  inherited");
+    assert.strictEqual(process.env["noNameGlobalVarName"], "noNameGlobalVarValue");
+    assert.strictEqual(process.env["emptyNameGlobalVarName"], "emptyNameGlobalVarValue");
+    assert.strictEqual(process.env["customEnvVarName"], "customEnvVarValue", "customEnvVarName must be defined, as it is  inherited");
 
     assert.ok(process.env["CONFIGURATIONunused"], "Not inherited environment should not be inherited");
     done();
