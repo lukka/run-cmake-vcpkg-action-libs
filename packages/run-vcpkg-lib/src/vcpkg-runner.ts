@@ -111,20 +111,23 @@ export class VcpkgRunner {
   }
 
   private setOutputs(): void {
-    // Set the RUNVCPKG_VCPKG_ROOT value, it could be re-used later by run-cmake task.
+    // Set the RUNVCPKG_VCPKG_ROOT value, it could be re-used later by run-cmake.
     this.baseUtils.setEnvVar(globals.outVcpkgRootPath, this.vcpkgDestPath);
     // Override the VCPKG_ROOT value, it must point to this vcpkg instance, it is used by 
-    // any invocation of the vcpkg executable in this task.
+    // any subsequent invocation of the vcpkg executable.
     this.baseUtils.setEnvVar(globals.vcpkgRoot, this.vcpkgDestPath);
 
     // The output variable must have a different name than the
     // one set with setVariable(), as the former get a prefix added out of our control.
     const outVarName = `${globals.outVcpkgRootPath}_OUT`;
-    this.tl.info(`Set task output variable '${outVarName}' to value: ${this.vcpkgDestPath}`);
+    this.tl.info(`Set the output variable '${outVarName}' to value: ${this.vcpkgDestPath}`);
     this.tl.setOutput(`${outVarName}`, this.vcpkgDestPath);
 
     // Force AZP_CACHING_CONTENT_FORMAT to "Files"
     this.baseUtils.setEnvVar(baseutillib.BaseUtilLib.cachingFormatEnvName, "Files");
+
+    // Set output env and var for the triplet.
+    this.setEnvOutTriplet(globals.outVcpkgTriplet, globals.outVarVcpkgTriplet, this.vcpkgTriplet);
   }
 
   private async prepareForCache(): Promise<void> {
@@ -210,16 +213,11 @@ export class VcpkgRunner {
       installCmd += ' --clean-after-build';
     }
 
-    const outVarName = `${globals.outVcpkgTriplet}_OUT`;
     if (vcpkgTripletUsed) {
-      // Set the used triplet in RUNVCPKG_VCPKG_TRIPLET environment variable.
-      this.baseUtils.setEnvVar(globals.outVcpkgTriplet, vcpkgTripletUsed);
-
-      // Set output variable containing the use triplet
-      this.tl.info(`Set task output variable '${outVarName}' to value: ${vcpkgTripletUsed}`);
-      this.tl.setVariable(outVarName, vcpkgTripletUsed);
+      // Set the used triplet in RUNVCPKG_VCPKG_TRIPLET environment/output variables.
+      this.setEnvOutTriplet(globals.outVcpkgTriplet, globals.outVarVcpkgTriplet, vcpkgTripletUsed);
     } else {
-      this.tl.info(`${globals.outVcpkgTriplet}' nor '${outVarName}' have NOT been set by the step since there is no default triplet specified.`);
+      this.tl.info(`${globals.outVcpkgTriplet}' nor '${globals.outVarVcpkgTriplet}' have NOT been set by the step since there is no default triplet specified.`);
     }
 
     vcpkgTool.line(installCmd);
@@ -398,5 +396,13 @@ export class VcpkgRunner {
     this.baseUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
     // Keep track of last successful build commit id.
     this.tl.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
+  }
+
+  private setEnvOutTriplet(envVarName: string, outVarName: string, triplet: string): void {
+    this.baseUtils.setEnvVar(envVarName, triplet);
+    this.tl.info(`Set the environment variable '${envVarName}' to value: ${triplet}`);
+
+    this.tl.setVariable(outVarName, triplet);
+    this.tl.info(`Set the output variable '${outVarName}' to value: ${triplet}`);
   }
 }

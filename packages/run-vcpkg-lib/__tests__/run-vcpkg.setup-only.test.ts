@@ -19,6 +19,7 @@ const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const bootstrapName = isWin ? "bootstrap-vcpkg.bat" : "bootstrap-vcpkg.sh";
+const triplet = 'triplet';
 
 mock.VcpkgMocks.isVcpkgSubmodule = false;
 mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
@@ -46,13 +47,13 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 
     // Ensure their values are the expected ones.
     if (name === utils.BaseUtilLib.cachingFormatEnvName) {
-      assert.equal(value, "Files");
+      assert.strictEqual(value, "Files");
     } else if (name === globals.outVcpkgRootPath) {
-      assert.equal(value, vcpkgRoot);
+      assert.strictEqual(value, vcpkgRoot);
     } else if (name === globals.outVcpkgTriplet) {
-      // no check on value here...
+      assert.strictEqual(value, triplet);
     } else if (name === globals.vcpkgRoot) {
-      // no check on value here...
+      assert.strictEqual(value, vcpkgRoot);
     } else {
       assert.fail(`Unexpected variable name: '${name}'`);
     }
@@ -61,7 +62,7 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
 mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
-mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
+mock.inputsMocks.setInput(globals.vcpkgTriplet, triplet);
 mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
 mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
@@ -109,7 +110,7 @@ testutils.testWithHeader('run-vcpkg must build and must not install because it i
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
   // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
-  let vcpkgInstallPackaagesMock = jest.spyOn(vcpkg as any, 'updatePackages');
+  let vcpkgInstallPackagesMock = jest.spyOn(vcpkg as any, 'updatePackages');
   try {
     await vcpkg.run();
   }
@@ -121,5 +122,5 @@ testutils.testWithHeader('run-vcpkg must build and must not install because it i
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
   expect(vcpkgBuildMock).toBeCalledTimes(1);
-  expect(vcpkgInstallPackaagesMock).toBeCalledTimes(0);
+  expect(vcpkgInstallPackagesMock).toBeCalledTimes(0);
 });
