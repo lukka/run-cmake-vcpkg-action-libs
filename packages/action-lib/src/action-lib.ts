@@ -55,7 +55,7 @@ function escapeCmdExeArgument(argument: string): string {
  * e.spawnSync('cmake', ['-G Ninja', '.'], {shell:true, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> -- Configuring done
  * e.spawnSync('cmake', ['-GNinja', '.'], {shell:true, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> -- Configuring done
  * Hence the caller of this function is always using no spaces in between arguments.
- * Exception is arbitrary text coming from the user, which will hit this problem when not useing a shell.
+ * Exception is arbitrary text coming from the user, which will hit this problem when not using a shell.
  * 
  * Other corner cases:
  * e.spawnSync('cmake', ['-GUnix Makefiles', '.'], {shell:true, stdio:'inherit', cwd:'/Users/git_repos/cmake-task-tests/'}) -> CMake Error: Could not create named generator Unix
@@ -108,7 +108,7 @@ async function exec(commandPath: string, args: string[], execOptions?: execIface
   }
   args = args2;
 
-  core.debug(`cp.spawn(${commandPath}, ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}, path=${JSON.stringify(opts?.env?.PATH)}})`);
+  core.debug(`cp.spawn("${commandPath}", ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}, path=${JSON.stringify(opts?.env?.PATH)}})`);
   return new Promise<number>((resolve, reject) => {
     const child: cp.ChildProcess = cp.spawn(`${commandPath}`, args, opts);
 
@@ -374,14 +374,14 @@ export class ActionLib implements baselib.BaseLib {
   }
 
   async execSync(path: string, args: string[], options?: baselib.ExecOptions): Promise<baselib.ExecResult> {
-    const exitCode: number = await exec(`"${path}"`, args, options);
-    const res2: baselib.ExecResult = {
+    const exitCode: number = await exec(path, args, options);
+    const result: baselib.ExecResult = {
       code: exitCode,
       stdout: "",
       stderr: ""
     } as baselib.ExecResult;
 
-    return Promise.resolve(res2);
+    return Promise.resolve(result);
   }
 
   async which(name: string, required: boolean): Promise<string> {
