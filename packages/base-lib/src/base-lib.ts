@@ -24,6 +24,8 @@ export interface BaseLib {
   setVariable(name: string, value: string): void;
   getVariable(name: string): string | undefined;
   setOutput(name: string, value: string): void;
+  saveState(name: string, value: string): void;
+  getState(name: string): string;
   debug(message: string): void;
   error(message: string): void;
   warning(message: string): void;
