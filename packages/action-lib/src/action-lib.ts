@@ -344,6 +344,14 @@ export class ActionLib implements baselib.BaseLib {
     core.setOutput(name, value);
   }
 
+  saveState(name: string, value: string): void {
+    core.saveState(name, value);
+  }
+
+  getState(name: string): string {
+    return core.getState(name);
+  }
+
   getVariable(name: string): string {
     //?? Is it really fine to return an empty string in case of undefined variable?
     return process.env[name] ?? "";

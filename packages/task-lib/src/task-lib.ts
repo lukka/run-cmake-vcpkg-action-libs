@@ -94,6 +94,14 @@ export class TaskLib implements baselib.BaseLib {
     tl.setVariable(name, value);
   }
 
+  saveState(name: string, value: string): void {
+    tl.setVariable(name, value);
+  }
+
+  getState(name: string): string {
+    return tl.getVariable(name) ?? "";
+  }
+
   getVariable(name: string): string | undefined {
     return tl.getVariable(name);
   }

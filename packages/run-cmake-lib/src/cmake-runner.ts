@@ -4,7 +4,9 @@
 
 import * as baselib from '@lukka/base-lib';
 import * as baseutillib from '@lukka/base-util-lib';
+import * as runvcpkg from '@lukka/run-vcpkg-lib'
 import * as path from 'path';
+import * as fs from 'fs';
 import { CMakeSettingsJsonRunner } from './cmakesettings-runner'
 import * as cmakeglobals from './cmake-globals';
 import * as ninjalib from './ninja';
@@ -162,6 +164,8 @@ export class CMakeRunner {
       process.env.RUNVCPKG_VCPKG_TRIPLET) ?? "";
 
     this.sourceScript = this.tl.getInput(cmakeglobals.cmakeWrapperCommand, false) ?? "";
+
+    this.handleVcpkgJsonManifestExistence(this.cmakeSourceDir, this.buildDir);
   }
 
   async run(): Promise<void> {
@@ -274,7 +278,7 @@ export class CMakeRunner {
           await using(baseutillib.Matcher.createMatcher(CMakeRunner.getBuildMatcher(
             this.buildDir, this.tl), this.tl), async matcher => {
               await this.baseUtils.wrapOp("Build with CMake", async () =>
-                await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments +   this.doBuildArgs, options))
+                await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments + this.doBuildArgs, options))
             });
         }
 
@@ -399,5 +403,16 @@ export class CMakeRunner {
     const selectedMatcher = cxxMatcher ?? ccMatcher ?? defaultMatcher
     tl.debug(`Selected matcher: ${selectedMatcher}`);
     return selectedMatcher;
+  }
+
+  private handleVcpkgJsonManifestExistence(cmakeSourceDir: string, cmakeBuildDir: string): void {
+    if (fs.existsSync(cmakeSourceDir)) {
+      const vcpkgJsonLocation = path.join(cmakeSourceDir, 'vcpkg.json');
+      if (fs.existsSync(vcpkgJsonLocation)) {
+        const additionalPath = path.join(cmakeBuildDir, 'vcpkg_installed');
+        this.tl.info(`Found vcpkg manifest at ${vcpkgJsonLocation}, adding the following cached path for the next run-vcpkg step: '${additionalPath}'.`);
+        runvcpkg.addCachedPaths(this.tl, additionalPath);
+      }
+    }
   }
 }
