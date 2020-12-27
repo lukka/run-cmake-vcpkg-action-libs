@@ -22,9 +22,13 @@ export function getAllCachedPaths(baselib: baselib.BaseLib, vcpkgRootDir: string
   let paths = getOrdinaryCachedPaths(vcpkgRootDir);
   const additionalPaths: string | undefined = baselib.getVariable(vcpkgAdditionalCachedPathsKey);
   if (additionalPaths) {
-    paths = paths.concat(additionalPaths.split(';').filter(Boolean));
+    paths = paths.concat(additionalPaths.split(';'));
   }
-  return paths;
+
+  // Remove empty entries.
+  paths = paths.map(s => s.trim()).filter(Boolean);
+  // Remove duplicates.
+  return [...new Set(paths)];
 }
 
 export function addCachedPaths(baselib: baselib.BaseLib, pathsSemicolonSeparated: string): void {
