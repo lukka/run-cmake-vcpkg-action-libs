@@ -1,6 +1,6 @@
 {
   "name": "@lukka/base-lib",
-  "version": "1.0.9",
+  "version": "1.0.12-alpha.0",
   "description": "Continuous integration systems abstraction layer.",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
     "test": "jest"
   },
   "devDependencies": {
-		"@types/jest": "^26.0.0",
+    "@types/jest": "^26.0.0",
     "@types/node": "^12.0.0",
     "jest": "^26.0.1",
     "jest-circus": "^26.0.1",

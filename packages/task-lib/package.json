@@ -1,6 +1,6 @@
 {
   "name": "@lukka/task-lib",
-  "version": "1.0.9",
+  "version": "1.0.12-alpha.0",
   "description": "Implementation of the continuous integration abstraction layer for Azure DevOps Pipelines.",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
     "test": "jest"
   },
   "devDependencies": {
-		"@types/jest": "^26.0.0",
+    "@types/jest": "^26.0.0",
     "@types/node": "^12.0.0",
     "jest": "^26.0.1",
     "jest-circus": "^26.0.1",
@@ -32,7 +32,7 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@lukka/base-lib": "^1.0.9",
+    "@lukka/base-lib": "^1.0.12-alpha.0",
     "@types/adm-zip": "^0.4.32",
     "@types/follow-redirects": "^1.8.0",
     "@types/q": "^1.5.1",
