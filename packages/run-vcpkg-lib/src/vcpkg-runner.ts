@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Luca Cappa
+// Copyright (c) 2019-2020-2021 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -253,13 +253,14 @@ export class VcpkgRunner {
     // Use git to verify whether the repo is up to date.
     const gitRunner: baselib.ToolRunner = baseUtilLib.baseLib.tool(gitPath);
     gitRunner.arg(['rev-parse', 'HEAD']);
-    baseUtilLib.baseLib.info(`Fetching the commit id at ${path}`);
+    baseUtilLib.baseLib.info(`Fetching the Git commit id at '${path}' ...`);
     const res: baselib.ExecResult = await gitRunner.execSync(options);
     if (res.code === 0) {
       currentCommitId = baseUtilLib.trimString(res.stdout);
       baseUtilLib.baseLib.debug(`git rev-parse: code=${res.code}, stdout=${baseUtilLib.trimString(res.stdout)}, stderr=${baseUtilLib.trimString(res.stderr)}`);
     } else /* if (res.code !== 0) */ {
       baseUtilLib.baseLib.debug(`error executing git: code=${res.code}, stdout=${baseUtilLib.trimString(res.stdout)}, stderr=${baseUtilLib.trimString(res.stderr)}`);
+      baseUtilLib.baseLib.info(`Git commit id not found.`);
     }
     baseUtilLib.baseLib.debug(`getCommitId()>> -> ${currentCommitId}`);
     return currentCommitId;
