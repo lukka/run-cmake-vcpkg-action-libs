@@ -71,7 +71,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           npm run version -- patch
-          npm run publish from-package -- patch --registry https://npm.pkg.github.com
+          npm run publish from-package -- --registry https://npm.pkg.github.com
         if: contains(github.ref, 'refs/heads/release')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
