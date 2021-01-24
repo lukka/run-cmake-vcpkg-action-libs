@@ -11,15 +11,15 @@ import * as utils from '@lukka/base-util-lib';
 
 // Arrange.
 const isWin = process.platform === "win32";
-const gitRef = 'samegitref'
+const gitRef = 'mygitref'
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
-const vcpkgExeName = process.platform === "win32" ? "vcpkg.exe" : "vcpkg";
+const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const bootstrapName = isWin ? "bootstrap-vcpkg.bat" : "bootstrap-vcpkg.sh";
 
-mock.VcpkgMocks.isVcpkgSubmodule = true;
+mock.VcpkgMocks.isVcpkgSubmodule = false;
 mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
 mock.VcpkgMocks.vcpkgExeExists = true;
@@ -62,27 +62,26 @@ import { VcpkgRunner } from '../src/vcpkg-runner';
 mock.inputsMocks.reset();
 mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
 mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
-// Must not be provided, otherwise a warning would be triggered
-//mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
+mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
 mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
 mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
-testutils.testWithHeader('run-vcpkg must not build (i.e. running bootstrap) when the version of the repository is the same as the last built binary, and it must install successfully the ports.', async () => {
+testutils.testWithHeader('run-vcpkg must build if vcpkg executable is up to date with sources, but does not work properly on "vcpkg --version".', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
         { code: 0, stdout: gitRef },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} --version`]:
-        { 'code': 0, 'stdout': 'this is the "vcpkg --version" output with exit code=0' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
         { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
+      [`${path.join(vcpkgRoot, vcpkgExeName)} --version`]:
+        { 'code': 1, 'stdout': 'this is the "vcpkg --version" output with exit code=1' },
       [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
         { 'code': 0, 'stdout': 'this is git clone ... output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:
@@ -99,7 +98,6 @@ testutils.testWithHeader('run-vcpkg must not build (i.e. running bootstrap) when
     },
     "exist": {
       [vcpkgRoot]: true,
-      [vcpkgExePath]: true
     },
     "stats": {
       [vcpkgExePath]: true,
@@ -116,7 +114,7 @@ testutils.testWithHeader('run-vcpkg must not build (i.e. running bootstrap) when
   mock.answersMocks.reset(answers);
 
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
-  // HACK: cast to 'any' to access private fields.
+  // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 
   // Act.
@@ -130,6 +128,6 @@ testutils.testWithHeader('run-vcpkg must not build (i.e. running bootstrap) when
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
-  // Build of vcpkg must not happen.
-  expect(vcpkgBuildMock).toBeCalledTimes(0);
+  // Build of vcpkg must happen.
+  expect(vcpkgBuildMock).toBeCalledTimes(1);
 });

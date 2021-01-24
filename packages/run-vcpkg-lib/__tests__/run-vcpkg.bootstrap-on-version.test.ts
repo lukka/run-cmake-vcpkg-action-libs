@@ -12,6 +12,7 @@ import * as utils from '@lukka/base-util-lib';
 // Arrange.
 const isWin = process.platform === "win32";
 const gitRef = 'mygitref'
+const anotherGitRef = 'anothergitref'
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";
@@ -29,7 +30,7 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
     if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
       return [true, "!.git\n"];
     } else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
-      return [true, "anothergitref"];
+      return [true, anotherGitRef];
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -76,7 +77,9 @@ testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the v
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
-        { code: 0, stdout: "differentgitref" },
+        { code: 0, stdout: anotherGitRef },
+      [`${path.join(vcpkgRoot, vcpkgExeName)} --version`]:
+        { 'code': 1, 'stdout': 'this is the "vcpkg --version" output with exit code=1' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
