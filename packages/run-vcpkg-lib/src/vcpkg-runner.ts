@@ -353,7 +353,7 @@ export class VcpkgRunner {
 
   private async checkExecutable(): Promise<boolean> {
     let needRebuild = false;
-    // If the executable file ./vcpkg/vcpkg is not present, force build. The fact that 'the repository is up to date' is meaningless.
+    // If the executable file ./vcpkg/vcpkg is not present or it is not wokring, force build. The fact that 'the repository is up to date' is meaningless.
     const vcpkgExePath: string = this.baseUtils.getVcpkgExePath(this.vcpkgDestPath);
     if (!this.baseUtils.fileExists(vcpkgExePath)) {
       this.tl.info("Building vcpkg is necessary as executable is missing.");
@@ -363,7 +363,13 @@ export class VcpkgRunner {
         await this.tl.execSync('chmod', ["+x", vcpkgExePath])
       }
       this.tl.info(`vcpkg executable exists at: '${vcpkgExePath}'.`);
+      const result = await this.tl.execSync(vcpkgExePath, ['--version']);
+      if (result.code != 0) { 
+        needRebuild = true;
+        this.tl.info(`vcpkg executable returned code ${result.code}, forcing a rebuild.`);
+      }
     }
+
     return needRebuild;
   }
 

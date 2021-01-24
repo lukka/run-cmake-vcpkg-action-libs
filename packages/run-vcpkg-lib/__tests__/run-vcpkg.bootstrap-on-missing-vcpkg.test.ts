@@ -69,17 +69,21 @@ mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
-testutils.testWithHeader('run-vcpkg must not build if vcpkg executable is up to date with sources, and it must install successfully the ports.', async () => {
+testutils.testWithHeader('run-vcpkg must build vcpkg (by running bootstrap) when its executable is missing, and it must install successfully the ports.', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
         { code: 0, stdout: gitRef },
+      [`${path.join(vcpkgRoot, vcpkgExeName)} --version`]:
+        { 'code': 0, 'stdout': 'this is the "vcpkg --version" output with exit code=0' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
         { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
+      [`${path.join(vcpkgRoot, vcpkgExeName)} --version`]:
+        { 'code': 0, 'stdout': 'this is the "vcpkg --version" output' },
       [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
         { 'code': 0, 'stdout': 'this is git clone ... output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:
@@ -98,7 +102,7 @@ testutils.testWithHeader('run-vcpkg must not build if vcpkg executable is up to 
       [vcpkgRoot]: true,
     },
     "stats": {
-      [vcpkgExePath]: true,
+      [vcpkgExePath]: false,
       [vcpkgRoot]: true,
     },
     'which': {
@@ -112,7 +116,7 @@ testutils.testWithHeader('run-vcpkg must not build if vcpkg executable is up to 
   mock.answersMocks.reset(answers);
 
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
-  // HACK: any to access private fields.
+  // HACK: 'any' to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 
   // Act.
@@ -126,6 +130,6 @@ testutils.testWithHeader('run-vcpkg must not build if vcpkg executable is up to 
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
-  // Build of vcpkg must not happen.
+  // Build of vcpkg must happen.
   expect(vcpkgBuildMock).toBeCalledTimes(1);
 });
