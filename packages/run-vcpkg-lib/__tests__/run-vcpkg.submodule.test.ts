@@ -80,8 +80,8 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build and insta
         { 'code': 0, 'stdout': 'this is git submodule output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:
         { 'code': 0, stdout: 'this is git submodule output' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} --version`]:
-        { 'code': 0, 'stdout': 'this is the "vcpkg --version" output with exit code=0' },
+      [`${path.join(vcpkgRoot, vcpkgExeName)} version`]:
+        { 'code': 0, 'stdout': 'this is the "vcpkg version" output with exit code=0' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:

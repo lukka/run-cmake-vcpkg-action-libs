@@ -96,7 +96,7 @@ test('ActionLib which()/exists() tests', async () => {
 test('ActionLib&Utils mkdirP()/exist()/readFile()/writeFile()/get*Dir() tests', async () => {
   const actionLib: lib.ActionLib = new lib.ActionLib();
   const util: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(actionLib);
-  
+
   if (!process.env.GITHUB_WORKSPACE) {
     process.env.GITHUB_WORKSPACE = path.join(os.tmpdir(), process.pid.toString());
     fs.mkdirSync(process.env.GITHUB_WORKSPACE);
