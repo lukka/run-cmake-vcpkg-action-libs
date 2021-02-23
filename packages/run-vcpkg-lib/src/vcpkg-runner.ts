@@ -363,7 +363,7 @@ export class VcpkgRunner {
         await this.tl.execSync('chmod', ["+x", vcpkgExePath])
       }
       this.tl.info(`vcpkg executable exists at: '${vcpkgExePath}'.`);
-      const result = await this.tl.execSync(vcpkgExePath, ['--version']);
+      const result = await this.tl.execSync(vcpkgExePath, ['version']);
       if (result.code != 0) { 
         needRebuild = true;
         this.tl.info(`vcpkg executable returned code ${result.code}, forcing a rebuild.`);

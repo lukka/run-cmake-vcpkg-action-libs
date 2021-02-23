@@ -69,7 +69,7 @@ mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
-testutils.testWithHeader('run-vcpkg must build if vcpkg executable is up to date with sources, but does not work properly on "vcpkg --version".', async () => {
+testutils.testWithHeader('run-vcpkg must build if vcpkg executable is up to date with sources, but does not work properly on "vcpkg version".', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -80,8 +80,8 @@ testutils.testWithHeader('run-vcpkg must build if vcpkg executable is up to date
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
         { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} --version`]:
-        { 'code': 1, 'stdout': 'this is the "vcpkg --version" output with exit code=1' },
+      [`${path.join(vcpkgRoot, vcpkgExeName)} version`]:
+        { 'code': 1, 'stdout': 'this is the "vcpkg version" output with exit code=1' },
       [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
         { 'code': 0, 'stdout': 'this is git clone ... output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:

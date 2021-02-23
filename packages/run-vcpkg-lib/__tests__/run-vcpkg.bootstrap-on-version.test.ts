@@ -78,8 +78,8 @@ testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the v
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
         { code: 0, stdout: anotherGitRef },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} --version`]:
-        { 'code': 1, 'stdout': 'this is the "vcpkg --version" output with exit code=1' },
+      [`${path.join(vcpkgRoot, vcpkgExeName)} version`]:
+        { 'code': 1, 'stdout': 'this is the "vcpkg version" output with exit code=1' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
         { 'code': 0, 'stdout': 'this is the vcpkg output' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
