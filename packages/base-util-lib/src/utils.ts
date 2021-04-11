@@ -458,6 +458,10 @@ export class BaseUtilLib {
     if (obj === undefined)
       throw new Error(`Agument '${name}' is undefined`);
   }
+
+  public static isValidSHA1(text: string): boolean {
+    return /^[a-fA-F0-9]{40}$/.test(text);
+  }
 }
 
 export class Matcher {

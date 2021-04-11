@@ -11,7 +11,7 @@ import * as utils from '@lukka/base-util-lib';
 
 // Arrange.
 const isWin = process.platform === "win32";
-const gitRef = 'newgitref'
+const gitRef = '1ee7567890123456789012345678901234567890'
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";

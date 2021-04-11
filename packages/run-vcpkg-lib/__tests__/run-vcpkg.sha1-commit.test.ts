@@ -11,8 +11,7 @@ import * as utils from '@lukka/base-util-lib';
 
 // Arrange.
 const isWin = process.platform === "win32";
-const newGitRef = '1ee7567890123456789012345678901234567890'
-const oldGitRef = '01d4567890123456789012345678901234567890';
+const invalidSHA1HashGitCommit = 'invalidsha1hash'
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
@@ -30,7 +29,7 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
       return [true, "!.git\n"];
     }
     else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
-      return [true, oldGitRef];
+      return [true, invalidSHA1HashGitCommit];
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -62,14 +61,14 @@ import { VcpkgRunner } from '../src/vcpkg-runner';
 
 mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
 mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
-mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
+mock.inputsMocks.setInput(globals.vcpkgCommitId, invalidSHA1HashGitCommit);
 mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
 
-testutils.testWithHeader('run-vcpkg must build and install successfully', async () => {
+testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git comit', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -84,8 +83,8 @@ testutils.testWithHeader('run-vcpkg must build and install successfully', async 
         { 'code': 0, 'stdout': 'this is git clone ... output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:
         { 'code': 0, stdout: 'this is git submodule output' },
-      [`${gitPath} checkout --force ${newGitRef}`]:
-        { 'code': 0, 'stdout': `this is git checkout ${newGitRef} output` },
+      [`${gitPath} checkout --force ${invalidSHA1HashGitCommit}`]:
+        { 'code': 0, 'stdout': `this is git checkout ${invalidSHA1HashGitCommit} output` },
       [`chmod +x ${path.join(vcpkgRoot, "vcpkg")}`]:
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
@@ -107,21 +106,9 @@ testutils.testWithHeader('run-vcpkg must build and install successfully', async 
 
   // Act.
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
-  try {
-    await vcpkg.run();
-  }
-  catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
-  }
+  await expect(() => vcpkg.run()).rejects.toThrowError(new RegExp('.*input parameter must be a full SHA1 hash.*'));
 
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
-
-  // There must be a call to execute the command 'vcpkg install' with correct arguments
-  // and triplet passed to it.
-  const calls = mock.baselibInfo.mock.calls.filter((item) => {
-    return RegExp('.*vcpkg install --recurse vcpkg_args --triplet triplet.*').test(item[0])
-  });
-  expect(calls.length).toBe(1);
 });

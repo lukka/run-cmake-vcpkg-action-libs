@@ -11,8 +11,8 @@ import * as utils from '@lukka/base-util-lib';
 
 // Arrange.
 const isWin = process.platform === "win32";
-const gitRef = 'mygitref'
-const anotherGitRef = 'anothergitref'
+const gitRef = '1234567890123456789012345678901234567890'
+const anotherGitRef = 'beef567890123456789012345678901234567890'
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";
