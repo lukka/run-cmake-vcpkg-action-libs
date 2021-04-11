@@ -291,12 +291,16 @@ export class VcpkgRunner {
       const res: boolean = this.baseUtils.directoryExists(this.vcpkgDestPath);
       this.tl.debug(`exist('${this.vcpkgDestPath}') === ${res}`);
       if (res && !isSubmodule) {
-
         // Use git to verify whether the repo is up to date.
         this.tl.info(`Current commit id of vcpkg: '${currentCommitId}'.`);
         if (!this.vcpkgCommitId) {
           throw new Error(`'${globals.vcpkgCommitId}' input parameter must be provided when the specified vcpkg directory (${this.vcpkgDestPath}) is not a submodule.`);
         }
+
+        if (!baseutillib.BaseUtilLib.isValidSHA1(this.vcpkgCommitId)) {
+          throw new Error(`'${globals.vcpkgCommitId}' input parameter must be a full SHA1 hash (40 hex digits).`);
+        }
+
         if (this.vcpkgCommitId === currentCommitId) {
           this.tl.info(`Repository is up to date to requested commit id '${this.vcpkgCommitId}'`);
           updated = true;
@@ -364,7 +368,7 @@ export class VcpkgRunner {
       }
       this.tl.info(`vcpkg executable exists at: '${vcpkgExePath}'.`);
       const result = await this.tl.execSync(vcpkgExePath, ['version']);
-      if (result.code != 0) { 
+      if (result.code != 0) {
         needRebuild = true;
         this.tl.info(`vcpkg executable returned code ${result.code}, forcing a rebuild.`);
       }

@@ -13,7 +13,7 @@ import * as utils from '@lukka/base-util-lib';
 const isWin = process.platform === "win32";
 const responseFile = 'respfile';
 const vcpkgTriplet = 'triplet';
-const vcpkgGitRef = 'SHA1'
+const vcpkgGitRef = '1234567890123456789012345678901234567890'
 const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";

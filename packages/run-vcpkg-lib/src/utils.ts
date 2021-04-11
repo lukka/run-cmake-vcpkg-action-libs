@@ -14,5 +14,3 @@ export function getOrdinaryCachedPaths(vcpkgRootDir: string): string[] {
 
   return pathsToCache;
 }
-
-
