@@ -13,6 +13,7 @@ export class VcpkgRunner {
   private readonly defaultVcpkgUrl: string;
   private readonly vcpkgURL: string;
   private readonly setupOnly: boolean;
+  private readonly logFilesCollector: baseutillib.LogFileCollector;
 
   /**
    * Git commit id to fetch from the vcpkg repository.
@@ -53,6 +54,10 @@ export class VcpkgRunner {
     // Git update or clone depending on content of vcpkgDestPath input parameter.
     this.pathToLastBuiltCommitId = path.join(this.vcpkgDestPath, globals.vcpkgLastBuiltCommitId);
 
+    const regs = this.tl.getDelimitedInput(globals.logCollectionRegExps, ';', false);
+    this.logFilesCollector = new baseutillib.LogFileCollector(this.tl,
+      regs, (path: string) => baseutillib.dumpFile(this.tl, path));
+
     this.options = {
       cwd: this.vcpkgDestPath,
       failOnStdErr: false,
@@ -61,7 +66,9 @@ export class VcpkgRunner {
       ignoreReturnCode: true,
       silent: false,
       windowsVerbatimArguments: false,
-      env: process.env
+      env: process.env,
+      stdout: this.logFilesCollector.handleOutput,
+      errout: this.logFilesCollector.handleOutput,
     } as baselib.ExecOptions;
   }
 

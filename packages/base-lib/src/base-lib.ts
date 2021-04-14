@@ -58,6 +58,10 @@ export interface ExecOptions {
   };
   outStream: stream.Writable;
   errStream: stream.Writable;
+  listeners?: {
+    stdout?: (data: Buffer) => void;
+    stderr?: (data: Buffer) => void;
+  };
 }
 
 export interface ExecResult {

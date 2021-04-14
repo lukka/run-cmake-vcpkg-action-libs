@@ -16,3 +16,4 @@ export const cleanAfterBuild = 'cleanAfterBuild';
 export const doNotUpdateVcpkg = 'doNotUpdateVcpkg';
 export const vcpkgRoot = 'VCPKG_ROOT';
 export const setupOnly = 'setupOnly';
+export const logCollectionRegExps = 'logCollectionRegExps';

@@ -18,4 +18,5 @@ export const cmakeBuildType = 'cmakeBuildType';
 export const cmakeVcpkgTriplet = 'vcpkgTriplet';
 export const cmakeWrapperCommand = 'cmakeWrapperCommand';
 export const useVcpkgToolchainFile = 'useVcpkgToolchainFile';
+export const logCollectionRegExps = 'logCollectionRegExps';
 
