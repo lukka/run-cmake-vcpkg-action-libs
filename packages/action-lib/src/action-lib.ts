@@ -217,21 +217,8 @@ export class ActionToolRunner implements baselib.ToolRunner {
       ignoreReturnCode: options.ignoreReturnCode ?? false,
       windowsVerbatimArguments: options.windowsVerbatimArguments ?? false,
       listeners: {
-        stdout: (data: Buffer): void => void {
-          // Nothing to do.
-        },
-        stderr: (data: Buffer): void => void {
-          // Nothing to do.
-        },
-        stdline: (data: string): void => void {
-          // Nothing to do.
-        },
-        errline: (data: string): void => void {
-          // Nothing to do.
-        },
-        debug: (data: string): void => void {
-          // Nothing to do.
-        },
+        stdout: options.listeners?.stdout,
+        stderr: options.listeners?.stderr,
       }
     } as execIfaces.ExecOptions;
     result.outStream = options.outStream || process.stdout as stream.Writable;

@@ -174,7 +174,7 @@ export class BaseUtilLib {
     return triplet;
   }
 
-  public resolveArguments(args: string, readFile: (path: string) => [boolean, string]): string {
+  public async resolveArguments(args: string, readFile: (path: string) => [boolean, string]): Promise<string> {
     let resolvedArguments = "";
 
     // Split string on any 'whitespace' character
@@ -187,7 +187,7 @@ export class BaseUtilLib {
       let isResponseFile = false;
       if (arg.startsWith("@")) {
         const resolvedFilePath: string = BaseUtilLib.normalizePath(arg);
-        if (this.baseLib.exist(resolvedFilePath)) {
+        if (await this.baseLib.exist(resolvedFilePath)) {
           const [ok, content] = readFile(resolvedFilePath);
           if (ok && content) {
             isResponseFile = true;
@@ -478,6 +478,72 @@ export class Matcher {
   public static createMatcher(name: string, baseLib: baselib.BaseLib, fromPath?: string): Matcher {
     return new Matcher(name, baseLib, fromPath);
   }
-
 }
 
+export function dumpError(baseLib: baselib.BaseLib, err: any): void {
+  const error: Error = err as Error;
+  const errorAsString = (error ?? "undefined error").toString();
+  baseLib.debug(errorAsString);
+  if (error?.stack) {
+    baseLib.debug(error.stack);
+  }
+}
+
+export class LogFileCollector {
+  private readonly regExps: RegExp[] = [];
+  private bufferString = "";
+  public static readonly MAXLEN = 1024;
+  public constructor(private baseLib: baselib.BaseLib, regExps: string[],
+    private func: (path: string) => void) {
+    for (const s of regExps) {
+      this.regExps.push(new RegExp(s, "m"));
+    }
+  }
+
+  private appendBuffer(buffer: Buffer): void {
+    this.bufferString += buffer.toString();
+  }
+
+  private limitBuffer(consumeUntil?: number): void {
+    if (consumeUntil && consumeUntil > 0)
+      this.bufferString = this.bufferString.slice(consumeUntil);
+    const len = this.bufferString.length;
+    if (len > LogFileCollector.MAXLEN)
+      this.bufferString = this.bufferString.slice(len - LogFileCollector.MAXLEN);
+  }
+
+  public handleOutput(buffer: Buffer): void {
+    this.appendBuffer(buffer);
+    let consumedUntil = -1;
+    for (const re of this.regExps) {
+      try {
+        if (re.test(this.bufferString)) {
+          const matches = re.exec(this.bufferString);
+          if (matches) {
+            consumedUntil = Math.max(consumedUntil, re.lastIndex);
+            this.func(matches[1]);
+          }
+        }
+      }
+      catch (err) {
+        dumpError(this.baseLib, err);
+      }
+    }
+
+    this.limitBuffer(consumedUntil);
+  }
+}
+
+export function dumpFile(baseLib: baselib.BaseLib, filePath: string): void {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath);
+      if (content) {
+        baseLib.info(`[LogCollection] File:'${filePath}':\n ${content}`);
+      }
+    }
+  }
+  catch (err) {
+    dumpError(baseLib, err);
+  }
+}

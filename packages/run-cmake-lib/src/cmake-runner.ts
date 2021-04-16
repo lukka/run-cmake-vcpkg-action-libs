@@ -4,14 +4,13 @@
 
 import * as baselib from '@lukka/base-lib';
 import * as baseutillib from '@lukka/base-util-lib';
-import * as runvcpkg from '@lukka/run-vcpkg-lib'
 import * as path from 'path';
-import * as fs from 'fs';
 import { CMakeSettingsJsonRunner } from './cmakesettings-runner'
 import * as cmakeglobals from './cmake-globals';
 import * as ninjalib from './ninja';
 import { using } from "using-statement";
 import * as cmakelib from './utils'
+import * as fs from 'fs';
 
 enum RunCMakeModeType {
   CMakeListsTxtBasic = 1,
@@ -63,6 +62,7 @@ export class CMakeRunner {
   private readonly cmakeBuildType: string;
   private readonly vcpkgTriplet: string;
   private readonly sourceScript: string;
+  private readonly logFilesCollector: baseutillib.LogFileCollector;
 
   private static readonly modePerInput: { [inputName: string]: RunCMakeModeType[] } = {
     [cmakeglobals.cmakeListsTxtPath]:
@@ -102,10 +102,14 @@ export class CMakeRunner {
     }
   */
 
-  public constructor(private tl: baselib.BaseLib) {
+  public constructor(
+    private tl: baselib.BaseLib) {
     this.baseUtils = new baseutillib.BaseUtilLib(this.tl);
     this.cmakeUtils = new cmakelib.CMakeUtils(this.baseUtils);
     this.ninjaLib = new ninjalib.NinjaProvider(this.tl);
+    const regs = this.tl.getDelimitedInput(cmakeglobals.logCollectionRegExps, ';', false);
+    this.logFilesCollector = new baseutillib.LogFileCollector(this.tl,
+      regs, (path: string) => baseutillib.dumpFile(this.tl, path));
 
     const mode: string = this.tl.getInput(cmakeglobals.cmakeListsOrSettingsJson, true) ?? "";
     const runMode: RunCMakeModeType | undefined = getTargetType(mode);
@@ -192,7 +196,6 @@ export class CMakeRunner {
         }
 
         if (this.runMode === RunCMakeModeType.CMakeListsTxtAdvanced) {
-
           // If Ninja is required, specify the path to it.
           if (this.baseUtils.isNinjaGenerator([this.appendedArgs])) {
             if (!this.baseUtils.isMakeProgram([this.appendedArgs])) {
@@ -259,7 +262,11 @@ export class CMakeRunner {
           ignoreReturnCode: true,
           silent: false,
           windowsVerbatimArguments: false,
-          env: process.env
+          env: process.env,
+          listeners: {
+            stdout: this.logFilesCollector.handleOutput,
+            errout: this.logFilesCollector.handleOutput,
+          }
         } as baselib.ExecOptions;
 
         this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
@@ -403,14 +410,14 @@ export class CMakeRunner {
     return selectedMatcher;
   }
 
-/*  private handleVcpkgJsonManifestExistence(cmakeSourceDir: string, cmakeBuildDir: string): void {
-    if (fs.existsSync(cmakeSourceDir)) {
-      const vcpkgJsonLocation = path.join(cmakeSourceDir, 'vcpkg.json');
-      if (fs.existsSync(vcpkgJsonLocation)) {
-        const additionalPath = path.join(cmakeBuildDir, 'vcpkg_installed');
-        this.tl.info(`Found vcpkg manifest at ${vcpkgJsonLocation}, adding the following cached path for the next run-vcpkg step: '${additionalPath}'.`);
-        runvcpkg.addCachedPaths(this.tl, additionalPath);
+  /*  private handleVcpkgJsonManifestExistence(cmakeSourceDir: string, cmakeBuildDir: string): void {
+      if (fs.existsSync(cmakeSourceDir)) {
+        const vcpkgJsonLocation = path.join(cmakeSourceDir, 'vcpkg.json');
+        if (fs.existsSync(vcpkgJsonLocation)) {
+          const additionalPath = path.join(cmakeBuildDir, 'vcpkg_installed');
+          this.tl.info(`Found vcpkg manifest at ${vcpkgJsonLocation}, adding the following cached path for the next run-vcpkg step: '${additionalPath}'.`);
+          runvcpkg.addCachedPaths(this.tl, additionalPath);
+        }
       }
-    }
-  }*/
+    }*/
 }
