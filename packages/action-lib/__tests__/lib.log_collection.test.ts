@@ -28,7 +28,10 @@ testutils.testWithHeader('ToolRunner.exec must call listeners and LogFileCollect
     windowsVerbatimArguments: false,
     outStream: process.stdout,
     errStream: process.stderr,
-    listeners: { stdout: (t: Buffer) => logFileCollector.handleOutput(t) },
+    listeners: { 
+      stdout: (t: Buffer) => logFileCollector.handleOutput(t),
+      stderr: (t: Buffer) => logFileCollector.handleOutput(t) 
+    },
     env: process.env
   } as baselib.ExecOptions;
 
