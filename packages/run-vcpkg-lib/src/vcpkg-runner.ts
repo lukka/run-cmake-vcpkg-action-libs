@@ -67,8 +67,8 @@ export class VcpkgRunner {
       silent: false,
       windowsVerbatimArguments: false,
       env: process.env,
-      stdout: this.logFilesCollector.handleOutput,
-      errout: this.logFilesCollector.handleOutput,
+      stdout: (t: Buffer) => this.logFilesCollector.handleOutput(t),
+      stderr: (t: Buffer) => this.logFilesCollector.handleOutput(t),
     } as baselib.ExecOptions;
   }
 
