@@ -539,7 +539,7 @@ export function dumpFile(baseLib: baselib.BaseLib, filePath: string): void {
     if (filePath && fs.existsSync(filePath)) {
       const content = fs.readFileSync(filePath);
       if (content) {
-        baseLib.info(`[LogCollection] File:'${filePath}':\n ${content}`);
+        baseLib.info(`[LogCollection][Start]File:'${filePath}':\n${content}\n[LogCollection][End]File:'${filePath}'.`);
       }
     }
   }
