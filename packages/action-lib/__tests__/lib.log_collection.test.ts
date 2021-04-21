@@ -4,18 +4,21 @@
 
 import * as testutils from '../../run-vcpkg-lib/__tests__/utils'
 import * as baselib from '@lukka/base-lib';
-import { ActionLib } from '../src/action-lib';
-import { ToolRunner } from '@actions/exec/lib/toolrunner';
+import { ActionLib, ActionToolRunner } from '../src/action-lib';
 import { LogFileCollector } from '@lukka/base-util-lib';
 
 const expectedMatch1 = '/a/';
-const expectedMatch2 = 'C:\\vcpkg\\buildtrees\\abc\\install-x86-windows-dbg-out.log';
+const expectedMatch2 = '/home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/build-dist-x64-linux-dbg-out.log';
+const expectedMatch3 = '/home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/build-dist-x64-linux-dbg-err.log';
 
 testutils.testWithHeader('ToolRunner.exec must call listeners and LogFileCollector must match regular expressions.', async () => {
   let matches: string[] = [];
   let actionLib: ActionLib = new ActionLib();
   const echoCmd = await actionLib.which("echo", true);
-  const logFileCollector: LogFileCollector = new LogFileCollector(actionLib, ["See also \"(.+)\"", "See logs for more information:\\s*(.+.log)"],
+  const logFileCollector: LogFileCollector = new LogFileCollector(actionLib, [
+    "\\s*See also \"(.+)\"\\s*",
+    "\\s*See logs for more information:\\s*(.+.out.log)\\s*",
+    "\\s+(.+.err.log)\\s*"],
     (text: string) => {
       console.log(`Matched: '${text}'.`);
       matches.push(text);
@@ -28,9 +31,9 @@ testutils.testWithHeader('ToolRunner.exec must call listeners and LogFileCollect
     windowsVerbatimArguments: false,
     outStream: process.stdout,
     errStream: process.stderr,
-    listeners: { 
+    listeners: {
       stdout: (t: Buffer) => logFileCollector.handleOutput(t),
-      stderr: (t: Buffer) => logFileCollector.handleOutput(t) 
+      stderr: (t: Buffer) => logFileCollector.handleOutput(t)
     },
     env: process.env
   } as baselib.ExecOptions;
@@ -43,11 +46,19 @@ testutils.testWithHeader('ToolRunner.exec must call listeners and LogFileCollect
     if (Math.round(Math.random() * 50.) === 1)
       dummyContentForTheLog += "\n";
   }
-  let toolRunner: ToolRunner = new ToolRunner(echoCmd, [`${dummyContentForTheLog} See also \"${expectedMatch1}\" ${dummyContentForTheLog} See logs for more information:\n${expectedMatch2}`], options);
-  const exitcode = await toolRunner.exec();
+  let toolRunner: baselib.ToolRunner = new ActionToolRunner(echoCmd);
+  toolRunner.arg([`${dummyContentForTheLog} See also \"${expectedMatch1}\" ${dummyContentForTheLog} CMake Error at scripts/cmake/vcpkg_execute_build_process.cmake:146 (message):
+  Command failed: /usr/bin/make V=1 -j 3 -f Makefile dist
+  Working Directory: /home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/x64-linux-dbg
+  See logs for more information:
+    ${expectedMatch2}
+    ${expectedMatch3}
+`]);
+  const exitcode = await toolRunner.exec(options);
 
   // Assert.
   console.log(`Array of matches: '${matches}'.`);
   expect(exitcode).toEqual(0);
-  expect(matches).toEqual(["/a/", "C:\\vcpkg\\buildtrees\\abc\\install-x86-windows-dbg-out.log"]);
+  expect(matches).toEqual([expectedMatch1,
+    expectedMatch2, expectedMatch3]);
 });
