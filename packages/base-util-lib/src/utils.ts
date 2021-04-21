@@ -496,7 +496,7 @@ export class LogFileCollector {
   public constructor(private baseLib: baselib.BaseLib, regExps: string[],
     private func: (path: string) => void) {
     for (const s of regExps) {
-      this.regExps.push(new RegExp(s, "m"));
+      this.regExps.push(new RegExp(s, "g"));
     }
   }
 
@@ -507,17 +507,19 @@ export class LogFileCollector {
   private limitBuffer(consumeUntil?: number): void {
     if (consumeUntil && consumeUntil > 0)
       this.bufferString = this.bufferString.slice(consumeUntil);
-    const len = this.bufferString.length;
+      const len = this.bufferString.length;
     if (len > LogFileCollector.MAXLEN)
       this.bufferString = this.bufferString.slice(len - LogFileCollector.MAXLEN);
-  }
+    }
 
   public handleOutput(buffer: Buffer): void {
     this.appendBuffer(buffer);
     let consumedUntil = -1;
     for (const re of this.regExps) {
+      re.lastIndex = 0;
       try {
         if (re.test(this.bufferString)) {
+          re.lastIndex = 0;
           const matches = re.exec(this.bufferString);
           if (matches) {
             consumedUntil = Math.max(consumedUntil, re.lastIndex);
