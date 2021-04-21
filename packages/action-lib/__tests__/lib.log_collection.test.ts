@@ -7,18 +7,20 @@ import * as baselib from '@lukka/base-lib';
 import { ActionLib, ActionToolRunner } from '../src/action-lib';
 import { LogFileCollector } from '@lukka/base-util-lib';
 
-const expectedMatch1 = '/a/';
-const expectedMatch2 = '/home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/build-dist-x64-linux-dbg-out.log';
-const expectedMatch3 = '/home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/build-dist-x64-linux-dbg-err.log';
+const expectedMatch1 = "/home/runner/work/CppBuildTasks-Validation/b/dump_log/CMakeFiles/CMakeOutput.log";
+const expectedMatch2 = '/home/runner/work/CppBuildTasks-Validation/b/dump_log/CMakeFiles/CMakeError.log';
+const expectedMatch3 = '/home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/build-dist-x64-linux-dbg-out.log';
+const expectedMatch4 = '/home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/build-dist-x64-linux-dbg-err.log';
 
 testutils.testWithHeader('ToolRunner.exec must call listeners and LogFileCollector must match regular expressions.', async () => {
   let matches: string[] = [];
   let actionLib: ActionLib = new ActionLib();
   const echoCmd = await actionLib.which("echo", true);
   const logFileCollector: LogFileCollector = new LogFileCollector(actionLib, [
-    "\\s*See also \"(.+)\"\\s*",
-    "\\s*See logs for more information:\\s*(.+.out.log)\\s*",
-    "\\s+(.+.err.log)\\s*"],
+    "\\s*See also \"(.+CMakeOutput\\.log)\"\\.\\s*",
+    "\\s*See also \"(.+CMakeError\\.log)\"\\.\\s*",
+    "\\s*See logs for more information:\\s*(.+out\\.log)\\s*",
+    "\\s+(.+err\\.log)\\s*"],
     (text: string) => {
       console.log(`Matched: '${text}'.`);
       matches.push(text);
@@ -47,18 +49,22 @@ testutils.testWithHeader('ToolRunner.exec must call listeners and LogFileCollect
       dummyContentForTheLog += "\n";
   }
   let toolRunner: baselib.ToolRunner = new ActionToolRunner(echoCmd);
-  toolRunner.arg([`${dummyContentForTheLog} See also \"${expectedMatch1}\" ${dummyContentForTheLog} CMake Error at scripts/cmake/vcpkg_execute_build_process.cmake:146 (message):
+  toolRunner.arg([`${dummyContentForTheLog}   -- Configuring incomplete, errors occurred!
+  See also "${expectedMatch1}".
+  See also "${expectedMatch2}".
+ ${dummyContentForTheLog} 
+  CMake Error at scripts/cmake/vcpkg_execute_build_process.cmake:146 (message):
   Command failed: /usr/bin/make V=1 -j 3 -f Makefile dist
   Working Directory: /home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/x64-linux-dbg
   See logs for more information:
-    ${expectedMatch2}
     ${expectedMatch3}
+    ${expectedMatch4}
 `]);
   const exitcode = await toolRunner.exec(options);
 
   // Assert.
   console.log(`Array of matches: '${matches}'.`);
   expect(exitcode).toEqual(0);
-  expect(matches).toEqual([expectedMatch1,
-    expectedMatch2, expectedMatch3]);
+  expect(matches).toEqual([expectedMatch1, expectedMatch2,
+    expectedMatch3, expectedMatch4]);
 });

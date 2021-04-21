@@ -1,6 +1,6 @@
 {
   "name": "@lukka/action-lib",
-  "version": "1.0.17",
+  "version": "1.0.23",
   "description": "Implementation of the continuous integration abstraction layer for GitHub Actions.",
   "repository": {
     "type": "git",
@@ -36,8 +36,8 @@
     "@actions/exec": "^1.0.4",
     "@actions/github": "^4.0.0",
     "@actions/io": "^1.0.2",
-    "@lukka/base-lib": "^1.0.17",
-    "@lukka/base-util-lib": "^1.0.17",
+    "@lukka/base-lib": "^1.0.23",
+    "@lukka/base-util-lib": "^1.0.23",
     "@types/adm-zip": "^0.4.32",
     "@types/follow-redirects": "^1.8.0",
     "@types/q": "^1.5.1",
