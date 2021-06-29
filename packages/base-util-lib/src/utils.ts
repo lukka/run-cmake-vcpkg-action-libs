@@ -514,6 +514,9 @@ export class LogFileCollector {
 
   public handleOutput(buffer: Buffer): void {
     this.appendBuffer(buffer);
+
+    this.baseLib.debug(`\n\nappending: ${buffer}\n\n`);
+    this.baseLib.debug(`\n\nbuffer: ${this.bufferString}\n\n`);
     let consumedUntil = -1;
     for (const re of this.regExps) {
       re.lastIndex = 0;
@@ -523,6 +526,7 @@ export class LogFileCollector {
           const matches = re.exec(this.bufferString);
           if (matches) {
             consumedUntil = Math.max(consumedUntil, re.lastIndex);
+            this.baseLib.debug(`\n\nmatched expression: ${re}\n\n`);
             this.func(matches[1]);
           }
         }
@@ -533,6 +537,7 @@ export class LogFileCollector {
     }
 
     this.limitBuffer(consumedUntil);
+    this.baseLib.debug(`\n\nremaining: ${this.bufferString}\n\n`);
   }
 }
 
@@ -543,7 +548,11 @@ export function dumpFile(baseLib: baselib.BaseLib, filePath: string): void {
       if (content) {
         baseLib.info(`[LogCollection][Start]File:'${filePath}':\n${content}\n[LogCollection][End]File:'${filePath}'.`);
       }
+      else
+        baseLib.warning(`[LogCollection][Warn]File empty:'${filePath}'.`);        
     }
+    else
+      baseLib.warning(`[LogCollection][Warn]File not found:'${filePath}'.`);        
   }
   catch (err) {
     dumpError(baseLib, err);

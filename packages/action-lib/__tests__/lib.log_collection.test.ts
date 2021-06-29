@@ -17,10 +17,10 @@ testutils.testWithHeader('ToolRunner.exec must call listeners and LogFileCollect
   let actionLib: ActionLib = new ActionLib();
   const echoCmd = await actionLib.which("echo", true);
   const logFileCollector: LogFileCollector = new LogFileCollector(actionLib, [
-    "\\s*See also \"(.+CMakeOutput\\.log)\"\\.\\s*",
-    "\\s*See also \"(.+CMakeError\\.log)\"\\.\\s*",
-    "\\s*See logs for more information:\\s*(.+out\\.log)\\s*",
-    "\\s+(.+err\\.log)\\s*"],
+    "\\s*\"(.+CMakeOutput\\.log)\"\\.\\s*",
+    "\\s*\"(.+CMakeError\\.log)\"\\.\\s*",
+    "\\s+(.+err\\.log)\\s*",
+    "\\s+(.+out\\.log)\\s*"],
     (text: string) => {
       console.log(`Matched: '${text}'.`);
       matches.push(text);
@@ -58,13 +58,20 @@ testutils.testWithHeader('ToolRunner.exec must call listeners and LogFileCollect
   Working Directory: /home/runner/work/project/3rdparty/vcpkg/buildtrees/hunspell/x64-linux-dbg
   See logs for more information:
     ${expectedMatch3}
+
+  CMake Error at scripts/cmake/vcpkg_execute_required_process.cmake:91 (file):
+    file failed to open for reading (No such file or directory):
     ${expectedMatch4}
+  Call Stack (most recent call first):
+    scripts/cmake/vcpkg_from_git.cmake:85 (vcpkg_execute_required_process)
+    ports/bzip2/portfile.cmake:1 (vcpkg_from_git)
+    scripts/ports.cmake:142 (include)
 `]);
   const exitcode = await toolRunner.exec(options);
 
   // Assert.
   console.log(`Array of matches: '${matches}'.`);
   expect(exitcode).toEqual(0);
-  expect(matches).toEqual([expectedMatch1, expectedMatch2,
-    expectedMatch3, expectedMatch4]);
+  expect(matches.sort()).toEqual([expectedMatch1, expectedMatch2,
+    expectedMatch3, expectedMatch4].sort());
 });
