@@ -20,12 +20,9 @@ const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const cmakeListsTxtPath = path.join('/home/user/project/src/path/', 'CMakeLists.txt');
 
 jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
-    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
-      return [true, "!.git\n"];
-    }
-    else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.cmakeAppendedArgs))) {
-      return [true, oldGitRef];
+  function (this: utils.BaseUtilLib, file: string): string | null {
+    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.cmakeAppendedArgs))) {
+      return oldGitRef;
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -33,10 +30,7 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
 
 import { CMakeRunner } from '../src/cmake-runner';
 
-mock.inputsMocks.setInput(globals.cmakeListsOrSettingsJson, 'CMakeListsTxtBasic');
 mock.inputsMocks.setBooleanInput(globals.buildWithCMake, true);
-mock.inputsMocks.setInput(globals.cmakeGenerator, 'Ninja');
-mock.inputsMocks.setInput(globals.cmakeBuildType, 'Release');
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath)
 
 testutils.testWithHeader('run-cmake must fail when a tool returns error code 1', () => {

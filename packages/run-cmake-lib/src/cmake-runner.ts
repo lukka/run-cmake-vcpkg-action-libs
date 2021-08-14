@@ -5,164 +5,51 @@
 import * as baselib from '@lukka/base-lib';
 import * as baseutillib from '@lukka/base-util-lib';
 import * as path from 'path';
-import { CMakeSettingsJsonRunner } from './cmakesettings-runner'
 import * as cmakeglobals from './cmake-globals';
-import * as ninjalib from './ninja';
 import { using } from "using-statement";
 import * as cmakelib from './utils'
 import * as fs from 'fs';
-
-enum RunCMakeModeType {
-  CMakeListsTxtBasic = 1,
-  CMakeListsTxtAdvanced,
-  CMakeSettingsJson
-}
-
-function getTargetType(typeString: string): RunCMakeModeType | undefined {
-  return RunCMakeModeType[typeString as keyof typeof RunCMakeModeType];
-}
-
-const CMakeGenerator: any = {
-  'Unknown': {},
-  'VS16Arm': { 'G': 'Visual Studio 16 2019', 'A': 'ARM', 'MultiConfiguration': true },
-  'VS16Win32': { 'G': 'Visual Studio 16 2019', 'A': 'Win32', 'MultiConfiguration': true },
-  'VS16Win64': { 'G': 'Visual Studio 16 2019', 'A': 'x64', 'MultiConfiguration': true },
-  'VS16Arm64': { 'G': 'Visual Studio 16 2019', 'A': 'ARM64', 'MultiConfiguration': true },
-  'VS15Arm': { 'G': 'Visual Studio 15 2017', 'A': 'ARM', 'MultiConfiguration': true },
-  'VS15Win32': { 'G': 'Visual Studio 15 2017', 'A': 'Win32', 'MultiConfiguration': true },
-  'VS15Win64': { 'G': 'Visual Studio 15 2017', 'A': 'x64', 'MultiConfiguration': true },
-  'VS15Arm64': { 'G': 'Visual Studio 15 2017', 'A': 'ARM64', 'MultiConfiguration': true },
-  'Ninja': { 'G': 'Ninja', 'A': '', 'MultiConfiguration': false },
-  'NinjaMulti': { 'G': 'Ninja Multi-Config', 'A': '', 'MultiConfiguration': true },
-  'UnixMakefiles': { 'G': 'Unix Makefiles', 'A': '', 'MultiConfiguration': false }
-};
-function getGenerator(generatorString: string): any {
-  const generatorName = CMakeGenerator[generatorString];
-  return generatorName;
-}
+import { assert } from 'console';
 
 export class CMakeRunner {
-  private readonly ninjaLib: ninjalib.NinjaProvider;
   private readonly baseUtils: baseutillib.BaseUtilLib;
   private readonly cmakeUtils: cmakelib.CMakeUtils;
   private readonly buildDir: string = "";
   private readonly appendedArgs: string;
-  private readonly configurationFilter: string;
-  private readonly ninjaPath: string;
-  private readonly ninjaDownloadUrl: string;
-  private readonly runMode: RunCMakeModeType;
-  private readonly cmakeSettingsJsonPath: string;
   private readonly cmakeListsTxtPath: string;
-  private readonly generator: any = {};
-  private readonly cmakeToolchainPath: string;
   private readonly doBuild: boolean;
   private readonly doBuildArgs: string;
   private readonly cmakeSourceDir: string;
   private readonly useVcpkgToolchainFile: boolean;
-  private readonly cmakeBuildType: string;
   private readonly vcpkgTriplet: string;
   private readonly sourceScript: string;
   private readonly logFilesCollector: baseutillib.LogFileCollector;
-
-  private static readonly modePerInput: { [inputName: string]: RunCMakeModeType[] } = {
-    [cmakeglobals.cmakeListsTxtPath]:
-      [RunCMakeModeType.CMakeListsTxtBasic, RunCMakeModeType.CMakeListsTxtAdvanced],
-    [cmakeglobals.cmakeSettingsJsonPath]:
-      [RunCMakeModeType.CMakeSettingsJson],
-    [cmakeglobals.cmakeToolchainPath]:
-      [RunCMakeModeType.CMakeListsTxtBasic],
-    /*[globals.useVcpkgToolchainFile]: all */
-    /*[globals.vcpkgTriplet]: all */
-    [cmakeglobals.cmakeBuildType]:
-      [RunCMakeModeType.CMakeListsTxtBasic],
-    [cmakeglobals.cmakeGenerator]:
-      [RunCMakeModeType.CMakeListsTxtBasic],
-    /*[globals.buildDirectory]: all */
-    [cmakeglobals.cmakeAppendedArgs]:
-      [RunCMakeModeType.CMakeListsTxtAdvanced, RunCMakeModeType.CMakeSettingsJson],
-    [cmakeglobals.configurationRegexFilter]:
-      [RunCMakeModeType.CMakeSettingsJson],
-    [cmakeglobals.buildWithCMakeArgs]:
-      [RunCMakeModeType.CMakeListsTxtAdvanced, RunCMakeModeType.CMakeListsTxtBasic]
-  };
-
-  /*
-    // Unfortunately there is not a way to discriminate between a value provided by the user
-    // from a default value (not provided by the user), hence it is not possible to identify
-    // what the user provided.  
-    private static warnIfUnused(inputName: string, taskMode: TaskModeType): void {
-      if (inputName in CMakeRunner.modePerInput) {
-        const usedInMode: TaskModeType[] = CMakeRunner.modePerInput[name];
-        if (usedInMode) {
-          if (usedInMode.indexOf(taskMode) < 0) { }
-  
-          //??this.tl.warning(`The input '${inputName}' is ignored in mode '${taskMode}'`);
-        }
-      }
-    }
-  */
 
   public constructor(
     private tl: baselib.BaseLib) {
     this.baseUtils = new baseutillib.BaseUtilLib(this.tl);
     this.cmakeUtils = new cmakelib.CMakeUtils(this.baseUtils);
-    this.ninjaLib = new ninjalib.NinjaProvider(this.tl);
     const regs = this.tl.getDelimitedInput(cmakeglobals.logCollectionRegExps, ';', false);
     this.logFilesCollector = new baseutillib.LogFileCollector(this.tl,
       regs, (path: string) => baseutillib.dumpFile(this.tl, path));
 
-    const mode: string = this.tl.getInput(cmakeglobals.cmakeListsOrSettingsJson, true) ?? "";
-    const runMode: RunCMakeModeType | undefined = getTargetType(mode);
-    if (!runMode) {
-      throw new Error(`ctor(): invalid mode '${mode}'.`);
-    }
-    this.runMode = runMode;
-
-    let required = this.runMode === RunCMakeModeType.CMakeSettingsJson;
-    this.cmakeSettingsJsonPath = this.tl.getPathInput(
-      cmakeglobals.cmakeSettingsJsonPath,
-      required,
-      required) ?? "";
-
-    required = this.runMode !== RunCMakeModeType.CMakeSettingsJson;
     this.cmakeListsTxtPath = this.tl.getPathInput(
       cmakeglobals.cmakeListsTxtPath,
-      required,
-      required) ?? "";
+      true, true) ?? "";
 
     this.buildDir = this.tl.getInput(
       cmakeglobals.buildDirectory,
-      this.runMode === RunCMakeModeType.CMakeListsTxtBasic) ?? "";
+      false) ?? "";
     this.appendedArgs = this.tl.getInput(
       cmakeglobals.cmakeAppendedArgs,
       false) ?? "";
-    this.configurationFilter = this.tl.getInput(
-      cmakeglobals.configurationRegexFilter,
-      false) ?? "";
-    this.ninjaPath = '';
-    if (this.tl.isFilePathSupplied(cmakeglobals.ninjaPath)) {
-      this.ninjaPath = tl.getInput(cmakeglobals.ninjaPath, false) ?? "";
-    }
 
-    this.cmakeToolchainPath = "";
-    if (this.tl.isFilePathSupplied(cmakeglobals.cmakeToolchainPath)) {
-      this.cmakeToolchainPath = tl.getInput(cmakeglobals.cmakeToolchainPath, false) ?? "";
-    }
-    const gen: string = this.tl.getInput(
-      cmakeglobals.cmakeGenerator,
-      this.runMode === RunCMakeModeType.CMakeListsTxtBasic) ?? "";
-    this.generator = getGenerator(gen);
-    this.ninjaDownloadUrl = this.tl.getInput(cmakeglobals.ninjaDownloadUrl, false) ?? "";
     this.doBuild = this.tl.getBoolInput(cmakeglobals.buildWithCMake, false) ?? false;
     this.doBuildArgs = this.tl.getInput(cmakeglobals.buildWithCMakeArgs, false) ?? "";
     this.cmakeSourceDir = path.dirname(baseutillib.BaseUtilLib.normalizePath(this.cmakeListsTxtPath) ?? "");
 
     this.useVcpkgToolchainFile =
       this.tl.getBoolInput(cmakeglobals.useVcpkgToolchainFile, false) ?? false;
-
-    this.cmakeBuildType = this.tl.getInput(
-      cmakeglobals.cmakeBuildType,
-      this.runMode === RunCMakeModeType.CMakeListsTxtBasic) ?? "";
 
     this.vcpkgTriplet = (this.tl.getInput(cmakeglobals.cmakeVcpkgTriplet, false) ||
       process.env.RUNVCPKG_VCPKG_TRIPLET) ?? "";
@@ -180,150 +67,73 @@ export class CMakeRunner {
     this.tl.debug('configure()<<');
 
     // Contains the '--config <CONFIG>' when using multiconfiguration generators.
-    let prependedBuildArguments = "";
     let cmakeArgs: string[] = [];
 
-    switch (this.runMode) {
-      case RunCMakeModeType.CMakeListsTxtAdvanced:
-      case RunCMakeModeType.CMakeListsTxtBasic: {
-        // Search for CMake tool and run it.
-        let cmake: baselib.ToolRunner;
-        if (this.sourceScript) {
-          cmake = this.tl.tool(this.sourceScript);
-          cmakeArgs.push(await this.tl.which('cmake', true));
-        } else {
-          cmake = this.tl.tool(await this.tl.which('cmake', true));
-        }
+    // Search for CMake tool and run it.
+    let cmake: baselib.ToolRunner;
+    if (this.sourceScript) {
+      cmake = this.tl.tool(this.sourceScript);
+      cmakeArgs.push(await this.tl.which('cmake', true));
+    } else {
+      cmake = this.tl.tool(await this.tl.which('cmake', true));
+    }
 
-        if (this.runMode === RunCMakeModeType.CMakeListsTxtAdvanced) {
-          // If Ninja is required, specify the path to it.
-          if (this.baseUtils.isNinjaGenerator([this.appendedArgs])) {
-            if (!this.baseUtils.isMakeProgram([this.appendedArgs])) {
-              const ninjaPath: string = await this.ninjaLib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
-              cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
-            }
-          }
+    if (this.appendedArgs) {
+      this.tl.debug(`Parsing additional CMake args: ${this.appendedArgs}`);
+      const addedArgs: string[] = cmake._argStringToArray(this.appendedArgs);
+      this.tl.debug(`Appending args: ${JSON.stringify(addedArgs)}`);
+      cmakeArgs = [...cmakeArgs, ...addedArgs];
+    }
 
-          if (this.appendedArgs) {
-            this.tl.debug(`Parsing additional CMake args: ${this.appendedArgs}`);
-            const addedArgs: string[] = cmake._argStringToArray(this.appendedArgs);
-            this.tl.debug(`Appending args: ${JSON.stringify(addedArgs)}`);
-            cmakeArgs = [...cmakeArgs, ...addedArgs];
-          }
+    // Use vcpkg toolchain if requested.
+    if (this.useVcpkgToolchainFile === true) {
+      cmakeArgs = await this.cmakeUtils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet, this.tl)
+    }
 
-        } else if (this.runMode === RunCMakeModeType.CMakeListsTxtBasic) {
-          const generatorName = this.generator['G'];
-          const generatorArch = this.generator['A'];
-          const generatorIsMultiConf = this.generator['MultiConfiguration'] ?? false;
-          cmakeArgs.push(`-G${generatorName}`);
-          if (generatorArch) {
-            cmakeArgs.push(`-A${generatorArch}`);
-          }
-          if (CMakeRunner.isNinjaGenerator(generatorName)) {
-            const ninjaPath: string = await this.ninjaLib.retrieveNinjaPath(this.ninjaPath, this.ninjaDownloadUrl);
-            cmakeArgs.push(`-DCMAKE_MAKE_PROGRAM=${ninjaPath}`);
-          }
+    // The source directory is required for any mode.
+    cmakeArgs.push(this.cmakeSourceDir);
 
-          if (this.cmakeToolchainPath) {
-            cmakeArgs.push(`-DCMAKE_TOOLCHAIN_FILE=${this.cmakeToolchainPath}`);
-          }
+    this.tl.debug(`CMake arguments: ${cmakeArgs}`);
 
-          // Add CMake's build type, unless a multi configuration generator is being used.
-          if (!generatorIsMultiConf) {
-            cmakeArgs.push(`-DCMAKE_BUILD_TYPE=${this.cmakeBuildType}`);
-          }
+    for (const arg of cmakeArgs) {
+      cmake.arg(arg);
+    }
 
-          prependedBuildArguments = this.prependBuildConfigIfNeeded(this.doBuildArgs,
-            generatorIsMultiConf, this.cmakeBuildType);
-        }
+    // Ensure the build directory is existing.
+    await this.tl.mkdirP(this.buildDir);
 
-        // Use vcpkg toolchain if requested.
-        if (this.useVcpkgToolchainFile === true) {
-          cmakeArgs = await this.cmakeUtils.injectVcpkgToolchain(cmakeArgs, this.vcpkgTriplet, this.tl)
-        }
+    const options = {
+      cwd: this.buildDir,
+      failOnStdErr: false,
+      errStream: process.stdout,
+      outStream: process.stdout,
+      ignoreReturnCode: true,
+      silent: false,
+      windowsVerbatimArguments: false,
+      env: process.env,
+      listeners: {
+        stdout: (t: Buffer): void => this.logFilesCollector.handleOutput(t),
+        stderr: (t: Buffer): void => this.logFilesCollector.handleOutput(t),
+      }
+    } as baselib.ExecOptions;
 
-        // The source directory is required for any mode.
-        cmakeArgs.push(this.cmakeSourceDir);
+    this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
+    let code = -1;
+    await using(baseutillib.Matcher.createMatcher('cmake', this.tl, this.cmakeSourceDir), async matcher => {
+      code = await this.baseUtils.wrapOp("Generate project files with CMake", async () => await cmake.exec(options));
+    });
 
-        this.tl.debug(`CMake arguments: ${cmakeArgs}`);
+    if (code !== 0) {
+      throw new Error(`"CMake failed with error code: '${code}'.`);
+    }
 
-        for (const arg of cmakeArgs) {
-          cmake.arg(arg);
-        }
-
-        // Ensure the build directory is existing.
-        await this.tl.mkdirP(this.buildDir);
-
-        const options = {
-          cwd: this.buildDir,
-          failOnStdErr: false,
-          errStream: process.stdout,
-          outStream: process.stdout,
-          ignoreReturnCode: true,
-          silent: false,
-          windowsVerbatimArguments: false,
-          env: process.env,
-          listeners: {
-            stdout: (t: Buffer) => this.logFilesCollector.handleOutput(t),
-            stderr: (t: Buffer) => this.logFilesCollector.handleOutput(t),
-          }
-        } as baselib.ExecOptions;
-
-        this.tl.debug(`Generating project files with CMake in build directory '${options.cwd}' ...`);
-        let code = -1;
-        await using(baseutillib.Matcher.createMatcher('cmake', this.tl, this.cmakeSourceDir), async matcher => {
-          code = await this.baseUtils.wrapOp("Generate project files with CMake", async () => await cmake.exec(options));
+    if (this.doBuild) {
+      await using(baseutillib.Matcher.createMatcher(CMakeRunner.getBuildMatcher(
+        this.buildDir, this.tl), this.tl), async matcher => {
+          await this.baseUtils.wrapOp("Build with CMake", async () =>
+            await CMakeRunner.build(this.tl, this.buildDir, this.doBuildArgs, options))
         });
-
-        if (code !== 0) {
-          throw new Error(`"CMake failed with error code: '${code}'.`);
-        }
-
-        if (this.doBuild) {
-          await using(baseutillib.Matcher.createMatcher(CMakeRunner.getBuildMatcher(
-            this.buildDir, this.tl), this.tl), async matcher => {
-              await this.baseUtils.wrapOp("Build with CMake", async () =>
-                await CMakeRunner.build(this.tl, this.buildDir, prependedBuildArguments + this.doBuildArgs, options))
-            });
-        }
-
-        break;
-      }
-
-      case RunCMakeModeType.CMakeSettingsJson: {
-        const cmakeJson: CMakeSettingsJsonRunner = new CMakeSettingsJsonRunner(
-          this.tl,
-          this.cmakeSettingsJsonPath,
-          this.configurationFilter,
-          this.appendedArgs,
-          this.tl.getSrcDir(),
-          this.vcpkgTriplet,
-          this.useVcpkgToolchainFile,
-          this.doBuild,
-          this.ninjaPath,
-          this.ninjaDownloadUrl,
-          this.sourceScript,
-          this.buildDir);
-        await this.baseUtils.wrapOp("Run CMake with CMakeSettings.json", async () => await cmakeJson.run());
-        break;
-      }
     }
-  }
-
-  private static isNinjaGenerator(generatorName: string): boolean {
-    return generatorName === CMakeGenerator['Ninja']['G'] ||
-      generatorName === CMakeGenerator['NinjaMulti']['G'];
-  }
-
-  /// If not already provided, creates the '--config <CONFIG>' argument to pass when building.
-  /// Return a string of arguments to prepend the build arguments.
-  private prependBuildConfigIfNeeded(buildArgs: string, multiConfi: boolean, buildType: string): string {
-    let prependArgs = "";
-    if (multiConfi && !buildArgs.includes("--config")) {
-      prependArgs = ` --config ${buildType} `;
-    }
-
-    return prependArgs;
   }
 
   /**
@@ -362,8 +172,8 @@ export class CMakeRunner {
       plat === "darwin" ? CMakeRunner.clangMatcher : CMakeRunner.gccMatcher;
   }
 
-  private static getCompilerMatcher(line: string): string | undefined {
-    let matcherName: string | undefined = undefined;
+  private static getCompilerMatcher(line: string): string | null {
+    let matcherName: string | null = null;
     if (line.includes('g++') || line.includes('gcc') || line.includes('c++'))
       matcherName = CMakeRunner.gccMatcher;
     else if (line.includes('cl.exe'))
@@ -374,14 +184,14 @@ export class CMakeRunner {
   }
 
   public static getBuildMatcher(buildDir: string, tl: baselib.BaseLib): string {
-    let cxxMatcher: string | undefined;
-    let ccMatcher: string | undefined;
+    let cxxMatcher: string | null = null;
+    let ccMatcher: string | null = null;
     const utils: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(tl);
     try {
       const cmakeCacheTxtPath = path.join(buildDir, "CMakeCache.txt");
-      const [ok, cacheContent] = utils.readFile(cmakeCacheTxtPath);
+      const cacheContent = utils.readFile(cmakeCacheTxtPath);
       tl.debug(`Loaded fileCMakeCache.txt at path='${cmakeCacheTxtPath}'`);
-      if (ok) {
+      if (cacheContent) {
         for (const line of cacheContent.split('\n')) {
           tl.debug(`text=${line}`);
           if (line.includes("CMAKE_CXX_COMPILER:")) {
@@ -399,7 +209,7 @@ export class CMakeRunner {
         }
       }
     } catch (error) {
-      tl.debug(error.toString());
+      tl.debug(error as string ?? error);
     }
 
     const defaultMatcher: string = CMakeRunner.getDefaultMatcher();
@@ -409,15 +219,4 @@ export class CMakeRunner {
     tl.debug(`Selected matcher: ${selectedMatcher}`);
     return selectedMatcher;
   }
-
-  /*  private handleVcpkgJsonManifestExistence(cmakeSourceDir: string, cmakeBuildDir: string): void {
-      if (fs.existsSync(cmakeSourceDir)) {
-        const vcpkgJsonLocation = path.join(cmakeSourceDir, 'vcpkg.json');
-        if (fs.existsSync(vcpkgJsonLocation)) {
-          const additionalPath = path.join(cmakeBuildDir, 'vcpkg_installed');
-          this.tl.info(`Found vcpkg manifest at ${vcpkgJsonLocation}, adding the following cached path for the next run-vcpkg step: '${additionalPath}'.`);
-          runvcpkg.addCachedPaths(this.tl, additionalPath);
-        }
-      }
-    }*/
 }

@@ -20,12 +20,9 @@ const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const cmakeListsTxtPath = path.join('/home/user/project/src/path', 'CMakeLists.txt');
 
 jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
-    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
-      return [true, "!.git\n"];
-    }
-    else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.cmakeAppendedArgs))) {
-      return [true, oldGitRef];
+  function (this: utils.BaseUtilLib, file: string): string | null {
+    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.cmakeAppendedArgs))) {
+      return oldGitRef;
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -33,7 +30,6 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
 
 import { CMakeRunner } from '../src/cmake-runner';
 
-mock.inputsMocks.setInput(globals.cmakeListsOrSettingsJson, 'CMakeListsTxtAdvanced');
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
 mock.inputsMocks.setInput(globals.cmakeAppendedArgs, '-G "Visual Studio" -DCMAKE_BUILD_TYPE=DebugAdvanced');
 mock.inputsMocks.setInput(globals.buildWithCMake, 'true');

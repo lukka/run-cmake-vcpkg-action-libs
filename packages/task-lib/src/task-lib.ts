@@ -2,6 +2,8 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
+// Implementation of the base-lib for Azure DevOps
+
 import * as stream from 'stream';
 import * as baselib from '@lukka/base-lib';
 import * as tl from 'azure-pipelines-task-lib/task';

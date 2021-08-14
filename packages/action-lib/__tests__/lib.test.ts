@@ -114,13 +114,12 @@ test('ActionLib&Utils mkdirP()/exist()/readFile()/writeFile()/get*Dir() tests', 
   const createdFile = path.join(createdDir, "file");
   const fileContent = "fileContent";
   actionLib.writeFile(createdFile, fileContent);
-  const [ok, content] = util.readFile(createdFile);
-  expect(ok).toBeTruthy();
+  const content = util.readFile(createdFile);
+  expect(content).toBeTruthy();
   expect(content).toBe(fileContent);
 
   util.writeFile(createdFile, fileContent);
-  const [ok2, content2] = util.readFile(createdFile);
-  expect(ok2).toBeTruthy();
+  const content2 = util.readFile(createdFile);
   expect(content2).toBe(fileContent);
 
   await actionLib.rmRF(createdDir);

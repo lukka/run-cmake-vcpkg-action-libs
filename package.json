@@ -12,6 +12,7 @@
 		"pack": "npx lerna run pack",
 		"testlerna": "npx lerna run test",
 		"test": "npx jest --verbose",
+		"pretest": "npx jest --clearCache",
 		"version": "npx lerna version --yes",
 		"publish": "npx lerna publish --yes"
 	},
