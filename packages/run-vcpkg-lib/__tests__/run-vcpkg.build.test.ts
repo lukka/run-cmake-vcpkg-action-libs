@@ -25,12 +25,9 @@ mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
 
 jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
-    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
-      return [true, "!.git\n"];
-    }
-    else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
-      return [true, oldGitRef];
+  function (this: utils.BaseUtilLib, file: string): string {
+    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
+      return oldGitRef;
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -45,14 +42,10 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
     }
 
     // Ensure their values are the expected ones.
-    if (name === utils.BaseUtilLib.cachingFormatEnvName) {
-      assert.strictEqual(value, "Files");
-    } else if (name === globals.outVcpkgRootPath) {
+    if (name === globals.outVcpkgRootPath) {
       assert.strictEqual(value, vcpkgRoot);
-    } else if (name === globals.outVcpkgTriplet) {
-      // no check on value here...
     } else if (name === globals.vcpkgRoot) {
-      // no check on value here...
+      assert.strictEqual(value, vcpkgRoot);
     } else {
       assert.fail(`Unexpected variable name: '${name}'`);
     }
@@ -60,26 +53,18 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
-mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
 mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
-mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
-mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
+mock.inputsMocks.setBooleanInput(globals.doRunVcpkg, false);
 
-testutils.testWithHeader('run-vcpkg without triplet provided must build and install successfully', async () => {
+testutils.testWithHeader('run-vcpkg must build (and not run) successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
         { code: 0, stdout: 'mygitref' },
-      // No '--triplet <triplet>' must be in the vcpkg install invoctaion.
-      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --clean-after-build`]:
-        { 'code': 0, 'stdout': 'this is the vcpkg output' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
-        { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
       [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
         { 'code': 0, 'stdout': 'this is git clone ... output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:
@@ -107,6 +92,8 @@ testutils.testWithHeader('run-vcpkg without triplet provided must build and inst
 
   // Act.
   const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
+  // HACK: any to access private fields.
+  let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
   try {
     await vcpkg.run();
   }
@@ -117,4 +104,5 @@ testutils.testWithHeader('run-vcpkg without triplet provided must build and inst
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
+  expect(vcpkgBuildMock).toBeCalledTimes(1);
 });

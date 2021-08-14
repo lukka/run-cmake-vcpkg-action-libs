@@ -164,18 +164,6 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
   }
 }));
 
-/*jest.mock('strip-json-comments',
-  jest.fn().mockImplementation(() => {
-    return {
-      ActionLib: jest.fn().mockImplementation(() => {
-        return {
-          stripJsonComments: jest.fn().mockImplementation((str: string) => str)
-        }
-      })
-    }
-  }));
-*/
-
 // Mock the execSync of ActionToolRunner.
 
 jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(

@@ -11,7 +11,7 @@ export class CMakeUtils {
   constructor(private readonly baseUtils: baseutillib.BaseUtilLib) {
   }
 
-  public async injectEnvVariables(vcpkgRoot: string, triplet: string, baseLib: baselib.BaseLib): Promise<void> {
+  public async injectEnvVariables(vcpkgRoot: string | null, triplet: string, baseLib: baselib.BaseLib): Promise<void> {
     await this.baseUtils.wrapOp(`Setup environment variables for triplet '${triplet}' using 'vcpkg env'`, async () => {
       if (!vcpkgRoot) {
         vcpkgRoot = process.env[vcpkgGlobals.outVcpkgRootPath] ?? "";
@@ -67,10 +67,10 @@ export class CMakeUtils {
     args = args ?? [];
     const vcpkgRoot: string | undefined = process.env[vcpkgGlobals.outVcpkgRootPath];
 
-    // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put aside into
-    // VCPKG_CHAINLOAD_TOOLCHAIN_FILE the existing toolchain.
+    // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put the existing toolchain into
+    // VCPKG_CHAINLOAD_TOOLCHAIN_FILE.
     if (vcpkgRoot && vcpkgRoot.length > 1) {
-      const toolchainFile: string | undefined =
+      const toolchainFile: string | null =
         this.baseUtils.getToolchainFile(args);
       args = this.baseUtils.removeToolchainFile(args);
       const vcpkgToolchain: string =

@@ -5,15 +5,13 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as baselib from '@lukka/base-lib';
 import AdmZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
 import { performance } from 'perf_hooks'
+import * as baselib from "@lukka/base-lib"
 
 export class BaseUtilLib {
-
-  public static readonly cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
 
   public constructor(public readonly baseLib: baselib.BaseLib) {
   }
@@ -111,14 +109,14 @@ export class BaseUtilLib {
     }
   }
 
-  public readFile(path: string): [boolean, string] {
+  public readFile(path: string): string | null {
     try {
       const readString: string = fs.readFileSync(path, { encoding: 'utf8', flag: 'r' });
       this.baseLib.debug(`readFile(${path})='${readString}'.`);
-      return [true, readString];
+      return readString;
     } catch (error) {
       this.baseLib.debug(`readFile(${path}): ${"" + error}`);
-      return [false, error];
+      return null;
     }
   }
 
@@ -246,22 +244,6 @@ export class BaseUtilLib {
     return result;
   }
 
-  /**
-   * Check whether the current generator selected in the command line
-   * is -G Ninja or -G Ninja Multi-Config.
-   * @export
-   * @param {string} commandLineString The command line as string
-   * @returns {boolean}
-   */
-  public isNinjaGenerator(args: string[]): boolean {
-    for (const arg of args) {
-      if (/-G[\s]*(?:\"Ninja.*\"|Ninja.*)/.test(arg))
-        return true;
-    }
-
-    return false;
-  }
-
   public isMakeProgram(args: string[]): boolean {
     for (const arg of args) {
       if (/-DCMAKE_MAKE_PROGRAM/.test(arg))
@@ -280,7 +262,7 @@ export class BaseUtilLib {
     return false;
   }
 
-  public getToolchainFile(args: string[]): string | undefined {
+  public getToolchainFile(args: string[]): string | null {
     this.baseLib.debug(`getToolchainFile(${JSON.stringify(args)})<<`);
     for (const arg of args) {
       const matches = /-DCMAKE_TOOLCHAIN_FILE(?::[^\s]*)?=([^\s]*)/.exec(arg);
@@ -293,7 +275,7 @@ export class BaseUtilLib {
       }
     }
 
-    return undefined;
+    return null;
   }
 
   public removeToolchainFile(args: string[]): string[] {
@@ -308,7 +290,7 @@ export class BaseUtilLib {
     del.sync(target);
   }
 
-  public test(aPath: any): boolean {
+  public test(aPath: string): boolean {
     const result: boolean = fs.existsSync(aPath);
     return result;
   }
@@ -396,11 +378,11 @@ export class BaseUtilLib {
    * Get a set of commands to be run in the shell of the host OS.
    * @export
    * @param {string[]} args
-   * @returns {(trm.ToolRunner | undefined)}
+   * @returns {(trm.ToolRunner | null)}
    */
-  public async getScriptCommand(args: string): Promise<baselib.ToolRunner | undefined> {
+  public async getScriptCommand(args: string): Promise<baselib.ToolRunner | null> {
 
-    let tool: baselib.ToolRunner;
+    let tool: baselib.ToolRunner | null = null;
     if (this.isWin32()) {
       const cmdExe = process.env.COMSPEC ?? "cmd.exe";
       const cmdPath: string = await this.baseLib.which(cmdExe, true);
@@ -412,8 +394,8 @@ export class BaseUtilLib {
       tool = this.baseLib.tool(shPath);
       tool.arg('-c');
       tool.arg(args);
-      return tool;
     }
+    return tool;
   }
 
   public isVariableStrippingPath(variableName: string): boolean {
@@ -459,6 +441,11 @@ export class BaseUtilLib {
       throw new Error(`Agument '${name}' is undefined`);
   }
 
+  public static throwIfNull<T>(obj: T, name: string): void {
+    if (obj === null)
+      throw new Error(`Agument '${name}' is null`);
+  }
+
   public static isValidSHA1(text: string): boolean {
     return /^[a-fA-F0-9]{40}$/.test(text);
   }
@@ -480,9 +467,8 @@ export class Matcher {
   }
 }
 
-export function dumpError(baseLib: baselib.BaseLib, err: any): void {
-  const error: Error = err as Error;
-  const errorAsString = (error ?? "undefined error").toString();
+export function dumpError(baseLib: baselib.BaseLib, error: Error): void {
+  const errorAsString = (error?.message ?? "undefined error");
   baseLib.debug(errorAsString);
   if (error?.stack) {
     baseLib.debug(error.stack);
@@ -507,16 +493,16 @@ export class LogFileCollector {
   private limitBuffer(consumeUntil?: number): void {
     if (consumeUntil && consumeUntil > 0)
       this.bufferString = this.bufferString.slice(consumeUntil);
-      const len = this.bufferString.length;
+    const len = this.bufferString.length;
     if (len > LogFileCollector.MAXLEN)
       this.bufferString = this.bufferString.slice(len - LogFileCollector.MAXLEN);
-    }
+  }
 
   public handleOutput(buffer: Buffer): void {
     this.appendBuffer(buffer);
 
-    this.baseLib.debug(`\n\nappending: ${buffer}\n\n`);
-    this.baseLib.debug(`\n\nbuffer: ${this.bufferString}\n\n`);
+    //?? this.baseLib.debug(`\n\nappending: ${buffer}\n\n`);
+    //?? this.baseLib.debug(`\n\nbuffer: ${this.bufferString}\n\n`);
     let consumedUntil = -1;
     for (const re of this.regExps) {
       re.lastIndex = 0;
@@ -532,12 +518,12 @@ export class LogFileCollector {
         }
       }
       catch (err) {
-        dumpError(this.baseLib, err);
+        dumpError(this.baseLib, err as Error);
       }
     }
 
     this.limitBuffer(consumedUntil);
-    this.baseLib.debug(`\n\nremaining: ${this.bufferString}\n\n`);
+    //?? this.baseLib.debug(`\n\nremaining: ${this.bufferString}\n\n`);
   }
 }
 
@@ -549,12 +535,12 @@ export function dumpFile(baseLib: baselib.BaseLib, filePath: string): void {
         baseLib.info(`[LogCollection][Start]File:'${filePath}':\n${content}\n[LogCollection][End]File:'${filePath}'.`);
       }
       else
-        baseLib.warning(`[LogCollection][Warn]File empty:'${filePath}'.`);        
+        baseLib.warning(`[LogCollection][Warn]File empty:'${filePath}'.`);
     }
     else
-      baseLib.warning(`[LogCollection][Warn]File not found:'${filePath}'.`);        
+      baseLib.warning(`[LogCollection][Warn]File not found:'${filePath}'.`);
   }
   catch (err) {
-    dumpError(baseLib, err);
+    dumpError(baseLib, err as Error);
   }
 }
