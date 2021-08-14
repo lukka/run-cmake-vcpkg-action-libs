@@ -9,10 +9,8 @@ import * as baseutillib from '@lukka/base-util-lib';
 
 export class VcpkgRunner {
   private readonly vcpkgDestPath: string;
-  private readonly vcpkgArgs: string;
   private readonly defaultVcpkgUrl: string;
   private readonly vcpkgURL: string;
-  private readonly setupOnly: boolean;
   private readonly logFilesCollector: baseutillib.LogFileCollector;
 
   /**
@@ -21,20 +19,13 @@ export class VcpkgRunner {
    * @memberof VcpkgRunner
    */
   private readonly vcpkgCommitId?: string;
-  private readonly vcpkgTriplet: string;
   private readonly options: baselib.ExecOptions = {} as baselib.ExecOptions;
-  vcpkgArtifactIgnoreEntries: string[] = [];
-  private readonly cleanAfterBuild: boolean = false;
   private readonly doNotUpdateVcpkg: boolean = false;
   private readonly pathToLastBuiltCommitId: string;
   private readonly baseUtils: baseutillib.BaseUtilLib;
-  private static readonly overlayArgName = "--overlay-ports=";
 
   public constructor(private tl: baselib.BaseLib) {
     this.baseUtils = new baseutillib.BaseUtilLib(tl);
-    this.setupOnly = this.tl.getBoolInput(globals.setupOnly, false) ?? false;
-
-    this.vcpkgArgs = this.tl.getInput(globals.vcpkgArguments, this.setupOnly === false) ?? "";
     this.defaultVcpkgUrl = 'https://github.com/microsoft/vcpkg.git';
     this.vcpkgURL =
       this.tl.getInput(globals.vcpkgGitURL, false) || this.defaultVcpkgUrl;
@@ -45,11 +36,7 @@ export class VcpkgRunner {
       this.vcpkgDestPath = path.join(this.tl.getBinDir(), 'vcpkg');
     }
 
-    this.vcpkgTriplet = this.tl.getInput(globals.vcpkgTriplet, false) || "";
-    this.vcpkgArtifactIgnoreEntries = this.tl.getDelimitedInput(globals.vcpkgArtifactIgnoreEntries, '\n', false);
-
     this.doNotUpdateVcpkg = this.tl.getBoolInput(globals.doNotUpdateVcpkg, false) ?? false;
-    this.cleanAfterBuild = this.tl.getBoolInput(globals.cleanAfterBuild, false) ?? true;
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
     this.pathToLastBuiltCommitId = path.join(this.vcpkgDestPath, globals.vcpkgLastBuiltCommitId);
@@ -68,8 +55,8 @@ export class VcpkgRunner {
       windowsVerbatimArguments: false,
       env: process.env,
       listeners: {
-        stdout: (t: Buffer) => this.logFilesCollector.handleOutput(t),
-        stderr: (t: Buffer) => this.logFilesCollector.handleOutput(t),
+        stdout: (t: Buffer): void => this.logFilesCollector.handleOutput(t),
+        stderr: (t: Buffer): void => this.logFilesCollector.handleOutput(t),
       }
     } as baselib.ExecOptions;
   }
@@ -112,11 +99,6 @@ export class VcpkgRunner {
       await this.baseUtils.wrapOp("Build vcpkg", () => this.build());
     }
 
-    if (!this.setupOnly) {
-      await this.baseUtils.wrapOp("Install/Update ports", () => this.updatePackages());
-    }
-
-    await this.baseUtils.wrapOp("Prepare vcpkg generated file for caching", () => this.prepareForCache());
   }
 
   private setOutputs(): void {
@@ -131,108 +113,6 @@ export class VcpkgRunner {
     const outVarName = `${globals.outVcpkgRootPath}_OUT`;
     this.tl.info(`Set the output variable '${outVarName}' to value: ${this.vcpkgDestPath}`);
     this.tl.setOutput(`${outVarName}`, this.vcpkgDestPath);
-
-    // Force AZP_CACHING_CONTENT_FORMAT to "Files"
-    this.baseUtils.setEnvVar(baseutillib.BaseUtilLib.cachingFormatEnvName, "Files");
-
-    // Set output env and var for the triplet.
-    this.setEnvOutTriplet(globals.outVcpkgTriplet, globals.outVarVcpkgTriplet, this.vcpkgTriplet);
-  }
-
-  private async prepareForCache(): Promise<void> {
-    const artifactignoreFile = '.artifactignore';
-    const artifactFullPath: string = path.join(this.vcpkgDestPath, artifactignoreFile);
-    this.baseUtils.writeFile(artifactFullPath,
-      this.vcpkgArtifactIgnoreEntries.join('\n'));
-  }
-
-  private extractOverlays(args: string, currentDir: string): string[] {
-    const overlays: string[] = args.split(' ').
-      filter((item) => item.startsWith(VcpkgRunner.overlayArgName) || item.startsWith('@'));
-
-    let result: string[] = [];
-    for (const item of overlays) {
-      if (item.startsWith('@')) {
-        let responseFilePath = item.slice(1);
-        if (!path.isAbsolute(responseFilePath)) {
-          responseFilePath = path.join(currentDir, responseFilePath);
-        }
-
-        const [ok, content] = this.baseUtils.readFile(responseFilePath)
-        if (ok) {
-          const overlays2: string[] = content.split('\n').
-            filter((item: string) => item.trim().startsWith(VcpkgRunner.overlayArgName)).map((item) => item.trim());
-          result = result.concat(overlays2);
-        }
-      } else {
-        result = result.concat(item);
-      }
-    }
-
-    return result;
-  }
-
-  private async updatePackages(): Promise<void> {
-    let vcpkgPath: string = path.join(this.vcpkgDestPath, 'vcpkg');
-    if (this.baseUtils.isWin32()) {
-      vcpkgPath += '.exe';
-    }
-
-    const appendedOverlaysArgs: string[] = this.extractOverlays(this.vcpkgArgs, this.options.cwd);
-    const appendedString = appendedOverlaysArgs ? " " + appendedOverlaysArgs.join(' ') : "";
-    // vcpkg remove --outdated --recurse
-    const removeCmd = `remove --outdated --recurse${appendedString}`;
-    let vcpkgTool = this.tl.tool(vcpkgPath);
-    this.tl.info(
-      `Running 'vcpkg ${removeCmd}' in directory '${this.vcpkgDestPath}' ...`);
-    vcpkgTool.line(removeCmd);
-    this.baseUtils.throwIfErrorCode(await vcpkgTool.exec(this.options));
-
-    // vcpkg install --recurse <list of packages>
-    vcpkgTool = this.tl.tool(vcpkgPath);
-    let installCmd = `install --recurse ${this.vcpkgArgs}`;
-
-    // Get the triplet specified in the task.
-    let vcpkgTripletUsed = this.vcpkgTriplet;
-    // Extract triplet from arguments for vcpkg.
-    const extractedTriplet: string | null = baseutillib.BaseUtilLib.extractTriplet(installCmd,
-      (p: string) => this.baseUtils.readFile(p));
-    // Append triplet, only if provided by the user in the task arguments
-    if (extractedTriplet !== null) {
-      if (vcpkgTripletUsed) {
-        this.tl.warning(`Ignoring the task provided triplet: '${vcpkgTripletUsed}'.`);
-      }
-      vcpkgTripletUsed = extractedTriplet;
-      this.tl.info(`Extracted triplet from command line '${vcpkgTripletUsed}'.`);
-    } else {
-      // If triplet is nor specified in arguments, nor in task, let's deduce it from
-      // agent context (i.e. its OS).
-      if (!vcpkgTripletUsed) {
-        this.tl.info("No '--triplet' argument is provided on the command line to vcpkg.");
-      } else {
-        this.tl.info(`Using triplet '${vcpkgTripletUsed}'.`);
-
-        // Add the triplet argument to the command line.
-        installCmd += ` --triplet ${vcpkgTripletUsed}`;
-      }
-    }
-
-    // If required, add '--clean-after-build'
-    if (this.cleanAfterBuild) {
-      installCmd += ' --clean-after-build';
-    }
-
-    if (vcpkgTripletUsed) {
-      // Set the used triplet in RUNVCPKG_VCPKG_TRIPLET environment/output variables.
-      this.setEnvOutTriplet(globals.outVcpkgTriplet, globals.outVarVcpkgTriplet, vcpkgTripletUsed);
-    } else {
-      this.tl.info(`${globals.outVcpkgTriplet}' nor '${globals.outVarVcpkgTriplet}' have NOT been set by the step since there is no default triplet specified.`);
-    }
-
-    vcpkgTool.line(installCmd);
-    this.tl.info(
-      `Running 'vcpkg ${installCmd}' in directory '${this.vcpkgDestPath}' ...`);
-    this.baseUtils.throwIfErrorCode(await vcpkgTool.exec(this.options));
   }
 
   /**
@@ -283,13 +163,7 @@ export class VcpkgRunner {
     const isSubmodule = await this.baseUtils.isVcpkgSubmodule(gitPath, this.vcpkgDestPath);
     if (isSubmodule) {
       // In case vcpkg it is a Git submodule...
-      this.tl.info(`'vcpkg' is detected as a submodule, adding '.git' to the ignored entries in '.artifactignore' file (for excluding it from caching).`);
-      // Remove any existing '!.git'.
-      this.vcpkgArtifactIgnoreEntries =
-        this.vcpkgArtifactIgnoreEntries.filter(item => !item.trim().endsWith('!.git'));
-      // Add '.git' to ignore that directory.
-      this.vcpkgArtifactIgnoreEntries.push('.git');
-      this.tl.info(`File '.artifactsignore' content: '${this.vcpkgArtifactIgnoreEntries.map(s => `'${s}'`).join(', ')}'`);
+      this.tl.info(`'vcpkg' is detected as a submodule.`);
       updated = true;
 
       // Issue a warning if the vcpkgCommitId is specified.
@@ -324,9 +198,9 @@ export class VcpkgRunner {
   private checkLastBuildCommitId(vcpkgCommitId: string): boolean {
     this.tl.info(`Checking last vcpkg build commit id in file '${this.pathToLastBuiltCommitId}' ...`);
     let rebuild = true;// Default is true.
-    const [ok, lastCommitIdLast] = this.baseUtils.readFile(this.pathToLastBuiltCommitId);
-    this.tl.debug(`last build check: ${ok}, ${lastCommitIdLast}`);
-    if (ok) {
+    const lastCommitIdLast = this.baseUtils.readFile(this.pathToLastBuiltCommitId);
+    this.tl.debug(`last build check: ${lastCommitIdLast}`);
+    if (lastCommitIdLast) {
       this.tl.debug(`lastcommitid = ${lastCommitIdLast}, currentcommitid = ${vcpkgCommitId}`);
       if (lastCommitIdLast === vcpkgCommitId) {
         rebuild = false;

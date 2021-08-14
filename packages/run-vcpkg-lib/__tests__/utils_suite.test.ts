@@ -2,12 +2,21 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as assert from 'assert';
-import { VcpkgRunner } from '../src/vcpkg-runner';
-import * as baselib from '@lukka/base-lib'
-import * as actionlib from '@lukka/action-lib'
+import * as path from 'path';
+import * as vcpkgutils from '../src/utils';
 
-test('testing...', async () => {
-  // Empty for now.
+function normalizePath(base: string, postfix: string): string {
+  return path.normalize(`!${path.join(base, postfix)}`);
+}
+
+test('tests for run-vcpkg utils.ts ...', async () => {
+  const vcpkgRoot = "vcpkgRoot";
+  const paths = vcpkgutils.getOrdinaryCachedPaths("vcpkgRoot");
+  expect(paths).toStrictEqual(
+    [vcpkgRoot,
+      normalizePath(vcpkgRoot, "packages"),
+      normalizePath(vcpkgRoot, "buildtrees"),
+      normalizePath(vcpkgRoot, "downloads")]
+  );
 });
 

@@ -2,6 +2,8 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
+// Implementation of the base-lib for GitHub Actions
+
 import * as stream from 'stream';
 import * as baselib from '@lukka/base-lib';
 import * as utils from '@lukka/base-util-lib';
@@ -278,7 +280,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
       args.push(arg.trim());
     }
     return args;
-  };
+  }
 }
 
 export class ActionLib implements baselib.BaseLib {
