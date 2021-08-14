@@ -2,6 +2,8 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
+// Implementation of the base-lib for GitHub Actions
+
 import * as stream from 'stream';
 import * as baselib from '@lukka/base-lib';
 import * as utils from '@lukka/base-util-lib';
@@ -108,6 +110,7 @@ async function exec(commandPath: string, args: string[], execOptions?: execIface
   }
   args = args2;
 
+  core.info(`Running command '${commandPath}' with args '${args}' in current directory '${opts?.cwd}'.`);
   core.debug(`cp.spawn("${commandPath}", ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}, path=${JSON.stringify(opts?.env?.PATH)}})`);
   return new Promise<number>((resolve, reject) => {
     const child: cp.ChildProcess = cp.spawn(`${commandPath}`, args, opts);
@@ -278,7 +281,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
       args.push(arg.trim());
     }
     return args;
-  };
+  }
 }
 
 export class ActionLib implements baselib.BaseLib {
@@ -410,45 +413,34 @@ export class ActionLib implements baselib.BaseLib {
     return ioutil.exists(path);
   }
 
-  getBinDir(): string {
+  async getBinDir(): Promise<string> {
     if (!process.env.GITHUB_WORKSPACE) {
       throw new Error("GITHUB_WORKSPACE is not set.");
     }
-
+    
     const binPath = utils.BaseUtilLib.normalizePath(path.join(process.env.GITHUB_WORKSPACE, "../b/"));
-    if (!fs.existsSync(binPath)) {
-      core.debug(`BinDir '${binPath}' does not exists, creating it...`);
-      fs.mkdirSync(binPath);
-    }
-
+    await this.mkdirP(binPath);
     return binPath;
   }
 
-  getSrcDir(): string {
+  async getSrcDir(): Promise<string> {
     if (!process.env.GITHUB_WORKSPACE) {
       throw new Error("GITHUB_WORKSPACE env var is not set.");
     }
 
     const srcPath = utils.BaseUtilLib.normalizePath(process.env.GITHUB_WORKSPACE);
-    if (!fs.existsSync(srcPath)) {
-      throw new Error(`SourceDir '${srcPath}' does not exists.`);
-    }
-
+    await this.mkdirP(srcPath);
     return srcPath;
   }
 
-  getArtifactsDir(): string {
+  async getArtifactsDir(): Promise<string> {
     if (!process.env.GITHUB_WORKSPACE) {
-      throw new Error("GITHUB_WORKSPACE is not set.");
+      throw new Error("GITHUB_WORKSPACE env var is not set.");
     }
 
     //?? HACK. How to get the value of '{{ runner.temp }}' in JS's action?
     const artifactsPath = utils.BaseUtilLib.normalizePath(path.join(process.env.GITHUB_WORKSPACE, "../../_temp"));
-    if (!fs.existsSync(artifactsPath)) {
-      core.debug(`ArtifactsDir '${artifactsPath}' does not exists, creating it...`);
-      fs.mkdirSync(artifactsPath);
-    }
-
+    await this.mkdirP(artifactsPath);
     return artifactsPath;
   }
 

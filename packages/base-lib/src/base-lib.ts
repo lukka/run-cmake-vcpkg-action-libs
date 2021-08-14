@@ -5,7 +5,31 @@
 import * as stream from 'stream';
 import * as fs from 'fs';
 
-export interface VarMap { [key: string]: string };
+export interface VarMap { [key: string]: string }
+
+export interface ExecResult {
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly code: number;
+  readonly error: Error;
+}
+
+export interface ExecOptions {
+  cwd: string;
+  failOnStdErr: boolean;
+  ignoreReturnCode: boolean;
+  silent: boolean;
+  windowsVerbatimArguments: boolean;
+  env: {
+    [key: string]: string;
+  };
+  outStream: stream.Writable;
+  errStream: stream.Writable;
+  listeners?: {
+    stdout?: (data: Buffer) => void;
+    stderr?: (data: Buffer) => void;
+  };
+}
 
 export interface ToolRunner {
   exec(options: ExecOptions): Promise<number>;
@@ -38,35 +62,11 @@ export interface BaseLib {
   writeFile(path: string, content: string): void;
   stats(path: string): fs.Stats;
   exist(path: string): Promise<boolean>;
-  getBinDir(): string;
-  getSrcDir(): string;
-  getArtifactsDir(): string;
+  getBinDir(): Promise<string>;
+  getSrcDir(): Promise<string>;
+  getArtifactsDir(): Promise<string>;
   beginOperation(message: string): void;
   endOperation(): void;
   addMatcher(file: string): void;
   removeMatcher(owner: string): void;
-}
-
-export interface ExecOptions {
-  cwd: string;
-  failOnStdErr: boolean;
-  ignoreReturnCode: boolean;
-  silent: boolean;
-  windowsVerbatimArguments: boolean;
-  env: {
-    [key: string]: string;
-  };
-  outStream: stream.Writable;
-  errStream: stream.Writable;
-  listeners?: {
-    stdout?: (data: Buffer) => void;
-    stderr?: (data: Buffer) => void;
-  };
-}
-
-export interface ExecResult {
-  readonly stdout: string;
-  readonly stderr: string;
-  readonly code: number;
-  readonly error: Error;
 }

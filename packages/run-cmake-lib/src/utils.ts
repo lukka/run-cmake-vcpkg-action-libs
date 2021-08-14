@@ -13,12 +13,6 @@ export class CMakeUtils {
 
   public async injectEnvVariables(vcpkgRoot: string, triplet: string, baseLib: baselib.BaseLib): Promise<void> {
     await this.baseUtils.wrapOp(`Setup environment variables for triplet '${triplet}' using 'vcpkg env'`, async () => {
-      if (!vcpkgRoot) {
-        vcpkgRoot = process.env[vcpkgGlobals.outVcpkgRootPath] ?? "";
-        if (!vcpkgRoot) {
-          throw new Error(`${vcpkgGlobals.outVcpkgRootPath} environment variable is not set.`);
-        }
-      }
 
       // Search for vcpkg tool and run it
       let vcpkgPath: string = path.join(vcpkgRoot, 'vcpkg');
@@ -63,44 +57,24 @@ export class CMakeUtils {
     });
   }
 
-  public async injectVcpkgToolchain(args: string[], triplet: string, baseLib: baselib.BaseLib): Promise<string[]> {
-    args = args ?? [];
-    const vcpkgRoot: string | undefined = process.env[vcpkgGlobals.outVcpkgRootPath];
+  public async setEnvironmentForVcpkgTriplet(triplet: string, baseLib: baselib.BaseLib): Promise<void> {
+    const vcpkgRoot: string | undefined = process.env[vcpkgGlobals.vcpkgRoot];
 
-    // if RUNVCPKG_VCPKG_ROOT is defined, then use it, and put aside into
-    // VCPKG_CHAINLOAD_TOOLCHAIN_FILE the existing toolchain.
-    if (vcpkgRoot && vcpkgRoot.length > 1) {
-      const toolchainFile: string | undefined =
-        this.baseUtils.getToolchainFile(args);
-      args = this.baseUtils.removeToolchainFile(args);
-      const vcpkgToolchain: string =
-        path.join(vcpkgRoot, '/scripts/buildsystems/vcpkg.cmake');
-      args.push(`-DCMAKE_TOOLCHAIN_FILE=${vcpkgToolchain}`);
-      if (toolchainFile) {
-        args.push(`-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=${toolchainFile}`);
-      }
-
-      // If the triplet is provided, specify the same triplet on the cmd line and set the environment for msvc.
-      if (triplet) {
-        args.push(`-DVCPKG_TARGET_TRIPLET=${triplet}`);
-
-        // For Windows build agents, inject the environment variables used
-        // for the MSVC compiler using the 'vcpkg env' command.
-        // This is not needed for others compiler on Windows, but it should be harmless.
-        if (this.baseUtils.isWin32() && triplet) {
-          if (triplet.indexOf("windows") !== -1) {
-            process.env.CC = "cl.exe";
-            process.env.CXX = "cl.exe";
-            baseLib.setVariable("CC", "cl.exe");
-            baseLib.setVariable("CXX", "cl.exe");
-          }
-
-          await this.injectEnvVariables(vcpkgRoot, triplet, baseLib);
+    // if VCPKG_ROOT is defined, then use it.
+    if (triplet && vcpkgRoot && vcpkgRoot.length > 1) {
+      // For Windows build agents, inject the environment variables used
+      // for the MSVC compiler using the 'vcpkg env' command.
+      // This is not needed for others compiler on Windows, but it should be harmless.
+      if (this.baseUtils.isWin32()) {
+        if (triplet.indexOf("windows") !== -1) {
+          process.env.CC = "cl.exe";
+          process.env.CXX = "cl.exe";
+          baseLib.setVariable("CC", "cl.exe");
+          baseLib.setVariable("CXX", "cl.exe");
         }
+
+        await this.injectEnvVariables(vcpkgRoot, triplet, baseLib);
       }
     }
-
-    return args;
   }
-
 }
