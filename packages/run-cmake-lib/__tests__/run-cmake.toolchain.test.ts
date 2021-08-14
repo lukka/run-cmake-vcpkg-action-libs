@@ -18,43 +18,31 @@ const cmakeExePath = '/usr/bin/cmake';
 const ninjaExePath = '/usr/bin/ninja';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const cmakeListsTxtPath = path.join('/home/user/project/src/path/', 'CMakeLists.txt');
-
-jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
-    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
-      return [true, "!.git\n"];
-    }
-    else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.cmakeAppendedArgs))) {
-      return [true, oldGitRef];
-    }
-    else
-      throw `readFile called with unexpected file name: '${file}'.`;
-  });
+const ctestExePath = '/usr/bin/ctest';
+const cmakePreset = 'cmake';
+const buildPreset = 'build';
+const testPreset = 'test';
 
 import { CMakeRunner } from '../src/cmake-runner';
 import * as cmakeutils from '../src/utils'
 
-mock.inputsMocks.setInput(globals.cmakeListsOrSettingsJson, 'CMakeListsTxtAdvanced');
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
-mock.inputsMocks.setInput(globals.ninjaPath, ninjaExePath);
-mock.inputsMocks.setInput(globals.buildDirectory, 'buildDirPath');
-mock.inputsMocks.setBooleanInput(globals.buildWithCMake, true);
-mock.inputsMocks.setInput(globals.buildWithCMakeArgs, '-cmake -build -args');
-mock.inputsMocks.setInput(globals.buildDirectory, '/path/to/build/dir/');
-mock.inputsMocks.setInput(globals.cmakeAppendedArgs, '-GNinja -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=/existing/tool/chain.cmake');
-
+mock.inputsMocks.setInput(globals.configurePreset, cmakePreset);
+mock.inputsMocks.setInput(globals.buildPreset, buildPreset);
+mock.inputsMocks.setInput(globals.testPreset, testPreset);
+// Setup to inject the vcpkg toolchain.
 mock.inputsMocks.setBooleanInput(globals.useVcpkgToolchainFile, true);
-mock.inputsMocks.setInput(globals.cmakeToolchainPath, cmakeListsTxtPath)
 process.env.RUNVCPKG_VCPKG_ROOT = vcpkgRoot;
 const vcpkgToolchainFile = path.join(vcpkgRoot, 'scripts/buildsystems/vcpkg.cmake');
 
-testutils.testWithHeader('run-cmake basic mode with toolchain must configure and build successfully', async () => {
+testutils.testWithHeader('run-cmake with toolchain must configure and build and test successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
-      [`${cmakeExePath} -DCMAKE_MAKE_PROGRAM=${ninjaExePath} -GNinja -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=/existing/tool/chain.cmake -DCMAKE_TOOLCHAIN_FILE=${vcpkgToolchainFile} ${path.dirname(cmakeListsTxtPath)}`]: { 'code': 0, "stdout": 'cmake output here' },
-      [`${cmakeExePath} --build . -cmake -build -args`]: { 'code': 0, "stdout": 'cmake --build output here' },
+      [`${cmakeExePath} --preset ${cmakePreset} -DCMAKE_TOOLCHAIN_FILE=${vcpkgToolchainFile}`]: { 'code': 0, "stdout": 'cmake --preset output here' },
+      [`${cmakeExePath} --build --preset ${buildPreset}`]: { 'code': 0, "stdout": 'cmake --build --preset output here' },
+      [`${ctestExePath} --preset ${testPreset}`]: { 'code': 0, "stdout": 'ctest --preset output here' },
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
     },
     "exist": { [vcpkgRoot]: true },
@@ -64,6 +52,7 @@ testutils.testWithHeader('run-cmake basic mode with toolchain must configure and
       'chmod': '/bin/chmod',
       'cmd.exe': 'cmd.exe',
       'cmake': cmakeExePath,
+      'ctest': ctestExePath,
       'ninja': ninjaExePath
     },
   };
@@ -82,4 +71,5 @@ testutils.testWithHeader('run-cmake basic mode with toolchain must configure and
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
   expect(injectVcpkgMock).toBeCalledTimes(1);
+  injectVcpkgMock.mockRestore();
 });

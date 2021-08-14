@@ -5,7 +5,31 @@
 import * as stream from 'stream';
 import * as fs from 'fs';
 
-export interface VarMap { [key: string]: string };
+export interface VarMap { [key: string]: string }
+
+export interface ExecResult {
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly code: number;
+  readonly error: Error;
+}
+
+export interface ExecOptions {
+  cwd: string;
+  failOnStdErr: boolean;
+  ignoreReturnCode: boolean;
+  silent: boolean;
+  windowsVerbatimArguments: boolean;
+  env: {
+    [key: string]: string;
+  };
+  outStream: stream.Writable;
+  errStream: stream.Writable;
+  listeners?: {
+    stdout?: (data: Buffer) => void;
+    stderr?: (data: Buffer) => void;
+  };
+}
 
 export interface ToolRunner {
   exec(options: ExecOptions): Promise<number>;
@@ -45,28 +69,4 @@ export interface BaseLib {
   endOperation(): void;
   addMatcher(file: string): void;
   removeMatcher(owner: string): void;
-}
-
-export interface ExecOptions {
-  cwd: string;
-  failOnStdErr: boolean;
-  ignoreReturnCode: boolean;
-  silent: boolean;
-  windowsVerbatimArguments: boolean;
-  env: {
-    [key: string]: string;
-  };
-  outStream: stream.Writable;
-  errStream: stream.Writable;
-  listeners?: {
-    stdout?: (data: Buffer) => void;
-    stderr?: (data: Buffer) => void;
-  };
-}
-
-export interface ExecResult {
-  readonly stdout: string;
-  readonly stderr: string;
-  readonly code: number;
-  readonly error: Error;
 }
