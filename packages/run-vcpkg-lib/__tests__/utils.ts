@@ -136,6 +136,9 @@ export class MockInputs {
     public getInput(name: string, required?: boolean): string {
         if (!(name in this.inputs)) {
             testLog(`input '${name}' not found`);
+            if (required === true) {
+                throw new Error(`input '${name}' is required!`);
+            }
             return "";
         }
         return this.inputs[name] as string;
@@ -143,6 +146,9 @@ export class MockInputs {
     public getBooleanInput(name: string, required?: boolean): boolean {
         if (!(name in this.inputs)) {
             testLog(`input '${name}' not found`);
+            if (required === true) {
+                throw new Error(`input '${name}' is required!`);
+            }
             return false;
         }
         return this.inputs[name].toLowerCase() === "true";
@@ -150,6 +156,9 @@ export class MockInputs {
     public getDelimitedInput(name: string, separator?: string, required?: boolean): string[] {
         if (!(name in this.inputs)) {
             testLog(`input '${name}' not found`);
+            if (required === true) {
+                throw new Error(`input '${name}' is required!`);
+            }
             return [];
         }
         return (this.inputs[name].split('\n')) as string[];

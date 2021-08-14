@@ -6,6 +6,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as baseutillib from '@lukka/base-util-lib';
 import * as actionlibs from '../src/action-lib';
+import * as lib from '../src/action-lib'
 
 function readFile(path: string): [boolean, string] {
   if (path.indexOf("response_file_with_triplet.txt") !== -1) {
@@ -41,27 +42,6 @@ const BaseUtilLib: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(new act
 
 describe('baselibs utils tests', function () {
   test('testing for presence of flags', async () => {
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-GNinja']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G Ninja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-G ninja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g Ninja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-Gninja']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G"Ninja"']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G Ninja"']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G  Ninja"']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G  "Ninja"']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-G  "Ninja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g"Ninja"']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-gNinja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g"Ninja']));
-
-    assert.ok(BaseUtilLib.isMakeProgram(['-DCMAKE_MAKE_PROGRAM=']));
-    assert.ok(!BaseUtilLib.isMakeProgram(['-D CMAKE_MAKE_PROGRAM=']));
-    assert.ok(!BaseUtilLib.isMakeProgram(['-dCMAKE_MAKE_PROGRAM=']));
-    assert.ok(!BaseUtilLib.isMakeProgram(['-d CMAKE_MAKE_PROGRAM=']));
-    assert.ok(!BaseUtilLib.isMakeProgram(['']));
-    assert.ok(!BaseUtilLib.isMakeProgram([' ']));
-
     assert.ok(BaseUtilLib.isToolchainFile(['-DCMAKE_TOOLCHAIN_FILE']));
     assert.ok(BaseUtilLib.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE']));
     assert.ok(!BaseUtilLib.isToolchainFile([' -dCMAKE_TOOLCHAIN_FILE']));
@@ -86,6 +66,23 @@ describe('baselibs utils tests', function () {
     assert.strictEqual(baseutillib.BaseUtilLib.normalizePath('/a/'), path.normalize('/a'));
     assert.strictEqual(baseutillib.BaseUtilLib.normalizePath('/a/path'), path.join('/a', 'path'));
   });
+
+  test('tests for dumpError()', async () => {
+    const actionLib: lib.ActionLib = new lib.ActionLib();
+    // Call dumpError() with message.
+    try {
+      throw new Error("error");
+    }
+    catch (err) {
+      baseutillib.dumpError(actionLib, err);
+    }
+
+    // Call dumpError() with no message.
+    try {
+      throw new Error();
+    }
+    catch (err) {
+      baseutillib.dumpError(actionLib, err);
+    }
+  });
 });
-
-
