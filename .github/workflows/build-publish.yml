@@ -27,7 +27,7 @@ jobs:
       shell: bash
       name: lint
     - run: |
-        npm run test
+        npm run test 2>&1
       shell: bash
       name: test
     - name: Coveralls

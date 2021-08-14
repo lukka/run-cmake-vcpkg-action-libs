@@ -10,6 +10,16 @@ import * as fs from 'fs';
 import * as path from 'path'
 import * as os from 'os'
 
+function getExistingTempDir(): string {
+  if (!process.env.GITHUB_WORKSPACE) {
+    process.env.GITHUB_WORKSPACE = path.join(os.tmpdir(), process.pid.toString());
+  }
+
+  const testDir = path.join(process.env.GITHUB_WORKSPACE, "testDir");
+  fs.mkdirSync(testDir, { recursive: true });
+  return testDir;
+}
+
 test('ActionToolRunner exec() and execSync() tests', async () => {
   const options: baselib.ExecOptions = {
     cwd: process.cwd(),
@@ -93,45 +103,51 @@ test('ActionLib which()/exists() tests', async () => {
   expect(doGitExist).toBeTruthy();
 });
 
-test('ActionLib&Utils mkdirP()/exist()/readFile()/writeFile()/get*Dir() tests', async () => {
+test('ActionLib&Utils mkdirP() tests', async () => {
   const actionLib: lib.ActionLib = new lib.ActionLib();
   const util: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(actionLib);
 
-  if (!process.env.GITHUB_WORKSPACE) {
-    process.env.GITHUB_WORKSPACE = path.join(os.tmpdir(), process.pid.toString());
-    fs.mkdirSync(process.env.GITHUB_WORKSPACE);
-  }
-
-  expect(actionLib.getArtifactsDir()).toBeTruthy();
-  expect(actionLib.getBinDir()).toBeTruthy();
-  expect(actionLib.getSrcDir()).toBeTruthy();
-
-  const createdDir = path.join(actionLib.getArtifactsDir(), "testDir")
+  const createdDir = getExistingTempDir();
   await actionLib.mkdirP(createdDir);
   const exist = await actionLib.exist(createdDir);
   expect(exist).toBeTruthy();
+  await actionLib.mkdirP(createdDir);// Creating the second time should not throw.
+});
 
-  const createdFile = path.join(createdDir, "file");
-  const fileContent = "fileContent";
-  actionLib.writeFile(createdFile, fileContent);
-  const [ok, content] = util.readFile(createdFile);
-  expect(ok).toBeTruthy();
-  expect(content).toBe(fileContent);
+test('ActionLib&Utils exist()/readFile()/writeFile()/get*Dir() tests', async () => {
+  try {
+    const actionLib: lib.ActionLib = new lib.ActionLib();
+    const util: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(actionLib);
 
-  util.writeFile(createdFile, fileContent);
-  const [ok2, content2] = util.readFile(createdFile);
-  expect(ok2).toBeTruthy();
-  expect(content2).toBe(fileContent);
+    expect(async () => await actionLib.getArtifactsDir()).toBeTruthy();
+    expect(async () => await actionLib.getBinDir()).toBeTruthy();
+    expect(async () => await actionLib.getSrcDir()).toBeTruthy();
 
-  await actionLib.rmRF(createdDir);
-  const dontExist = await actionLib.exist(createdDir);
-  expect(dontExist).toBeFalsy();
+    const createdDir = getExistingTempDir();
 
-  expect(actionLib.resolve(process.env.GITHUB_WORKSPACE)).toBe(process.env.GITHUB_WORKSPACE);
+    const createdFile = path.join(createdDir, "file");
+    const fileContent = "fileContent";
+    actionLib.writeFile(createdFile, fileContent);
+    const content = util.readFile(createdFile);
+    expect(content).toBeTruthy();
+    expect(content).toBe(fileContent);
 
-  actionLib.beginOperation("operation");
-  actionLib.endOperation();
+    util.writeFile(createdFile, fileContent);
+    const content2 = util.readFile(createdFile);
+    expect(content2).toBe(fileContent);
 
-  util.wrapOp("wrapOp", () => { return Promise.resolve() });
-  util.wrapOpSync("wrapOpSync", () => { return Promise.resolve() });
+    await actionLib.rmRF(createdDir);
+    const dontExist = await actionLib.exist(createdDir);
+    expect(dontExist).toBeFalsy();
+
+    actionLib.beginOperation("operation");
+    actionLib.endOperation();
+
+    await util.wrapOp("wrapOp", () => { return Promise.resolve() });
+    await util.wrapOpSync("wrapOpSync", () => { return Promise.resolve() });
+  }
+  catch (err) {
+    console.log((err as Error).message);
+    console.log((err as Error)?.stack);
+  }
 });
