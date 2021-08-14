@@ -10,7 +10,7 @@ module.exports = {
   },
   verbose: true,
   collectCoverage: true,
-  coveragePathIgnorePatterns: ["<rootDir>/build/", "<rootDir>/node_modules/", "<rootDir>/__tests__", "mocks.ts", '__tests__'],
+  coveragePathIgnorePatterns: ["<rootDir>/build/", "<rootDir>/node_modules/", "<rootDir>/__tests__", "mocks.ts", '__tests__', "index.ts"],
   collectCoverageFrom: [
     "**/*.ts",
     "!**/node_modules/**",
