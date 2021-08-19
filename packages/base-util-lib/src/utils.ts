@@ -502,8 +502,8 @@ export class LogFileCollector {
   public handleOutput(buffer: Buffer): void {
     this.appendBuffer(buffer);
 
-    this.baseLib.debug(`\n\nappending: ${buffer}\n\n`);
-    this.baseLib.debug(`\n\nbuffer: ${this.bufferString}\n\n`);
+    //?? this.baseLib.debug(`\n\nappending: ${buffer}\n\n`);
+    //?? this.baseLib.debug(`\n\nbuffer: ${this.bufferString}\n\n`);
     let consumedUntil = -1;
     for (const re of this.regExps) {
       re.lastIndex = 0;
@@ -524,7 +524,7 @@ export class LogFileCollector {
     }
 
     this.limitBuffer(consumedUntil);
-    this.baseLib.debug(`\n\nremaining: ${this.bufferString}\n\n`);
+    //?? this.baseLib.debug(`\n\nremaining: ${this.bufferString}\n\n`);
   }
 }
 

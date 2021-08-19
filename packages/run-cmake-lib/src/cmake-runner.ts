@@ -89,11 +89,11 @@ export class CMakeRunner {
     }
 
     this.tl.debug(`Testing with CTest ...`);
-    await this.baseUtils.wrapOp("Testing with CTest",
+    await this.baseUtils.wrapOp("Test with CTest",
       async () => await this.launchCMake(
         cmake,
-        "Testing with CTest ...",
-        this.cmakeSourceDir, this.logFilesCollector));
+        this.cmakeSourceDir,
+        this.logFilesCollector));
 
     this.tl.debug('test()>>');
   }
@@ -113,8 +113,8 @@ export class CMakeRunner {
     await this.baseUtils.wrapOp("Build with CMake",
       async () => await this.launchCMake(
         cmake,
-        "Building with CMake ...",
-        this.cmakeSourceDir, this.logFilesCollector));
+        this.cmakeSourceDir,
+        this.logFilesCollector));
 
     this.tl.debug('build()>>');
   }
@@ -135,12 +135,11 @@ export class CMakeRunner {
     }
     this.tl.debug(`Generating project files with CMake ...`);
     await this.baseUtils.wrapOp("Generate project files with CMake",
-      async () => await this.launchCMake(cmake, "Generating project files with CMake ...", this.cmakeSourceDir, this.logFilesCollector));
+      async () => await this.launchCMake(cmake, this.cmakeSourceDir, this.logFilesCollector));
   }
 
-  private async launchCMake(cmake: baselib.ToolRunner, description: string,
+  private async launchCMake(cmake: baselib.ToolRunner,
     sourceDir: string, logCollector: baseutillib.LogFileCollector): Promise<void> {
-    let code = -1;
     const options = {
       cwd: sourceDir,
       failOnStdErr: false,
@@ -156,7 +155,7 @@ export class CMakeRunner {
       }
     } as baselib.ExecOptions;
 
-    code = await this.baseUtils.wrapOp(description, () => cmake.exec(options));
+    const code = await cmake.exec(options);
 
     if (code !== 0) {
       throw new Error(`"CMake failed with error code: '${code}'.`);
