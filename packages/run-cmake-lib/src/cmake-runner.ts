@@ -80,7 +80,7 @@ export class CMakeRunner {
 
   private async test(cmake: baselib.ToolRunner): Promise<void> {
     this.tl.debug('test()<<');
-    const cmakeArgs: string[] = [`--preset ${this.cmakeTestPreset}`];
+    const cmakeArgs: string[] = [`--preset`, `${this.cmakeTestPreset}`];
 
     this.tl.debug(`CTest arguments: ${cmakeArgs}`);
 
@@ -101,7 +101,7 @@ export class CMakeRunner {
   private async build(cmake: baselib.ToolRunner): Promise<void> {
     this.tl.debug('build()<<');
 
-    const cmakeArgs: string[] = [`--build`, `--preset ${this.cmakeBuildPreset}`];
+    const cmakeArgs: string[] = [`--build`, `--preset`, `${this.cmakeBuildPreset}`];
 
     this.tl.debug(`CMake arguments: ${cmakeArgs}`);
 
@@ -122,7 +122,7 @@ export class CMakeRunner {
   private async configure(cmake: baselib.ToolRunner): Promise<void> {
     this.tl.debug('configure()<<');
 
-    let cmakeArgs: string[] = [`--preset ${this.cmakeConfigurePreset}`];
+    let cmakeArgs: string[] = [`--preset`, `${this.cmakeConfigurePreset}`];
 
     // Use vcpkg toolchain if requested.
     if (this.useVcpkgToolchainFile === true) {
