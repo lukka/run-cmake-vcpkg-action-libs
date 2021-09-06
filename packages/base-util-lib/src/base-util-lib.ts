@@ -5,11 +5,11 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import AdmZip from 'adm-zip';
 import * as http from 'follow-redirects'
 import * as del from 'del'
 import { performance } from 'perf_hooks'
 import * as baselib from "@lukka/base-lib"
+import * as glob from "glob"
 
 export class BaseUtilLib {
 
@@ -143,65 +143,6 @@ export class BaseUtilLib {
     return "";
   }
 
-  public static extractTriplet(args: string, readFile: (path: string) => [boolean, string]): string | null {
-    let triplet: string | null = null;
-    // Split string on any 'whitespace' character
-    const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
-    let index = 0;
-    for (; index < argsSplitted.length; index++) {
-      let arg: string = argsSplitted[index].trim();
-      // remove all whitespace characters (e.g. newlines, tabs, blanks)
-      arg = arg.replace(/\s/, '')
-      if (arg === "--triplet") {
-        index++;
-        if (index < argsSplitted.length) {
-          triplet = argsSplitted[index];
-          return triplet.trim();
-        }
-      }
-      if (arg.startsWith("@")) {
-        const [ok, content] = readFile(arg.substring(1));
-        if (ok) {
-          const t = BaseUtilLib.extractTriplet(content, readFile);
-          if (t) {
-            return t.trim();
-          }
-        }
-      }
-    }
-    return triplet;
-  }
-
-  public async resolveArguments(args: string, readFile: (path: string) => [boolean, string]): Promise<string> {
-    let resolvedArguments = "";
-
-    // Split string on any 'whitespace' character
-    const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
-    let index = 0;
-    for (; index < argsSplitted.length; index++) {
-      let arg: string = argsSplitted[index].trim();
-      // remove all whitespace characters (e.g. newlines, tabs, blanks)
-      arg = arg.replace(/\s/, '');
-      let isResponseFile = false;
-      if (arg.startsWith("@")) {
-        const resolvedFilePath: string = BaseUtilLib.normalizePath(arg);
-        if (await this.baseLib.exist(resolvedFilePath)) {
-          const [ok, content] = readFile(resolvedFilePath);
-          if (ok && content) {
-            isResponseFile = true;
-            resolvedArguments += content;
-          }
-        }
-      }
-
-      if (!isResponseFile) {
-        resolvedArguments += arg;
-      }
-    }
-
-    return resolvedArguments;
-  }
-
   // Force 'name' env variable to have value of 'value'.
   public setEnvVar(name: string, value: string): void {
     // Set variable both as env var and as step variable, which might be re-used in subseqeunt steps.  
@@ -253,35 +194,6 @@ export class BaseUtilLib {
     return false;
   }
 
-  public isToolchainFile(args: string[]): boolean {
-    for (const arg of args) {
-      if (/-DCMAKE_TOOLCHAIN_FILE/.test(arg))
-        return true;
-    }
-
-    return false;
-  }
-
-  public getToolchainFile(args: string[]): string | null {
-    this.baseLib.debug(`getToolchainFile(${JSON.stringify(args)})<<`);
-    for (const arg of args) {
-      const matches = /-DCMAKE_TOOLCHAIN_FILE(?::[^\s]*)?=([^\s]*)/.exec(arg);
-
-      if (matches != null) {
-        if (matches.length > 1) {
-          this.baseLib.debug(`match found=${matches[1]}`);
-          return matches[1];
-        }
-      }
-    }
-
-    return null;
-  }
-
-  public removeToolchainFile(args: string[]): string[] {
-    return args.filter(a => !/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/.test(a));
-  }
-
   public mkdir(target: string, options: fs.MakeDirectoryOptions): void {
     fs.mkdirSync(target, options);
   }
@@ -293,109 +205,6 @@ export class BaseUtilLib {
   public test(aPath: string): boolean {
     const result: boolean = fs.existsSync(aPath);
     return result;
-  }
-
-  public async downloadFile(url: string): Promise<string> {
-    const downloadsDirName = "dl";
-    // validate parameters
-    if (!url) {
-      throw new Error('downloadFile: Parameter "url" must be set.');
-    }
-
-    const downloadsDirectory = path.join(await this.baseLib.getBinDir(), downloadsDirName);
-    const scrubbedUrl = url.replace(/[/\:?]/g, '_');
-    const targetPath = path.join(downloadsDirectory, scrubbedUrl);
-    const marker = targetPath + '.completed';
-
-    // skip if already downloaded
-    if (this.test(marker)) {
-      console.log(`Found downloaded file at: ${targetPath}`);
-      return Promise.resolve(targetPath);
-    } else {
-      console.log(`Downloading url '${url}' to file '${targetPath}'.`);
-
-      // delete any previous partial attempt
-      if (this.test(targetPath)) {
-        this.rm(targetPath);
-      }
-
-      // download the file
-      this.mkdir(downloadsDirectory, { recursive: true });
-      const file: fs.WriteStream = fs.createWriteStream(targetPath, { autoClose: true });
-
-      return new Promise<string>((resolve: any, reject: any) => {
-        const request = http.https.get(url, (response) => {
-          response.pipe(file).on('finish', () => {
-            this.baseLib.debug(`statusCode: ${response.statusCode}.`);
-            this.baseLib.debug(`headers: ${response.headers}.`)
-            console.log(`'${url}' downloaded to: '${targetPath}'`);
-            fs.writeFileSync(marker, '');
-            request.end();
-            resolve(targetPath)
-          }).on('error', (error: Error) =>
-            reject(new Error(`statusCode='${response.statusCode}', error='${error.toString()}'.`)));
-        });
-      });
-    }
-  }
-
-  /**
-   * Downloads and extracts an archive file.
-   * @returns The path to the extracted content.
-   */
-  public async downloadArchive(url: string): Promise<string> {
-    if (!url) {
-      throw new Error('downloadArchive: url must be provided!');
-    }
-
-    try {
-      const targetFileName: string = url.replace(/[\/\\:?]/g, '_');
-      // 'x' for extracted content.
-      const targetPath: string =
-        path.join(await this.baseLib.getBinDir(), 'x', targetFileName);
-      const marker: string = targetPath + '.completed';
-      if (!this.test(marker)) {
-        // download the whole archive.
-        const archivePath = await this.downloadFile(url);
-
-        // extract the archive overwriting anything.
-        console.log(`Extracting archive '${archivePath}' ...`);
-        this.mkdir(targetPath, { recursive: true });
-        const zip = new AdmZip(archivePath);
-        zip.extractAllTo(targetPath, true);
-
-        // write the completed file marker.
-        fs.writeFileSync(marker, '');
-      }
-
-      return targetPath;
-    } catch (exception) {
-      throw new Error(`Failed to download the Ninja executable: '${exception}'.`);
-    }
-  }
-
-  /**
-   * Get a set of commands to be run in the shell of the host OS.
-   * @export
-   * @param {string[]} args
-   * @returns {(trm.ToolRunner | null)}
-   */
-  public async getScriptCommand(args: string): Promise<baselib.ToolRunner | null> {
-
-    let tool: baselib.ToolRunner | null = null;
-    if (this.isWin32()) {
-      const cmdExe = process.env.COMSPEC ?? "cmd.exe";
-      const cmdPath: string = await this.baseLib.which(cmdExe, true);
-      tool = this.baseLib.tool(cmdPath);
-      tool.arg('/c');
-      tool.line(args);
-    } else {
-      const shPath: string = await this.baseLib.which('sh', true);
-      tool = this.baseLib.tool(shPath);
-      tool.arg('-c');
-      tool.arg(args);
-    }
-    return tool;
   }
 
   public isVariableStrippingPath(variableName: string): boolean {
@@ -448,6 +257,30 @@ export class BaseUtilLib {
 
   public static isValidSHA1(text: string): boolean {
     return /^[a-fA-F0-9]{40}$/.test(text);
+  }
+
+  /**
+   * Get the hash of one (and only one) file.
+   * @export
+   * @param {string} globExpr A glob expression to identify one file.
+   * @returns {string} The file hit and its hash, or [null, null] if no its.
+   * @throws When multiple hits occur.
+   */
+  public async getFileHash(globExpr: string): Promise<[string | null, string | null]> {
+    const files = await new Promise<string[]>((resolve, reject) => {
+      try { glob.glob(globExpr, (err, matches) => resolve(matches)); } catch (err) { reject(err); }
+    });
+
+    if (files.length > 1) {
+      throw new Error(`Error computing hash on '${globExpr}' as it matches multiple files: ${files}. It must match only one file.`);
+    }
+    if (files.length == 0) {
+      return [null, null];
+    }
+    const file = path.resolve(files[0]);
+
+    const fileHash = await this.baseLib.hashFiles(file);
+    return [fileHash, file];
   }
 }
 

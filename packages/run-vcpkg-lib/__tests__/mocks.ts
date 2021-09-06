@@ -36,7 +36,6 @@ export class CMakeMocks {
 
 // Mock for BaseUtilLib
 export const MockBaseUtilLib = baseutillib.BaseUtilLib as jest.Mocked<typeof baseutillib.BaseUtilLib>;
-MockBaseUtilLib.extractTriplet = jest.fn().mockImplementation(() => null);
 MockBaseUtilLib.prototype.readFile = jest.fn().mockImplementation(() => null);
 jest.spyOn(baseutillib.BaseUtilLib.prototype, 'isVcpkgSubmodule').mockImplementation(
   function (this: baseutillib.BaseUtilLib, gitPath: string, fullVcpkgPath: string): Promise<boolean> {

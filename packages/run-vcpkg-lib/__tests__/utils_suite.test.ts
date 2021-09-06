@@ -4,6 +4,8 @@
 
 import * as path from 'path';
 import * as vcpkgutils from '../src/utils';
+import * as baseutillib from '@lukka/base-util-lib';
+import * as actionlib from '../../action-lib';
 
 function normalizePath(base: string, postfix: string): string {
   return path.normalize(`!${path.join(base, postfix)}`);
@@ -19,4 +21,3 @@ test('tests for run-vcpkg utils.ts ...', async () => {
       normalizePath(vcpkgRoot, "downloads")]
   );
 });
-

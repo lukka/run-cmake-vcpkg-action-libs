@@ -141,7 +141,4 @@ test('ActionLib&Utils exist()/readFile()/writeFile()/get*Dir() tests', async () 
 
   actionLib.beginOperation("operation");
   actionLib.endOperation();
-
-  await util.wrapOp("wrapOp", () => { return Promise.resolve() });
-  await util.wrapOpSync("wrapOpSync", () => { return Promise.resolve() });
 });

@@ -14,6 +14,10 @@ export interface ExecResult {
   readonly error: Error;
 }
 
+export interface GlobOptions {
+  readonly followSymLink: boolean;
+}
+
 export interface ExecOptions {
   cwd: string;
   failOnStdErr: boolean;
@@ -69,4 +73,5 @@ export interface BaseLib {
   endOperation(): void;
   addMatcher(file: string): void;
   removeMatcher(owner: string): void;
+  hashFiles(fileGlob: string, options?: GlobOptions): Promise<string>;
 }

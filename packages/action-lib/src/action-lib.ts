@@ -8,8 +8,9 @@ import * as stream from 'stream';
 import * as baselib from '@lukka/base-lib';
 import * as utils from '@lukka/base-util-lib';
 import * as core from '@actions/core';
-import * as execIfaces from '@actions/exec/lib/interfaces';
+import * as execifaces from '@actions/exec/lib/interfaces';
 import * as toolrunner from '@actions/exec/lib/toolrunner';
+import * as actionglob from '@actions/glob'
 import * as ioutil from '@actions/io/lib/io-util';
 import * as io from '@actions/io/lib/io';
 import * as fs from 'fs';
@@ -71,7 +72,7 @@ function escapeCmdExeArgument(argument: string): string {
  * @returns {Promise<number>}
  * @memberof ActionLib
  */
-async function exec(commandPath: string, args: string[], execOptions?: execIfaces.ExecOptions): Promise<number> {
+async function exec(commandPath: string, args: string[], execOptions?: execifaces.ExecOptions): Promise<number> {
   core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, {${execOptions?.cwd}})<<`);
 
   let useShell: string | boolean = false;
@@ -188,7 +189,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
     let stdout = "";
     let stderr = "";
 
-    let options2: execIfaces.ExecOptions | undefined;
+    let options2: execifaces.ExecOptions | undefined;
     if (options) {
       options2 = this.convertExecOptions(options);
       options2.listeners = {
@@ -211,7 +212,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
     return Promise.resolve(res2);
   }
 
-  private convertExecOptions(options: baselib.ExecOptions): execIfaces.ExecOptions {
+  private convertExecOptions(options: baselib.ExecOptions): execifaces.ExecOptions {
     const result: any = {
       cwd: options.cwd ?? process.cwd(),
       env: options.env ?? process.env,
@@ -223,7 +224,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
         stdout: options.listeners?.stdout,
         stderr: options.listeners?.stderr,
       }
-    } as execIfaces.ExecOptions;
+    } as execifaces.ExecOptions;
     result.outStream = options.outStream || process.stdout as stream.Writable;
     result.errStream = options.errStream || process.stderr as stream.Writable;
 
@@ -417,7 +418,7 @@ export class ActionLib implements baselib.BaseLib {
     if (!process.env.GITHUB_WORKSPACE) {
       throw new Error("GITHUB_WORKSPACE is not set.");
     }
-    
+
     const binPath = utils.BaseUtilLib.normalizePath(path.join(process.env.GITHUB_WORKSPACE, "../b/"));
     await this.mkdirP(binPath);
     return binPath;
@@ -457,5 +458,9 @@ export class ActionLib implements baselib.BaseLib {
 
   removeMatcher(file: string): void {
     console.log(`::remove-matcher::${file}`);
+  }
+
+  hashFiles(fileGlob: string, options?: baselib.GlobOptions): Promise<string> {
+    return actionglob.hashFiles(fileGlob, options as actionglob.GlobOptions);
   }
 }
