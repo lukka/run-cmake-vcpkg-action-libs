@@ -2,7 +2,7 @@
   "packages": [
     "packages/*"
   ],
-  "version": "1.0.30-alpha.15",
+  "version": "1.0.30-alpha.16",
   "command": {
     "bootstrap": {
       "hoist": true
