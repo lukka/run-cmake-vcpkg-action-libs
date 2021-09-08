@@ -139,6 +139,10 @@ test('ActionLib&Utils exist()/readFile()/writeFile()/get*Dir() tests', async () 
   const dontExist = await actionLib.exist(createdDir);
   expect(dontExist).toBeFalsy();
 
+  // Just call, expect not exceptions.
   actionLib.beginOperation("operation");
   actionLib.endOperation();
+
+  actionLib.setState("name", "value");
+  actionLib.getState("name");
 });
