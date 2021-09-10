@@ -28,7 +28,7 @@ import { CMakeRunner } from '../src/cmake-runner';
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
 mock.inputsMocks.setInput(globals.configurePreset, cmakePreset);
 
-testutils.testWithHeader('run-cmake must fail when a tool returns error code 1', () => {
+testutils.testWithHeader('run-cmake must fail when a tool returns error code 1', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -51,7 +51,7 @@ testutils.testWithHeader('run-cmake must fail when a tool returns error code 1',
 
   // Act.
   const cmakeRunner: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
-  expect(() => cmakeRunner.run()).rejects.toThrowError();// Assert
+  await expect(() => cmakeRunner.run()).rejects.toThrowError();// Assert
 
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);

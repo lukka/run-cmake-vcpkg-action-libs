@@ -78,4 +78,3 @@ test('wrapOp() tests', async () => {
 test('getDefaultTriplet() tests', async () => {
   expect(baseUtil.getDefaultTriplet()).toBeTruthy();
 });
-

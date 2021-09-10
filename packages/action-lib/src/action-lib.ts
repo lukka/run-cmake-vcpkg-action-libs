@@ -340,11 +340,11 @@ export class ActionLib implements baselib.BaseLib {
     return process.env[name] ?? "";
   }
 
-  setState(name: string, value: any): void {
+  setState(name: string, value: string): void {
     core.saveState(name, value);
   }
 
-  getState(name: string): any {
+  getState(name: string): string {
     return core.getState(name);
   }
 

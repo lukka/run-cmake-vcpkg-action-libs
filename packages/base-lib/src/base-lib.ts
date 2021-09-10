@@ -51,8 +51,8 @@ export interface BaseLib {
   getDelimitedInput(name: string, delim: string, required: boolean): string[];
   setVariable(name: string, value: string): void;
   getVariable(name: string): string | undefined;
-  setState(name: string, value: any): void;
-  getState(name: string): any;
+  setState(name: string, value: string): void;
+  getState(name: string): string;
   setOutput(name: string, value: string): void;
   debug(message: string): void;
   error(message: string): void;
