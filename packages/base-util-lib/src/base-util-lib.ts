@@ -5,7 +5,6 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as http from 'follow-redirects'
 import * as del from 'del'
 import { performance } from 'perf_hooks'
 import * as baselib from "@lukka/base-lib"
@@ -185,15 +184,6 @@ export class BaseUtilLib {
     return result;
   }
 
-  public isMakeProgram(args: string[]): boolean {
-    for (const arg of args) {
-      if (/-DCMAKE_MAKE_PROGRAM/.test(arg))
-        return true;
-    }
-
-    return false;
-  }
-
   public mkdir(target: string, options: fs.MakeDirectoryOptions): void {
     fs.mkdirSync(target, options);
   }
@@ -334,8 +324,8 @@ export class LogFileCollector {
   public handleOutput(buffer: Buffer): void {
     this.appendBuffer(buffer);
 
-    //?? this.baseLib.debug(`\n\nappending: ${buffer}\n\n`);
-    //?? this.baseLib.debug(`\n\nbuffer: ${this.bufferString}\n\n`);
+    debug(`\n\nappending: ${buffer}\n\n`);
+    debug(`\n\nbuffer: ${this.bufferString}\n\n`);
     let consumedUntil = -1;
     for (const re of this.regExps) {
       re.lastIndex = 0;
@@ -356,7 +346,7 @@ export class LogFileCollector {
     }
 
     this.limitBuffer(consumedUntil);
-    //?? this.baseLib.debug(`\n\nremaining: ${this.bufferString}\n\n`);
+    debug(`\n\nremaining: ${this.bufferString}\n\n`);
   }
 }
 
@@ -399,4 +389,8 @@ export function CreateKeySet(segments: string[]): KeySet {
     throw Error("CreateKeySet(): primary key is undefined!");
 
   return { primary: primaryKey, restore: keys } as KeySet;
+}
+
+function debug(msg: string): void {
+  if (process.env.DEBUG) console.log(`DEBUG: '${msg}'`);
 }
