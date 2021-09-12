@@ -10,5 +10,5 @@ export const vcpkgLastBuiltCommitId = 'vcpkgLastBuiltCommitId';
 export const doNotUpdateVcpkg = 'doNotUpdateVcpkg';
 export const vcpkgRoot = 'VCPKG_ROOT';
 export const logCollectionRegExps = 'logCollectionRegExps';
-export const doRunVcpkg = 'doRunVcpkg';
+export const runVcpkgInstallPath = 'runVcpkgInstallPath';
 export const runVcpkgCmdString = "runVcpkgCmdString";

@@ -3,8 +3,6 @@
 // SPDX short identifier: MIT
 
 import * as path from 'path'
-import * as baseutillib from '@lukka/base-util-lib'
-import * as glob from 'glob'
 
 export function getOrdinaryCachedPaths(vcpkgRootDir: string): string[] {
   const pathsToCache: string[] = [

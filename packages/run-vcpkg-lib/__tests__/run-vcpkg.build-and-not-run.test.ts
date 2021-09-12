@@ -56,7 +56,7 @@ import { VcpkgRunner } from '../src/vcpkg-runner';
 mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setBooleanInput(globals.doRunVcpkg, false);
+mock.inputsMocks.setInput(globals.runVcpkgInstallPath, "");
 
 testutils.testWithHeader('run-vcpkg must build (and not run) successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
@@ -93,7 +93,7 @@ testutils.testWithHeader('run-vcpkg must build (and not run) successfully', asyn
   let vcpkg = await VcpkgRunner.create(mock.exportedBaselib);
   // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
-  let vcpkgInstallMock = jest.spyOn(vcpkg as any, 'runVcpkgInstall');
+  let vcpkgInstallImplMock = jest.spyOn(vcpkg as any, 'runVcpkgInstallImpl');
 
   // Act.
   try {
@@ -107,5 +107,5 @@ testutils.testWithHeader('run-vcpkg must build (and not run) successfully', asyn
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
   expect(vcpkgBuildMock).toBeCalledTimes(1);
-  expect(vcpkgInstallMock).toBeCalledTimes(0);
+  expect(vcpkgInstallImplMock).toBeCalledTimes(0);
 });

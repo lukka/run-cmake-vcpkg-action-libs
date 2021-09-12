@@ -22,13 +22,13 @@ export class VcpkgRunner {
     const vcpkgURL =
       baselib.getInput(globals.vcpkgGitURL, false) || defaultVcpkgUrl;
     const vcpkgCommitId =
-      baselib.getInput(globals.vcpkgCommitId, false);
+      baselib.getInput(globals.vcpkgCommitId, false) ?? null;
     let vcpkgDestPath = baselib.getPathInput(globals.vcpkgDirectory, false, false) ?? "";
     if (!vcpkgDestPath) {
       vcpkgDestPath = path.join(await baselib.getBinDir(), 'vcpkg');
     }
 
-    const doRunVcpkgInstall = baselib.getBoolInput(globals.doRunVcpkg, false) ?? false;
+    const runVcpkgInstallPath: string | null = baselib.getPathInput(globals.runVcpkgInstallPath, false, true) ?? null;
     const doNotUpdateVcpkg = baselib.getBoolInput(globals.doNotUpdateVcpkg, false) ?? false;
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
@@ -58,7 +58,7 @@ export class VcpkgRunner {
       baseUtils,
       vcpkgDestPath,
       vcpkgURL,
-      doRunVcpkgInstall,
+      runVcpkgInstallPath,
       doNotUpdateVcpkg,
       pathToLastBuiltCommitId,
       options,
@@ -79,11 +79,11 @@ export class VcpkgRunner {
     private readonly baseUtils: baseutillib.BaseUtilLib,
     private readonly vcpkgDestPath: string,
     private readonly vcpkgURL: string,
-    private readonly doRunVcpkgInstall: boolean,
+    private readonly runVcpkgInstallPath: string | null,
     private readonly doNotUpdateVcpkg: boolean = false,
     private readonly pathToLastBuiltCommitId: string,
     private readonly options: baselib.ExecOptions = {} as baselib.ExecOptions,
-    private readonly vcpkgCommitId?: string,
+    private readonly vcpkgCommitId: string | null,
     private vcpkgInstallCmd: string = VcpkgRunner.vcpkgInstallCmdDefault) {
   }
 
@@ -130,21 +130,32 @@ export class VcpkgRunner {
       await this.baseUtils.wrapOp("Build vcpkg executable", () => this.build());
     }
 
-    if (this.doRunVcpkgInstall) {
-      await this.baseUtils.wrapOp("Install/Update ports using vcpkg.json", () => this.runVcpkgInstall());
-    }
+    await this.runVcpkgInstall();
   }
 
   private async runVcpkgInstall(): Promise<void> {
+    if (!this.runVcpkgInstallPath)
+      return;
+
+    await this.baseUtils.wrapOp("Install/Update ports using vcpkg.json",
+      async () => await this.runVcpkgInstallImpl());
+  }
+
+  private async runVcpkgInstallImpl(): Promise<void> {
     let vcpkgPath: string = path.join(this.vcpkgDestPath, 'vcpkg');
     if (this.baseUtils.isWin32()) {
       vcpkgPath += '.exe';
     }
+
+    // A shallow copy the ExecOptions suffices.
+    const optionsForRunningVcpkgInstall = { ...this.options };
+    optionsForRunningVcpkgInstall.cwd = this.runVcpkgInstallPath!;
+
     const vcpkgTool = this.baseLib.tool(vcpkgPath);
     vcpkgTool.line(this.vcpkgInstallCmd);
     this.baseLib.info(
-      `Running 'vcpkg ${this.vcpkgInstallCmd}' in directory '${this.vcpkgDestPath}' ...`);
-    this.baseUtils.throwIfErrorCode(await vcpkgTool.exec(this.options));
+      `Running 'vcpkg ${this.vcpkgInstallCmd}' in directory '${optionsForRunningVcpkgInstall.cwd}' ...`);
+    this.baseUtils.throwIfErrorCode(await vcpkgTool.exec(optionsForRunningVcpkgInstall));
   }
 
   private setOutputs(): void {
