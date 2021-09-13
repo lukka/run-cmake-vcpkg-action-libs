@@ -101,7 +101,7 @@ testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the v
   };
   mock.answersMocks.reset(answers);
 
-  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib);
+  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib, null);
   // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 

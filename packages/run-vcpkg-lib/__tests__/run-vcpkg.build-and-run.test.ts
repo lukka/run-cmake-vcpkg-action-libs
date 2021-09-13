@@ -91,7 +91,7 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
     },
   };
   mock.answersMocks.reset(answers);
-  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib);
+  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib, null);
 
   // Act.
   // HACK: any to access private fields.

@@ -16,6 +16,7 @@ export class VcpkgRunner {
    */
   public static async create(
     baselib: baselib.BaseLib,
+    runVcpkgInstallPath: string | null,
     vcpkgInstallCmd?: string): Promise<VcpkgRunner> {
     const baseUtils = new baseutillib.BaseUtilLib(baselib);
     const defaultVcpkgUrl = 'https://github.com/microsoft/vcpkg.git';
@@ -28,7 +29,6 @@ export class VcpkgRunner {
       vcpkgDestPath = path.join(await baselib.getBinDir(), 'vcpkg');
     }
 
-    const runVcpkgInstallPath: string | null = baselib.getPathInput(globals.runVcpkgInstallPath, false, true) ?? null;
     const doNotUpdateVcpkg = baselib.getBoolInput(globals.doNotUpdateVcpkg, false) ?? false;
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
@@ -66,8 +66,9 @@ export class VcpkgRunner {
       vcpkgInstallCmd);
   }
 
-  public static async run(baselib: baselib.BaseLib, vcpkgInstallCmd?: string): Promise<void> {
-    const vcpkgRunner: VcpkgRunner = await VcpkgRunner.create(baselib, vcpkgInstallCmd);
+  public static async run(baselib: baselib.BaseLib, runVcpkgInstallPath: string | null,
+    vcpkgInstallCmd?: string): Promise<void> {
+    const vcpkgRunner: VcpkgRunner = await VcpkgRunner.create(baselib, runVcpkgInstallPath, vcpkgInstallCmd);
     await vcpkgRunner.run();
   }
 

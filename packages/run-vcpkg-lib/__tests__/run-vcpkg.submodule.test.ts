@@ -90,7 +90,7 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build successfu
 
   // Act.
   try {
-    await VcpkgRunner.run(mock.exportedBaselib)
+    await VcpkgRunner.run(mock.exportedBaselib, null);
   }
   catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);

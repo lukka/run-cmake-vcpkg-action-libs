@@ -58,7 +58,7 @@ mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
-testutils.testWithHeader('run-vcpkg must build if vcpkg executable is up to date with sources, but does not work properly on "vcpkg version".', async () => {
+testutils.testWithHeader('run-vcpkg must build the vcpkg executable when, although up to date with sources, does not properly run on "vcpkg version".', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -98,7 +98,7 @@ testutils.testWithHeader('run-vcpkg must build if vcpkg executable is up to date
   };
   mock.answersMocks.reset(answers);
 
-  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib);
+  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib, null);
   // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 
