@@ -253,7 +253,7 @@ export class BaseUtilLib {
    * Get the hash of one (and only one) file.
    * @export
    * @param {string} globExpr A glob expression to identify one file.
-   * @returns {string} The file hit and its hash, or [null, null] if no its.
+   * @returns {[string, string]} The file hit and its hash, or [null, null] if no its.
    * @throws When multiple hits occur.
    */
   public async getFileHash(globExpr: string): Promise<[string | null, string | null]> {
@@ -270,7 +270,7 @@ export class BaseUtilLib {
     const file = path.resolve(files[0]);
 
     const fileHash = await this.baseLib.hashFiles(file);
-    return [fileHash, file];
+    return [file, fileHash];
   }
 }
 

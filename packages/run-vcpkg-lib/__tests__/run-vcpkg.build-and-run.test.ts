@@ -56,7 +56,6 @@ import { VcpkgRunner } from '../src/vcpkg-runner';
 mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setInput(globals.runVcpkgInstallPath, "/path/to/location/of/vcpkgjson/");
 
 testutils.testWithHeader('run-vcpkg must build and run successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
@@ -91,7 +90,7 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
     },
   };
   mock.answersMocks.reset(answers);
-  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib, null);
+  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib, "/path/to/location/of/vcpkgjson/");
 
   // Act.
   // HACK: any to access private fields.

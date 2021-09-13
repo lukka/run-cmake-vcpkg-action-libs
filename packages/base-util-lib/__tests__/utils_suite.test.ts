@@ -54,7 +54,7 @@ const baseUtil: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(new action
 
 test('vcpkg.json must be found once', async () => {
   expect(() => baseUtil.getFileHash("**/dir/vcpkg.json")).toBeTruthy();
-  const [hash, file] = await baseUtil.getFileHash("**/dir/vcpkg.json")
+  const [file, hash] = await baseUtil.getFileHash("**/dir/vcpkg.json")
   expect(hash).toStrictEqual(
     '5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456');
   expect(file).toStrictEqual(

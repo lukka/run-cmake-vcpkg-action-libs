@@ -56,7 +56,6 @@ import { VcpkgRunner } from '../src/vcpkg-runner';
 mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
 mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setInput(globals.runVcpkgInstallPath, "");
 
 testutils.testWithHeader('run-vcpkg must build (and not run) successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
