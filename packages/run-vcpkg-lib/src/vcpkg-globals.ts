@@ -10,4 +10,3 @@ export const vcpkgLastBuiltCommitId = 'vcpkgLastBuiltCommitId';
 export const doNotUpdateVcpkg = 'doNotUpdateVcpkg';
 export const vcpkgRoot = 'VCPKG_ROOT';
 export const logCollectionRegExps = 'logCollectionRegExps';
-export const runVcpkgCmdString = "runVcpkgCmdString";

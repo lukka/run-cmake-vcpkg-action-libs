@@ -98,7 +98,7 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build successfu
 
   // Assert.
 
-  // 1 warning about the GitCommitId input provided, that is not needed (and ignored) when using vcpkg as a submodule.
+  // One warning about the GitCommitId input provided, that is not needed (and ignored) when using vcpkg as a submodule.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(1);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
 });
