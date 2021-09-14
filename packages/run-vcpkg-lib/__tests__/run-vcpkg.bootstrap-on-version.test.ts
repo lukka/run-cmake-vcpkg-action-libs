@@ -55,10 +55,6 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
 mock.inputsMocks.reset();
-// Must not be provided, otherwise a warning would be triggered
-//mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
 testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the version of the repository is different than the last built binary.', async () => {
   const answers: testutils.BaseLibAnswers = {
@@ -101,7 +97,17 @@ testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the v
   };
   mock.answersMocks.reset(answers);
 
-  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib, null);
+  const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
+  let vcpkg = await VcpkgRunner.create(
+    baseUtil,
+    vcpkgRoot, // Must be provided
+    null,
+    null, // Must not be provided, otherwise a warning would be triggered
+    false,
+    false,
+    [],
+    null,
+    null);
   // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 

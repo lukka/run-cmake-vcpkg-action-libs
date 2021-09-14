@@ -52,10 +52,6 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
-mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-
 testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
@@ -88,9 +84,21 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build successfu
   };
   mock.answersMocks.reset(answers);
 
+  const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
+
   // Act.
   try {
-    await VcpkgRunner.run(mock.exportedBaselib, null);
+    await VcpkgRunner.run(
+      baseUtil,
+      vcpkgRoot, // Must be provided
+      null,
+      gitRef, // Must be provided.
+      false,
+      false, // Must be provided.
+      [],
+      null,
+      null
+    );
   }
   catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);

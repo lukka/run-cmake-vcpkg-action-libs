@@ -10,33 +10,41 @@ import { using } from "using-statement";
 
 export class VcpkgRunner {
   private static readonly vcpkgInstallCmdDefault: string = `install --recurse --clean-after-build`;
+  private static readonly defaultVcpkgUrl = 'https://github.com/microsoft/vcpkg.git';
 
   /**
    * @description Used only in tests.
    */
   public static async create(
-    baselib: baselib.BaseLib,
+    baseUtil: baseutillib.BaseUtilLib,
+    vcpkgDestPath: string | null,
+    vcpkgUrl: string | null,
+    vcpkgGitCommitId: string | null,
+    doRunVcpkgInstall: boolean,
+    doNotUpdateVcpkg: boolean,
+    logCollectionRegExps: string[],
     runVcpkgInstallPath: string | null,
-    vcpkgInstallCmd?: string): Promise<VcpkgRunner> {
-    const baseUtils = new baseutillib.BaseUtilLib(baselib);
-    const defaultVcpkgUrl = 'https://github.com/microsoft/vcpkg.git';
-    const vcpkgURL =
-      baselib.getInput(globals.vcpkgGitURL, false) || defaultVcpkgUrl;
-    const vcpkgCommitId =
-      baselib.getInput(globals.vcpkgCommitId, false) ?? null;
-    let vcpkgDestPath = baselib.getPathInput(globals.vcpkgDirectory, false, false) ?? "";
+    vcpkgInstallCmd: string | null): Promise<VcpkgRunner> {
     if (!vcpkgDestPath) {
-      vcpkgDestPath = path.join(await baselib.getBinDir(), 'vcpkg');
+      vcpkgDestPath = path.join(await baseUtil.baseLib.getBinDir(), 'vcpkg');
+      baseUtil.baseLib.info(`The vcpkg's root directory is not provided, using the predefined: '${vcpkgDestPath}'`);
     }
 
-    const doNotUpdateVcpkg = baselib.getBoolInput(globals.doNotUpdateVcpkg, false) ?? false;
+    if (!vcpkgUrl) {
+      vcpkgUrl = VcpkgRunner.defaultVcpkgUrl;
+      baseUtil.baseLib.info(`The vcpkg's URL Git repository is not provided, using the predefined: '${VcpkgRunner.defaultVcpkgUrl}'`);
+    }
+
+    if (!vcpkgInstallCmd) {
+      vcpkgInstallCmd = VcpkgRunner.vcpkgInstallCmdDefault;
+    }
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
     const pathToLastBuiltCommitId = path.join(vcpkgDestPath, globals.vcpkgLastBuiltCommitId);
 
-    const regs = baselib.getDelimitedInput(globals.logCollectionRegExps, ';', false);
-    const logFilesCollector = new baseutillib.LogFileCollector(baselib,
-      regs, (path: string) => baseutillib.dumpFile(baselib, path));
+    //??const regs = baselib.getDelimitedInput(globals.logCollectionRegExps, ';', false);
+    const logFilesCollector = new baseutillib.LogFileCollector(baseUtil.baseLib,
+      logCollectionRegExps, (path: string) => baseutillib.dumpFile(baseUtil.baseLib, path));
 
     const options = {
       cwd: vcpkgDestPath,
@@ -54,21 +62,39 @@ export class VcpkgRunner {
     } as baselib.ExecOptions;
 
     return new VcpkgRunner(
-      baselib,
-      baseUtils,
+      baseUtil,
       vcpkgDestPath,
-      vcpkgURL,
-      runVcpkgInstallPath,
+      vcpkgUrl,
+      vcpkgGitCommitId,
+      doRunVcpkgInstall,
       doNotUpdateVcpkg,
+      logCollectionRegExps,
+      runVcpkgInstallPath,
       pathToLastBuiltCommitId,
       options,
-      vcpkgCommitId,
       vcpkgInstallCmd);
   }
 
-  public static async run(baselib: baselib.BaseLib, runVcpkgInstallPath: string | null,
-    vcpkgInstallCmd?: string): Promise<void> {
-    const vcpkgRunner: VcpkgRunner = await VcpkgRunner.create(baselib, runVcpkgInstallPath, vcpkgInstallCmd);
+  public static async run(
+    baseUtil: baseutillib.BaseUtilLib,
+    vcpkgDestPath: string | null,
+    vcpkgUrl: string | null,
+    vcpkgGitCommitId: string | null,
+    doRunVcpkgInstall: boolean,
+    doNotUpdateVcpkg: boolean,
+    logCollectionRegExps: string[],
+    runVcpkgInstallPath: string | null,
+    vcpkgInstallCmd: string | null): Promise<void> {
+    const vcpkgRunner: VcpkgRunner = await VcpkgRunner.create(
+      baseUtil,
+      vcpkgDestPath,
+      vcpkgUrl,
+      vcpkgGitCommitId,
+      doRunVcpkgInstall,
+      doNotUpdateVcpkg,
+      logCollectionRegExps,
+      runVcpkgInstallPath,
+      vcpkgInstallCmd);
     await vcpkgRunner.run();
   }
 
@@ -76,16 +102,17 @@ export class VcpkgRunner {
    * @description Used only in tests.
    */
   protected constructor(
-    private readonly baseLib: baselib.BaseLib,
     private readonly baseUtils: baseutillib.BaseUtilLib,
     private readonly vcpkgDestPath: string,
-    private readonly vcpkgURL: string,
+    private readonly vcpkgUrl: string,
+    private readonly vcpkgGitCommitId: string | null,
+    private readonly doRunVcpkgInstall: boolean,
+    private readonly doNotUpdateVcpkg: boolean,
+    private readonly logCollectionRegExps: string[],
     private readonly runVcpkgInstallPath: string | null,
-    private readonly doNotUpdateVcpkg: boolean = false,
     private readonly pathToLastBuiltCommitId: string,
     private readonly options: baselib.ExecOptions = {} as baselib.ExecOptions,
-    private readonly vcpkgCommitId: string | null,
-    private vcpkgInstallCmd: string = VcpkgRunner.vcpkgInstallCmdDefault) {
+    private vcpkgInstallCmd: string) {
   }
 
   public async run(): Promise<void> {
@@ -94,20 +121,20 @@ export class VcpkgRunner {
   }
 
   protected async runImpl(): Promise<void> {
-    this.baseLib.debug("vcpkg runner starting...");
+    this.baseUtils.baseLib.debug("runImpl()<<");
 
-    this.baseUtils.wrapOpSync("Set output env vars", () => this.setOutputs());
+    this.baseUtils.wrapOpSync("Set output environment variables", () => this.setOutputs());
 
     // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
-    if (!await this.baseLib.exist(this.vcpkgDestPath)) {
-      this.baseLib.debug(`Creating vcpkg root directory as it is not existing: ${this.vcpkgDestPath}`);
-      await this.baseLib.mkdirP(this.vcpkgDestPath);
+    if (!await this.baseUtils.baseLib.exist(this.vcpkgDestPath)) {
+      this.baseUtils.baseLib.debug(`Creating vcpkg root directory as it is not existing: ${this.vcpkgDestPath}`);
+      await this.baseUtils.baseLib.mkdirP(this.vcpkgDestPath);
     }
 
     let needRebuild = false;
     const currentCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.options.cwd);
     if (this.doNotUpdateVcpkg) {
-      this.baseLib.info(`Skipping any check to update vcpkg directory (${this.vcpkgDestPath}).`);
+      this.baseUtils.baseLib.info(`Skipping any check to update vcpkg directory (${this.vcpkgDestPath}).`);
     } else {
       const updated = await this.baseUtils.wrapOp("Check whether vcpkg repository is up to date",
         () => this.checkRepoUpdated(currentCommitId),
@@ -132,11 +159,17 @@ export class VcpkgRunner {
     }
 
     await this.runVcpkgInstall();
+
+    this.baseUtils.baseLib.debug("runImpl()>>");
   }
 
   private async runVcpkgInstall(): Promise<void> {
-    if (!this.runVcpkgInstallPath)
+    if (!this.doRunVcpkgInstall)
       return;
+
+    if (!this.runVcpkgInstallPath) {
+      throw new Error(`Cannot run '${this.vcpkgInstallCmd}' because no valid directory has been provided.`);
+    }
 
     await this.baseUtils.wrapOp("Install/Update ports using vcpkg.json",
       async () => await this.runVcpkgInstallImpl());
@@ -152,9 +185,9 @@ export class VcpkgRunner {
     const optionsForRunningVcpkgInstall = { ...this.options };
     optionsForRunningVcpkgInstall.cwd = this.runVcpkgInstallPath!;
 
-    const vcpkgTool = this.baseLib.tool(vcpkgPath);
+    const vcpkgTool = this.baseUtils.baseLib.tool(vcpkgPath);
     vcpkgTool.line(this.vcpkgInstallCmd);
-    this.baseLib.info(
+    this.baseUtils.baseLib.info(
       `Running 'vcpkg ${this.vcpkgInstallCmd}' in directory '${optionsForRunningVcpkgInstall.cwd}' ...`);
     this.baseUtils.throwIfErrorCode(await vcpkgTool.exec(optionsForRunningVcpkgInstall));
   }
@@ -169,8 +202,8 @@ export class VcpkgRunner {
     // The output variable must have a different name than the
     // one set with setVariable(), as the former get a prefix added out of our control.
     const outVarName = `${globals.outVcpkgRootPath}_OUT`;
-    this.baseLib.info(`Set the output variable '${outVarName}' to value: ${this.vcpkgDestPath}`);
-    this.baseLib.setOutput(`${outVarName}`, this.vcpkgDestPath);
+    this.baseUtils.baseLib.info(`Set the output variable '${outVarName}' to value: ${this.vcpkgDestPath}`);
+    this.baseUtils.baseLib.setOutput(`${outVarName}`, this.vcpkgDestPath);
   }
 
   /**
@@ -214,86 +247,86 @@ export class VcpkgRunner {
   }
 
   private async checkRepoUpdated(currentCommitId: string): Promise<boolean> {
-    this.baseLib.info(`Checking whether vcpkg's repository is updated to commit id '${currentCommitId}' ...`);
+    this.baseUtils.baseLib.info(`Checking whether vcpkg's repository is updated to commit id '${currentCommitId}' ...`);
     let updated = false;
 
-    const gitPath = await this.baseLib.which('git', true);
+    const gitPath = await this.baseUtils.baseLib.which('git', true);
     const isSubmodule = await this.baseUtils.isVcpkgSubmodule(gitPath, this.vcpkgDestPath);
     if (isSubmodule) {
       // In case vcpkg it is a Git submodule...
-      this.baseLib.info(`'vcpkg' is detected as a submodule.`);
+      this.baseUtils.baseLib.info(`'vcpkg' is detected as a submodule.`);
       updated = true;
 
       // Issue a warning if the vcpkgCommitId is specified.
-      if (this.vcpkgCommitId) {
-        this.baseLib.warning(`Since the vcpkg directory '${this.vcpkgDestPath}' is a submodule, the input '${globals.vcpkgCommitId}' should not be provided (${this.vcpkgCommitId})`);
+      if (this.vcpkgGitCommitId) {
+        this.baseUtils.baseLib.warning(`Since the vcpkg directory '${this.vcpkgDestPath}' is a submodule, the vcpkg's Git commit id is disregarded and should not be provided (${this.vcpkgGitCommitId})`);
       }
     } else {
       const res: boolean = this.baseUtils.directoryExists(this.vcpkgDestPath);
-      this.baseLib.debug(`exist('${this.vcpkgDestPath}') === ${res}`);
+      this.baseUtils.baseLib.debug(`exist('${this.vcpkgDestPath}') === ${res}`);
       if (res && !isSubmodule) {
         // Use git to verify whether the repo is up to date.
-        this.baseLib.info(`Current commit id of vcpkg: '${currentCommitId}'.`);
-        if (!this.vcpkgCommitId) {
-          throw new Error(`'${globals.vcpkgCommitId}' input parameter must be provided when the specified vcpkg directory (${this.vcpkgDestPath}) is not a submodule.`);
+        this.baseUtils.baseLib.info(`Current commit id of vcpkg: '${currentCommitId}'.`);
+        if (!this.vcpkgGitCommitId) {
+          throw new Error(`The vcpkg's Git commit id must be provided when the specified vcpkg directory (${this.vcpkgDestPath}) is not a submodule.`);
         }
 
-        if (!baseutillib.BaseUtilLib.isValidSHA1(this.vcpkgCommitId)) {
-          throw new Error(`'${globals.vcpkgCommitId}' input parameter must be a full SHA1 hash (40 hex digits).`);
+        if (!baseutillib.BaseUtilLib.isValidSHA1(this.vcpkgGitCommitId)) {
+          throw new Error(`The vcpkg's Git commit id must be a full SHA1 hash (40 hex digits).`);
         }
 
-        if (this.vcpkgCommitId === currentCommitId) {
-          this.baseLib.info(`Repository is up to date to requested commit id '${this.vcpkgCommitId}'`);
+        if (this.vcpkgGitCommitId === currentCommitId) {
+          this.baseUtils.baseLib.info(`Repository is up to date to requested commit id '${this.vcpkgGitCommitId}'`);
           updated = true;
         }
       }
     }
 
-    this.baseLib.info(`Is vcpkg repository updated? ${updated ? "Yes" : "No"}`);
+    this.baseUtils.baseLib.info(`Is vcpkg repository updated? ${updated ? "Yes" : "No"}`);
     return updated;
   }
 
   private checkLastBuildCommitId(vcpkgCommitId: string): boolean {
-    this.baseLib.info(`Checking last vcpkg build commit id in file '${this.pathToLastBuiltCommitId}' ...`);
+    this.baseUtils.baseLib.info(`Checking last vcpkg build commit id in file '${this.pathToLastBuiltCommitId}' ...`);
     let rebuild = true;// Default is true.
     const lastCommitIdLast = this.baseUtils.readFile(this.pathToLastBuiltCommitId);
-    this.baseLib.debug(`last build check: ${lastCommitIdLast}`);
+    this.baseUtils.baseLib.debug(`last build check: ${lastCommitIdLast}`);
     if (lastCommitIdLast) {
-      this.baseLib.debug(`lastcommitid = ${lastCommitIdLast}, currentcommitid = ${vcpkgCommitId}`);
+      this.baseUtils.baseLib.debug(`lastcommitid = ${lastCommitIdLast}, currentcommitid = ${vcpkgCommitId}`);
       if (lastCommitIdLast === vcpkgCommitId) {
         rebuild = false;
-        this.baseLib.info(`vcpkg executable is up to date with sources.`);
+        this.baseUtils.baseLib.info(`vcpkg executable is up to date with sources.`);
       } else {
-        this.baseLib.info(`vcpkg executable is out of date with sources.`);
+        this.baseUtils.baseLib.info(`vcpkg executable is out of date with sources.`);
       }
     } else {
       rebuild = true; // Force a rebuild.
-      this.baseLib.info(`There is no file containing last built commit id of vcpkg, forcing a rebuild.`);
+      this.baseUtils.baseLib.info(`There is no file containing last built commit id of vcpkg, forcing a rebuild.`);
     }
 
     return rebuild;
   }
 
   private async cloneRepo(): Promise<void> {
-    this.baseLib.info(`Cloning vcpkg in '${this.vcpkgDestPath}'...`);
-    if (!this.vcpkgCommitId) {
-      throw new Error(`When the vcpkg directory is empty, the input parameter '${globals.vcpkgCommitId}' must be provided to git clone the repository.`);
+    this.baseUtils.baseLib.info(`Cloning vcpkg in '${this.vcpkgDestPath}'...`);
+    if (!this.vcpkgGitCommitId) {
+      throw new Error(`When the vcpkg directory is empty, the vcpkg's Git commit id must be provided to git clone the repository.`);
     }
-    const gitPath = await this.baseLib.which('git', true);
+    const gitPath = await this.baseUtils.baseLib.which('git', true);
 
-    await this.baseLib.rmRF(this.vcpkgDestPath);
-    await this.baseLib.mkdirP(this.vcpkgDestPath);
-    this.baseLib.cd(this.vcpkgDestPath);
+    await this.baseUtils.baseLib.rmRF(this.vcpkgDestPath);
+    await this.baseUtils.baseLib.mkdirP(this.vcpkgDestPath);
+    this.baseUtils.baseLib.cd(this.vcpkgDestPath);
 
-    let gitTool = this.baseLib.tool(gitPath);
+    let gitTool = this.baseUtils.baseLib.tool(gitPath);
 
-    gitTool.arg(['clone', this.vcpkgURL, '-n', '.']);
+    gitTool.arg(['clone', this.vcpkgUrl, '-n', '.']);
     this.baseUtils.throwIfErrorCode(await gitTool.exec(this.options));
 
-    gitTool = this.baseLib.tool(gitPath);
-    gitTool.arg(['checkout', '--force', this.vcpkgCommitId]);
+    gitTool = this.baseUtils.baseLib.tool(gitPath);
+    gitTool.arg(['checkout', '--force', this.vcpkgGitCommitId]);
     this.baseUtils.throwIfErrorCode(await gitTool.exec(this.options));
-    this.baseLib.info(`Clone vcpkg in '${this.vcpkgDestPath}'.`);
+    this.baseUtils.baseLib.info(`Clone vcpkg in '${this.vcpkgDestPath}'.`);
   }
 
   private async checkExecutable(): Promise<boolean> {
@@ -301,17 +334,17 @@ export class VcpkgRunner {
     // If the executable file ./vcpkg/vcpkg is not present or it is not wokring, force build. The fact that 'the repository is up to date' is meaningless.
     const vcpkgExePath: string = this.baseUtils.getVcpkgExePath(this.vcpkgDestPath);
     if (!this.baseUtils.fileExists(vcpkgExePath)) {
-      this.baseLib.info("Building vcpkg is necessary as executable is missing.");
+      this.baseUtils.baseLib.info("Building vcpkg is necessary as executable is missing.");
       needRebuild = true;
     } else {
       if (!this.baseUtils.isWin32()) {
-        await this.baseLib.execSync('chmod', ["+x", vcpkgExePath])
+        await this.baseUtils.baseLib.execSync('chmod', ["+x", vcpkgExePath])
       }
-      this.baseLib.info(`vcpkg executable exists at: '${vcpkgExePath}'.`);
-      const result = await this.baseLib.execSync(vcpkgExePath, ['version']);
+      this.baseUtils.baseLib.info(`vcpkg executable exists at: '${vcpkgExePath}'.`);
+      const result = await this.baseUtils.baseLib.execSync(vcpkgExePath, ['version']);
       if (result.code != 0) {
         needRebuild = true;
-        this.baseLib.info(`vcpkg executable returned code ${result.code}, forcing a rebuild.`);
+        this.baseUtils.baseLib.info(`vcpkg executable returned code ${result.code}, forcing a rebuild.`);
       }
     }
 
@@ -328,16 +361,16 @@ export class VcpkgRunner {
     }
 
     if (this.baseUtils.isWin32()) {
-      const cmdPath: string = await this.baseLib.which('cmd.exe', true);
-      const cmdTool = this.baseLib.tool(cmdPath);
+      const cmdPath: string = await this.baseUtils.baseLib.which('cmd.exe', true);
+      const cmdTool = this.baseUtils.baseLib.tool(cmdPath);
       cmdTool.arg(['/c', path.join(this.vcpkgDestPath, bootstrapFileName)]);
       this.baseUtils.throwIfErrorCode(await cmdTool.exec(this.options));
     } else {
-      const shPath: string = await this.baseLib.which('sh', true);
-      const shTool = this.baseLib.tool(shPath);
+      const shPath: string = await this.baseUtils.baseLib.which('sh', true);
+      const shTool = this.baseUtils.baseLib.tool(shPath);
       const bootstrapFullPath: string = path.join(this.vcpkgDestPath, bootstrapFileName);
       if (!this.baseUtils.isWin32()) {
-        await this.baseLib.execSync('chmod', ["+x", bootstrapFullPath]);
+        await this.baseUtils.baseLib.execSync('chmod', ["+x", bootstrapFullPath]);
       }
       shTool.arg(['-c', bootstrapFullPath]);
       this.baseUtils.throwIfErrorCode(await shTool.exec(this.options));
@@ -347,14 +380,14 @@ export class VcpkgRunner {
     const builtCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.options.cwd);
     this.baseUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
     // Keep track of last successful build commit id.
-    this.baseLib.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
+    this.baseUtils.baseLib.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
   }
 
   private setEnvOutTriplet(envVarName: string, outVarName: string, triplet: string): void {
     this.baseUtils.setEnvVar(envVarName, triplet);
-    this.baseLib.info(`Set the environment variable '${envVarName}' to value: ${triplet}`);
+    this.baseUtils.baseLib.info(`Set the environment variable '${envVarName}' to value: ${triplet}`);
 
-    this.baseLib.setVariable(outVarName, triplet);
-    this.baseLib.info(`Set the output variable '${outVarName}' to value: ${triplet}`);
+    this.baseUtils.baseLib.setVariable(outVarName, triplet);
+    this.baseUtils.baseLib.info(`Set the output variable '${outVarName}' to value: ${triplet}`);
   }
 }

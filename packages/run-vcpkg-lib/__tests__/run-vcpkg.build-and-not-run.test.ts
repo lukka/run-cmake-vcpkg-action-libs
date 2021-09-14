@@ -53,10 +53,6 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
-mock.inputsMocks.setInput(globals.vcpkgCommitId, newGitRef);
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-
 testutils.testWithHeader('run-vcpkg must build (and not run) successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
@@ -89,7 +85,17 @@ testutils.testWithHeader('run-vcpkg must build (and not run) successfully', asyn
   };
   mock.answersMocks.reset(answers);
 
-  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib, null);
+  const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
+  let vcpkg = await VcpkgRunner.create(
+    baseUtil,
+    vcpkgRoot,
+    null,
+    newGitRef,
+    false,
+    false, // Must be false.
+    [],
+    null,
+    null);
   // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
   let vcpkgInstallImplMock = jest.spyOn(vcpkg as any, 'runVcpkgInstallImpl');

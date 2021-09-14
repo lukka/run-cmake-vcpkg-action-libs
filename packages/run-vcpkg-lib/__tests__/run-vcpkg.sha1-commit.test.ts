@@ -52,10 +52,6 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
-mock.inputsMocks.setInput(globals.vcpkgCommitId, invalidSHA1HashGitCommit);
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-
 testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git commit', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
@@ -88,8 +84,20 @@ testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git
   };
   mock.answersMocks.reset(answers);
 
+  const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
+
   // Act.
-  await expect(() => VcpkgRunner.run(mock.exportedBaselib, null)).rejects.toThrowError(new RegExp('.*input parameter must be a full SHA1 hash.*'));
+  await expect(() => VcpkgRunner.run(
+    baseUtil,
+    vcpkgRoot,
+    null,
+    invalidSHA1HashGitCommit,
+    false,
+    false,// Must be false
+    [],
+    null,
+    null
+  )).rejects.toThrowError(new RegExp('.*must be a full SHA1 hash.*'));
 
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);

@@ -3,9 +3,7 @@
 // SPDX short identifier: MIT
 
 import * as path from 'path';
-import * as vcpkgutils from '../src/utils';
-import * as baseutillib from '@lukka/base-util-lib';
-import * as actionlib from '../../action-lib';
+import * as vcpkgutils from '../src/vcpkg-utils';
 
 function normalizePath(base: string, postfix: string): string {
   return path.normalize(`!${path.join(base, postfix)}`);

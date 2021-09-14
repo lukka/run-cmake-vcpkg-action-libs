@@ -54,9 +54,6 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
 mock.inputsMocks.reset();
-mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
 
 testutils.testWithHeader('run-vcpkg must build vcpkg (by running bootstrap) when its executable is missing, and it must install successfully the ports.', async () => {
   const answers: testutils.BaseLibAnswers = {
@@ -100,7 +97,18 @@ testutils.testWithHeader('run-vcpkg must build vcpkg (by running bootstrap) when
   };
   mock.answersMocks.reset(answers);
 
-  let vcpkg = await VcpkgRunner.create(mock.exportedBaselib, null);
+  const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
+  let vcpkg = await VcpkgRunner.create(
+    baseUtil,
+    vcpkgRoot, // Must be provided.
+    null,
+    gitRef, // Must be provided.
+    false,
+    false, // Must be false
+    [],
+    null,
+    null
+  );
   // HACK: 'any' to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 
