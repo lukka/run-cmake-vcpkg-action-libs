@@ -42,7 +42,6 @@ export class VcpkgRunner {
     // Git update or clone depending on content of vcpkgDestPath input parameter.
     const pathToLastBuiltCommitId = path.join(vcpkgDestPath, globals.vcpkgLastBuiltCommitId);
 
-    //??const regs = baselib.getDelimitedInput(globals.logCollectionRegExps, ';', false);
     const logFilesCollector = new baseutillib.LogFileCollector(baseUtil.baseLib,
       logCollectionRegExps, (path: string) => baseutillib.dumpFile(baseUtil.baseLib, path));
 
@@ -68,7 +67,6 @@ export class VcpkgRunner {
       vcpkgGitCommitId,
       doRunVcpkgInstall,
       doNotUpdateVcpkg,
-      logCollectionRegExps,
       runVcpkgInstallPath,
       pathToLastBuiltCommitId,
       options,
@@ -108,7 +106,6 @@ export class VcpkgRunner {
     private readonly vcpkgGitCommitId: string | null,
     private readonly doRunVcpkgInstall: boolean,
     private readonly doNotUpdateVcpkg: boolean,
-    private readonly logCollectionRegExps: string[],
     private readonly runVcpkgInstallPath: string | null,
     private readonly pathToLastBuiltCommitId: string,
     private readonly options: baselib.ExecOptions = {} as baselib.ExecOptions,
