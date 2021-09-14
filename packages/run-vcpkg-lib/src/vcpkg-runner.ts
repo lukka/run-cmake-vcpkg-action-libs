@@ -17,7 +17,7 @@ export class VcpkgRunner {
    */
   public static async create(
     baseUtil: baseutillib.BaseUtilLib,
-    vcpkgDestPath: string | null,
+    vcpkgDestPath: string,
     vcpkgUrl: string | null,
     vcpkgGitCommitId: string | null,
     doRunVcpkgInstall: boolean,
@@ -25,11 +25,6 @@ export class VcpkgRunner {
     logCollectionRegExps: string[],
     runVcpkgInstallPath: string | null,
     vcpkgInstallCmd: string | null): Promise<VcpkgRunner> {
-    if (!vcpkgDestPath) {
-      vcpkgDestPath = path.join(await baseUtil.baseLib.getBinDir(), 'vcpkg');
-      baseUtil.baseLib.info(`The vcpkg's root directory is not provided, using the predefined: '${vcpkgDestPath}'`);
-    }
-
     if (!vcpkgUrl) {
       vcpkgUrl = VcpkgRunner.defaultVcpkgUrl;
       baseUtil.baseLib.info(`The vcpkg's URL Git repository is not provided, using the predefined: '${VcpkgRunner.defaultVcpkgUrl}'`);
@@ -75,7 +70,7 @@ export class VcpkgRunner {
 
   public static async run(
     baseUtil: baseutillib.BaseUtilLib,
-    vcpkgDestPath: string | null,
+    vcpkgRootPath: string,
     vcpkgUrl: string | null,
     vcpkgGitCommitId: string | null,
     doRunVcpkgInstall: boolean,
@@ -85,7 +80,7 @@ export class VcpkgRunner {
     vcpkgInstallCmd: string | null): Promise<void> {
     const vcpkgRunner: VcpkgRunner = await VcpkgRunner.create(
       baseUtil,
-      vcpkgDestPath,
+      vcpkgRootPath,
       vcpkgUrl,
       vcpkgGitCommitId,
       doRunVcpkgInstall,
@@ -145,7 +140,8 @@ export class VcpkgRunner {
 
     // Build is needed at the first check which is saying so.
     if (!needRebuild) {
-      needRebuild = this.baseUtils.wrapOpSync("Check whether last vcpkg's build is up to date with sources", () => this.checkLastBuildCommitId(currentCommitId));
+      needRebuild = this.baseUtils.wrapOpSync("Check whether last vcpkg's build is up to date with sources",
+        () => this.checkLastBuildCommitId(currentCommitId));
       if (!needRebuild) {
         needRebuild = await this.baseUtils.wrapOp("Check vcpkg executable exists", () => this.checkExecutable());
       }
