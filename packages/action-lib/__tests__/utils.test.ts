@@ -8,13 +8,36 @@ import * as lib from '../src/action-lib'
 
 jest.setTimeout(15 * 1000);
 
+test('replaceFromEnvVar() positive tests', async () => {
+    {
+        expect(baseutillib.replaceFromEnvVar("")).toStrictEqual("");
+        expect(baseutillib.replaceFromEnvVar("$[name]", { "name": "value" })).toStrictEqual("value");
+        process.env.ENVNAME = "envvalue";
+        expect(baseutillib.replaceFromEnvVar("$[env.ENVNAME]", { "name": "value" })).toStrictEqual("envvalue");
+
+        expect(baseutillib.replaceFromEnvVar("text $[env.ENVNAME] ${aaa} $[bbb] text $[undef]", { "bbb": "bbb-value" })).toStrictEqual("text envvalue ${aaa} bbb-value text undef-is-undefined");
+    }
+});
+
+test('replaceFromEnvVar() negative tests', async () => {
+    {
+        expect(baseutillib.replaceFromEnvVar("normal-text")).toStrictEqual("normal-text");
+        expect(baseutillib.replaceFromEnvVar("$[name]", { "NAME": "value" })).toStrictEqual("name-is-undefined");
+        delete process.env.ENVNAME;
+        expect(baseutillib.replaceFromEnvVar("$[env.ENVNAME]", { "envname": "value" })).toStrictEqual("ENVNAME-is-undefined");
+
+        expect(baseutillib.replaceFromEnvVar("text $[env.u] $[u] ${aaa} $[bbb] text $[undef]", { "bbb": "bbb-value" })).
+            toStrictEqual("text u-is-undefined u-is-undefined ${aaa} bbb-value text undef-is-undefined");
+    }
+});
+
 test('KeySet tests', async () => {
     {
-        expect((a: []) => baseutillib.CreateKeySet(a)).toThrow(Error);
+        expect((a: []) => baseutillib.createKeySet(a)).toThrow(Error);
     }
 
     {
-        expect(baseutillib.CreateKeySet(["aaa", "bbb", "ccc", "ddd"])).toStrictEqual({
+        expect(baseutillib.createKeySet(["aaa", "bbb", "ccc", "ddd"])).toStrictEqual({
             primary: "aaa_bbb_ccc_ddd",
             restore: [
                 "aaa_bbb_ccc",
@@ -24,6 +47,6 @@ test('KeySet tests', async () => {
     }
 
     {
-        expect(baseutillib.CreateKeySet(["1", "", "3"])).toStrictEqual({ primary: "1__3", restore: ["1_", "1"] });
+        expect(baseutillib.createKeySet(["1", "", "3"])).toStrictEqual({ primary: "1__3", restore: ["1_", "1"] });
     }
 });

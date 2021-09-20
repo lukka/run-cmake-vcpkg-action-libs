@@ -5,7 +5,7 @@
 import * as path from 'path';
 import * as vcpkgutils from '../src/vcpkg-utils';
 
-function normalizePath(base: string, postfix: string): string {
+function excludedPath(base: string, postfix: string): string {
   return path.normalize(`!${path.join(base, postfix)}`);
 }
 
@@ -14,8 +14,9 @@ test('tests for run-vcpkg utils.ts ...', async () => {
   const paths = vcpkgutils.getOrdinaryCachedPaths("vcpkgRoot");
   expect(paths).toStrictEqual(
     [vcpkgRoot,
-      normalizePath(vcpkgRoot, "packages"),
-      normalizePath(vcpkgRoot, "buildtrees"),
-      normalizePath(vcpkgRoot, "downloads")]
+      excludedPath(vcpkgRoot, "installed"),
+      excludedPath(vcpkgRoot, "packages"),
+      excludedPath(vcpkgRoot, "buildtrees"),
+      excludedPath(vcpkgRoot, "downloads")]
   );
 });

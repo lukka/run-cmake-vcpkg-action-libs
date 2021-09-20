@@ -146,3 +146,30 @@ test('ActionLib&Utils exist()/readFile()/writeFile()/get*Dir() tests', async () 
   actionLib.setState("name", "value");
   actionLib.getState("name");
 });
+
+test('getInput()/getPathInput(): when input is not defined, it must return undefined', async () => {
+  // core.getInput return an empty string when the input is not defined.
+  jest.spyOn(core, "getInput").mockImplementation(() => { return ""; });
+
+  const actionLib: lib.ActionLib = new lib.ActionLib();
+  expect(actionLib.getInput("not-existent", false)).toBeUndefined();
+  expect(actionLib.getPathInput("not-existent", false, false)).toBeUndefined();
+});
+
+test('getInput()/getPathInput(): when input is not defined and it is required, it must throw.', async () => {
+  // core.getInput return an empty string when the input is not defined.
+  jest.spyOn(core, "getInput").mockImplementation(() => { return ""; });
+
+  const actionLib: lib.ActionLib = new lib.ActionLib();
+  expect(() => actionLib.getInput("existent", true)).toThrowError();
+  expect(() => actionLib.getPathInput("existent", true, false)).toThrowError();
+});
+
+test('getPathInput(): when input is defined, but not existent, it must throw.', async () => {
+  // core.getInput return an empty string when the input is not defined.
+  jest.spyOn(core, "getInput").mockImplementation(() => { return "/not/existent/"; });
+
+  const actionLib: lib.ActionLib = new lib.ActionLib();
+  expect(() => actionLib.getPathInput("existent", true, true)).toThrowError();
+  expect(() => actionLib.getPathInput("existent", false, true)).toThrowError();
+});

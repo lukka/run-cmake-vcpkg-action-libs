@@ -16,9 +16,11 @@ export class BaseUtilLib {
   }
 
   public async isVcpkgSubmodule(gitPath: string, fullVcpkgPath: string): Promise<boolean> {
+    this.baseLib.debug(`isVcpkgSubmodule()<<`);
+    let isSubmodule = false;
     try {
       const options: baselib.ExecOptions = {
-        cwd: process.env.BUILD_SOURCESDIRECTORY,
+        cwd: process.env.GITHUB_WORKSPACE,
         failOnStdErr: false,
         errStream: process.stdout,
         outStream: process.stdout,
@@ -29,7 +31,6 @@ export class BaseUtilLib {
       } as baselib.ExecOptions;
 
       const res: baselib.ExecResult = await this.baseLib.execSync(gitPath, ['submodule', 'status', fullVcpkgPath], options);
-      let isSubmodule = false;
       if (res.error !== null) {
         isSubmodule = res.code == 0;
         let msg: string;
@@ -46,12 +47,14 @@ export class BaseUtilLib {
 
         this.baseLib.debug(msg);
       }
-
-      return isSubmodule;
     }
     catch (error) {
       this.baseLib.warning(`ïsVcpkgSubmodule() failed: ${error}`);
-      return false;
+      isSubmodule = false;
+    }
+    finally {
+      this.baseLib.debug(`isVcpkgSubmodule()>> --> ${isSubmodule}`);
+      return isSubmodule;
     }
   }
 
@@ -257,6 +260,8 @@ export class BaseUtilLib {
    * @throws When multiple hits occur.
    */
   public async getFileHash(globExpr: string): Promise<[string | null, string | null]> {
+    let ret: [string | null, string | null] = [null, null];
+    this.baseLib.debug(`getFileHash()<<`);
     const files = await new Promise<string[]>((resolve, reject) => {
       try { glob.glob(globExpr, (err, matches) => resolve(matches)); } catch (err) { reject(err); }
     });
@@ -264,13 +269,15 @@ export class BaseUtilLib {
     if (files.length > 1) {
       throw new Error(`Error computing hash on '${globExpr}' as it matches multiple files: ${files}. It must match only one file.`);
     }
-    if (files.length == 0) {
-      return [null, null];
+    else if (files.length == 0) {
+      ret = [null, null];
+    } else {
+      const file = path.resolve(files[0]);
+      const fileHash = await this.baseLib.hashFiles(file);
+      ret = [file, fileHash];
     }
-    const file = path.resolve(files[0]);
-
-    const fileHash = await this.baseLib.hashFiles(file);
-    return [file, fileHash];
+    this.baseLib.debug(`getFileHash()>> -> ${ret}`);
+    return ret;
   }
 }
 
@@ -302,11 +309,15 @@ export class LogFileCollector {
   private readonly regExps: RegExp[] = [];
   private bufferString = "";
   public static readonly MAXLEN = 1024;
-  public constructor(private baseLib: baselib.BaseLib, regExps: string[],
+  public constructor(
+    private baseLib: baselib.BaseLib,
+    regExps: string[],
     private func: (path: string) => void) {
+    baseLib.debug(`LogFileCollector(${JSON.stringify(regExps)})<<`);
     for (const s of regExps) {
       this.regExps.push(new RegExp(s, "g"));
     }
+    baseLib.debug(`LogFileCollector()>>`);
   }
 
   private appendBuffer(buffer: Buffer): void {
@@ -324,8 +335,8 @@ export class LogFileCollector {
   public handleOutput(buffer: Buffer): void {
     this.appendBuffer(buffer);
 
-    debug(`\n\nappending: ${buffer}\n\n`);
-    debug(`\n\nbuffer: ${this.bufferString}\n\n`);
+    _debug(`\n\nappending: ${buffer}\n\n`);
+    _debug(`\n\nbuffer: ${this.bufferString}\n\n`);
     let consumedUntil = -1;
     for (const re of this.regExps) {
       re.lastIndex = 0;
@@ -346,7 +357,7 @@ export class LogFileCollector {
     }
 
     this.limitBuffer(consumedUntil);
-    debug(`\n\nremaining: ${this.bufferString}\n\n`);
+    _debug(`\n\nremaining: ${this.bufferString}\n\n`);
   }
 }
 
@@ -373,7 +384,7 @@ export interface KeySet {
   restore?: string[];
 }
 
-export function CreateKeySet(segments: string[]): KeySet {
+export function createKeySet(segments: string[]): KeySet {
   const keys: string[] = [];
   for (let i: number = segments.length; i > 0; i--) {
     let key: string = segments[0];
@@ -386,11 +397,29 @@ export function CreateKeySet(segments: string[]): KeySet {
   // Extract the primary key and all the rest.
   const primaryKey = keys.shift();
   if (!primaryKey)
-    throw Error("CreateKeySet(): primary key is undefined!");
+    throw Error("createKeySet(): primary key is undefined!");
 
   return { primary: primaryKey, restore: keys } as KeySet;
 }
 
-function debug(msg: string): void {
+function _debug(msg: string): void {
   if (process.env.DEBUG) console.log(`DEBUG: '${msg}'`);
+}
+
+export function replaceFromEnvVar(text: string, values?: { [key: string]: string; }): string {
+  return text.replace(/\$\[(.*?)\]/gi, (a, b) => {
+    let ret = "undefined";
+    if (typeof b == "string") {
+      if (b.startsWith("env.")) {
+        b = b.slice(4);
+        ret = process.env[b] ?? `${b}-is-undefined`;
+      } else {
+        ret = `${b}-is-undefined`;
+        if (values && values[b])
+          ret = values[b];
+      }
+    }
+
+    return ret;
+  });
 }

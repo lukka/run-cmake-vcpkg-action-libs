@@ -95,8 +95,6 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
         getDelimitedInput:
           jest.fn().mockImplementation((name: string, separator?: string, required?: boolean) =>
             inputsMocks.getDelimitedInput(name, separator, required)),
-        isFilePathSupplied:
-          jest.fn(),
         debug:
           jest.fn().mockImplementation((msg: string) => console.log(`test debug: ${msg}`)),
         warning:

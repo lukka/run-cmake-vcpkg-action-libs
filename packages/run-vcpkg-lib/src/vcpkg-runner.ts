@@ -5,12 +5,13 @@
 import * as path from 'path';
 import * as baselib from '@lukka/base-lib';
 import * as globals from './vcpkg-globals';
+import * as vcpkgutils from './vcpkg-utils';
 import * as baseutillib from '@lukka/base-util-lib';
 import { using } from "using-statement";
 
 export class VcpkgRunner {
-  private static readonly vcpkgInstallCmdDefault: string = `install --recurse --clean-after-build`;
-  private static readonly defaultVcpkgUrl = 'https://github.com/microsoft/vcpkg.git';
+  private static readonly VCPKGINSTALLCMDDEFAULT: string = `install --recurse --clean-after-build`;
+  private static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
 
   /**
    * @description Used only in tests.
@@ -26,12 +27,15 @@ export class VcpkgRunner {
     runVcpkgInstallPath: string | null,
     vcpkgInstallCmd: string | null): Promise<VcpkgRunner> {
     if (!vcpkgUrl) {
-      vcpkgUrl = VcpkgRunner.defaultVcpkgUrl;
-      baseUtil.baseLib.info(`The vcpkg's URL Git repository is not provided, using the predefined: '${VcpkgRunner.defaultVcpkgUrl}'`);
+      vcpkgUrl = VcpkgRunner.DEFAULTVCPKGURL;
+      baseUtil.baseLib.info(`The vcpkg's URL Git repository is not provided, using the predefined: '${VcpkgRunner.DEFAULTVCPKGURL}'`);
     }
 
+    VcpkgRunner.setEnvVarIfUndefined("VCPKG_INSTALLED_DIR", await vcpkgutils.getDefaultVcpkgCacheDirectory(baseUtil.baseLib))
     if (!vcpkgInstallCmd) {
-      vcpkgInstallCmd = VcpkgRunner.vcpkgInstallCmdDefault;
+      vcpkgInstallCmd = baseutillib.replaceFromEnvVar(VcpkgRunner.VCPKGINSTALLCMDDEFAULT);
+    } else {
+      vcpkgInstallCmd = baseutillib.replaceFromEnvVar(vcpkgInstallCmd);
     }
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
@@ -126,7 +130,7 @@ export class VcpkgRunner {
     let needRebuild = false;
     const currentCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.options.cwd);
     if (this.doNotUpdateVcpkg) {
-      this.baseUtils.baseLib.info(`Skipping any check to update vcpkg directory (${this.vcpkgDestPath}).`);
+      this.baseUtils.baseLib.info(`Skipping any check to update the vcpkg directory (${this.vcpkgDestPath}).`);
     } else {
       const updated = await this.baseUtils.wrapOp("Check whether vcpkg repository is up to date",
         () => this.checkRepoUpdated(currentCommitId),
@@ -178,6 +182,7 @@ export class VcpkgRunner {
     const optionsForRunningVcpkgInstall = { ...this.options };
     optionsForRunningVcpkgInstall.cwd = this.runVcpkgInstallPath!;
 
+    // Run the command.
     const vcpkgTool = this.baseUtils.baseLib.tool(vcpkgPath);
     vcpkgTool.line(this.vcpkgInstallCmd);
     this.baseUtils.baseLib.info(
@@ -301,6 +306,8 @@ export class VcpkgRunner {
   }
 
   private async cloneRepo(): Promise<void> {
+    this.baseUtils.baseLib.debug(`cloneRepo()<<`);
+
     this.baseUtils.baseLib.info(`Cloning vcpkg in '${this.vcpkgDestPath}'...`);
     if (!this.vcpkgGitCommitId) {
       throw new Error(`When the vcpkg directory is empty, the vcpkg's Git commit id must be provided to git clone the repository.`);
@@ -320,14 +327,17 @@ export class VcpkgRunner {
     gitTool.arg(['checkout', '--force', this.vcpkgGitCommitId]);
     this.baseUtils.throwIfErrorCode(await gitTool.exec(this.options));
     this.baseUtils.baseLib.info(`Clone vcpkg in '${this.vcpkgDestPath}'.`);
+    this.baseUtils.baseLib.debug(`cloneRepo()>>`);
   }
 
   private async checkExecutable(): Promise<boolean> {
+    this.baseUtils.baseLib.debug(`checkExecutable()<<`);
+
     let needRebuild = false;
     // If the executable file ./vcpkg/vcpkg is not present or it is not wokring, force build. The fact that 'the repository is up to date' is meaningless.
     const vcpkgExePath: string = this.baseUtils.getVcpkgExePath(this.vcpkgDestPath);
     if (!this.baseUtils.fileExists(vcpkgExePath)) {
-      this.baseUtils.baseLib.info("Building vcpkg is necessary as executable is missing.");
+      this.baseUtils.baseLib.info("Building vcpkg is necessary since its executable is missing.");
       needRebuild = true;
     } else {
       if (!this.baseUtils.isWin32()) {
@@ -341,6 +351,7 @@ export class VcpkgRunner {
       }
     }
 
+    this.baseUtils.baseLib.debug(`checkExecutable()>> -> ${needRebuild}`);
     return needRebuild;
   }
 
@@ -373,14 +384,11 @@ export class VcpkgRunner {
     const builtCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.options.cwd);
     this.baseUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
     // Keep track of last successful build commit id.
-    this.baseUtils.baseLib.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}`);
+    this.baseUtils.baseLib.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}'.`);
   }
 
-  private setEnvOutTriplet(envVarName: string, outVarName: string, triplet: string): void {
-    this.baseUtils.setEnvVar(envVarName, triplet);
-    this.baseUtils.baseLib.info(`Set the environment variable '${envVarName}' to value: ${triplet}`);
-
-    this.baseUtils.baseLib.setVariable(outVarName, triplet);
-    this.baseUtils.baseLib.info(`Set the output variable '${outVarName}' to value: ${triplet}`);
+  private static setEnvVarIfUndefined(name: string, value: string): void {
+    if (!process.env[name])
+      process.env[name] = value;
   }
 }

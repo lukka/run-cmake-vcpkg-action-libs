@@ -287,41 +287,47 @@ export class ActionToolRunner implements baselib.ToolRunner {
 
 export class ActionLib implements baselib.BaseLib {
 
-  getInput(name: string, isRequired: boolean): string {
-    const value = core.getInput(name, { required: isRequired });
+  getInput(name: string, isRequired: boolean): string | undefined {
+    let value: string | undefined = core.getInput(name, { required: isRequired });
+    if (!value && isRequired)
+      throw new Error(`Not existent input ${name}`);
+    else if (!value)
+      value = undefined;
     this.debug(`getInput(${name}, ${isRequired}) -> '${value}'`);
     return value;
   }
 
-  getBoolInput(name: string, isRequired: boolean): boolean {
+  getBoolInput(name: string, isRequired: boolean): boolean | undefined {
     const value = (core.getInput(name, { required: isRequired }) ?? "").toUpperCase() === "TRUE";
     this.debug(`getBoolInput(${name}, ${isRequired}) -> '${value}'`);
     return value;
   }
 
-  getPathInput(name: string, isRequired: boolean, checkExists: boolean): string {
-    const value = path.resolve(core.getInput(name, { required: isRequired }));
-    this.debug(`getPathInput(${name}) -> '${value}'`);
-    if (checkExists) {
+  getPathInput(name: string, isRequired: boolean, checkExists: boolean): string | undefined {
+    let value: string | undefined = core.getInput(name, { required: isRequired });
+    if (!value && isRequired)
+      throw new Error(`not existent input '${name}'`);
+    else if (!value)
+      value = undefined;
+    if (checkExists && value) {
       if (!fs.existsSync(value))
         throw new Error(`input path '${value}' for '${name}' does not exist.`);
+      value = path.resolve(value);
     }
+    this.debug(`getPathInput(${name}) -> '${value}'`);
     return value;
   }
 
-  isFilePathSupplied(name: string): boolean {
-    // normalize paths
-    const pathValue = this.resolve(this.getPathInput(name, false, false) ?? '');
-    const repoRoot = this.resolve(process.env.GITHUB_WORKSPACE ?? '');
-    const isSupplied = pathValue !== repoRoot;
-    this.debug(`isFilePathSupplied(s file path=('${name}') -> '${isSupplied}'`);
-    return isSupplied;
-  }
-
-  getDelimitedInput(name: string, delim: string, required: boolean): string[] {
-    const input = core.getInput(name, { required: required });
-    const inputs: string[] = input.split(delim);
-    this.debug(`getDelimitedInput(${name}, ${delim}, ${required}) -> '${inputs}'`);
+  getDelimitedInput(name: string, delim: string, isRequired: boolean): string[] {
+    let value: string | undefined = core.getInput(name, { required: isRequired });
+    if (!value && isRequired)
+      throw new Error(`not existent input '${name}'`);
+    else if (!value)
+      value = undefined;
+    let inputs: string[] = [];
+    if (value)
+      inputs = value.split(delim);
+    this.debug(`getDelimitedInput(${name}, ${delim}, ${isRequired}) -> '${inputs}'`);
     return inputs;
   }
 
@@ -335,16 +341,15 @@ export class ActionLib implements baselib.BaseLib {
     core.setOutput(name, value);
   }
 
-  getVariable(name: string): string {
-    //?? Is it really fine to return an empty string in case of undefined variable?
-    return process.env[name] ?? "";
+  getVariable(name: string): string | undefined {
+    return process.env[name];
   }
 
   setState(name: string, value: string): void {
     core.saveState(name, value);
   }
 
-  getState(name: string): string {
+  getState(name: string): string | undefined {
     return core.getState(name);
   }
 

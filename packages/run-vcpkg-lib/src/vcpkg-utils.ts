@@ -3,14 +3,33 @@
 // SPDX short identifier: MIT
 
 import * as path from 'path'
+import * as baselib from '@lukka/base-lib'
 
+/**
+ * 
+ * @param vcpkgRootDir The VCPKG_ROOT directory.
+ * @returns The list of paths to cache, and the ones to not cache (with the prefix exclamation mark).
+ */
 export function getOrdinaryCachedPaths(vcpkgRootDir: string): string[] {
   const pathsToCache: string[] = [
     vcpkgRootDir,
+    path.normalize(`!${path.join(vcpkgRootDir, 'installed')}`),
     path.normalize(`!${path.join(vcpkgRootDir, 'packages')}`),
     path.normalize(`!${path.join(vcpkgRootDir, 'buildtrees')}`),
     path.normalize(`!${path.join(vcpkgRootDir, 'downloads')}`)
   ];
 
   return pathsToCache;
+}
+
+export async function getDefaultVcpkgDirectory(baseLib: baselib.BaseLib,): Promise<string> {
+  return path.join(await baseLib.getBinDir(), 'vcpkg');
+}
+
+export async function getDefaultVcpkgInstallDirectory(baseLib: baselib.BaseLib,): Promise<string> {
+  return path.join(await baseLib.getBinDir(), 'vcpkg_installed');
+}
+
+export async function getDefaultVcpkgCacheDirectory(baseLib: baselib.BaseLib,): Promise<string> {
+  return path.join(await baseLib.getBinDir(), 'vcpkg_cache');
 }

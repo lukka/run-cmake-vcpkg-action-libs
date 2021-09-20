@@ -47,12 +47,11 @@ export interface BaseLib {
   getInput(name: string, required: boolean): string | undefined;
   getPathInput(name: string, required: boolean, check: boolean): string | undefined;
   getBoolInput(name: string, required: boolean): boolean | undefined;
-  isFilePathSupplied(name: string): boolean;
-  getDelimitedInput(name: string, delim: string, required: boolean): string[];
+  getDelimitedInput(name: string, delim: string, required: boolean): string[] | undefined;
   setVariable(name: string, value: string): void;
   getVariable(name: string): string | undefined;
   setState(name: string, value: string): void;
-  getState(name: string): string;
+  getState(name: string): string | undefined;
   setOutput(name: string, value: string): void;
   debug(message: string): void;
   error(message: string): void;

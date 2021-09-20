@@ -10,9 +10,9 @@ import { using } from "using-statement";
 import * as cmakelib from './utils'
 
 export class CMakeRunner {
-  private static readonly configurePresetDefault = "[`--preset`, `$(name)`]";
-  private static readonly buildPresetDefault = "[`--build`, `--preset`, `$(name)`]";
-  private static readonly testPresetDefault = "[`--preset`, `$(name)`]";
+  private static readonly configurePresetDefault = "[`--preset`, `$[env.CONFIGURE_PRESET_NAME]`]";
+  private static readonly buildPresetDefault = "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]";
+  private static readonly testPresetDefault = "[`--preset`, `$[env.TEST_PRESET_NAME]`]";
 
   private readonly baseUtils: baseutillib.BaseUtilLib;
   private readonly cmakeUtils: cmakelib.CMakeUtils;
@@ -25,28 +25,28 @@ export class CMakeRunner {
   private readonly logFilesCollector: baseutillib.LogFileCollector;
 
   public static async run(baseLib: baselib.BaseLib,
-    configurePresetStringCmd?: string,
-    buildPresetStringCmd?: string,
-    testPresetStringCmd?: string): Promise<void> {
+    configurePresetCmdStringFormat?: string,
+    buildPresetCmdStringFormat?: string,
+    testPresetCmdStringFormat?: string): Promise<void> {
     await using(baseutillib.Matcher.createMatcher('all', baseLib, __dirname),
       async () => {
         const cmakeRunner: CMakeRunner = new CMakeRunner(
           baseLib,
-          configurePresetStringCmd,
-          buildPresetStringCmd,
-          testPresetStringCmd);
+          configurePresetCmdStringFormat,
+          buildPresetCmdStringFormat,
+          testPresetCmdStringFormat);
         await cmakeRunner.run();
       });
   }
 
   public constructor(
     private baseLib: baselib.BaseLib,
-    private configurePresetStringCmd: string = CMakeRunner.configurePresetDefault,
-    private buildPresetStringCmd: string = CMakeRunner.buildPresetDefault,
-    private testPresetStringCmd: string = CMakeRunner.testPresetDefault) {
+    private configurePresetCmdStringFormat: string = CMakeRunner.configurePresetDefault,
+    private buildPresetCmdStringFormat: string = CMakeRunner.buildPresetDefault,
+    private testPresetCmdStringFormat: string = CMakeRunner.testPresetDefault) {
     this.baseUtils = new baseutillib.BaseUtilLib(this.baseLib);
     this.cmakeUtils = new cmakelib.CMakeUtils(this.baseUtils);
-    const regs = this.baseLib.getDelimitedInput(cmakeglobals.logCollectionRegExps, ';', false);
+    const regs = this.baseLib.getDelimitedInput(cmakeglobals.logCollectionRegExps, ';', false) ?? [];
     this.logFilesCollector = new baseutillib.LogFileCollector(this.baseLib,
       regs, (path: string) => baseutillib.dumpFile(this.baseLib, path));
 
@@ -89,7 +89,9 @@ export class CMakeRunner {
 
   private async test(cmake: baselib.ToolRunner, testPresetName: string): Promise<void> {
     this.baseLib.debug('test()<<');
-    const cmakeArgs: string[] = eval(this.testPresetStringCmd.replace("$(name)", testPresetName));
+    CMakeRunner.setEnvVarIfUndefined("TEST_PRESET_NAME", testPresetName);
+    const args: string = baseutillib.replaceFromEnvVar(this.testPresetCmdStringFormat);
+    const cmakeArgs: string[] = eval(args);
 
     this.baseLib.debug(`CTest arguments: ${cmakeArgs}`);
     for (const arg of cmakeArgs) {
@@ -109,7 +111,9 @@ export class CMakeRunner {
   private async build(cmake: baselib.ToolRunner, buildPresetName: string): Promise<void> {
     this.baseLib.debug('build()<<');
 
-    const cmakeArgs: string[] = eval(this.buildPresetStringCmd.replace("$(name)", buildPresetName));
+    CMakeRunner.setEnvVarIfUndefined("BUILD_PRESET_NAME", buildPresetName);
+    const args: string = baseutillib.replaceFromEnvVar(this.buildPresetCmdStringFormat);
+    const cmakeArgs: string[] = eval(args);
     this.baseLib.debug(`CMake arguments: ${cmakeArgs}`);
     for (const arg of cmakeArgs) {
       cmake.arg(arg);
@@ -128,7 +132,10 @@ export class CMakeRunner {
   private async configure(cmake: baselib.ToolRunner, configurePresetName: string): Promise<void> {
     this.baseLib.debug('configure()<<');
 
-    const cmakeArgs: string[] = eval(this.configurePresetStringCmd.replace("$(name)", configurePresetName));
+    CMakeRunner.setEnvVarIfUndefined("CONFIGURE_PRESET_NAME", configurePresetName);
+    const args: string = baseutillib.replaceFromEnvVar(this.configurePresetCmdStringFormat);
+    // Transform to array.
+    const cmakeArgs: string[] = eval(args);
     this.baseLib.debug(`CMake arguments: ${cmakeArgs}`);
     for (const arg of cmakeArgs) {
       cmake.arg(arg);
@@ -167,5 +174,10 @@ export class CMakeRunner {
     if (code !== 0) {
       throw new Error(`"CMake failed with error code: '${code}'.`);
     }
+  }
+
+  private static setEnvVarIfUndefined(name: string, value: string): void {
+    if (!process.env[name])
+      process.env[name] = value;
   }
 }

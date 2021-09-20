@@ -32,6 +32,7 @@ jobs:
       name: test
     - name: Coveralls
       uses: coverallsapp/github-action@master
+      continue-on-error: true
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
