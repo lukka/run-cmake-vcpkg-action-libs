@@ -10,7 +10,7 @@ import * as baseutillib from '@lukka/base-util-lib';
 import { using } from "using-statement";
 
 export class VcpkgRunner {
-  private static readonly VCPKGINSTALLCMDDEFAULT: string = `install --recurse --clean-after-build`;
+  private static readonly VCPKGINSTALLCMDDEFAULT: string = `install --recurse --clean-after-build --x-install-root $[env.VCPKG_INSTALLED_DIR]`;
   private static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
 
   /**
@@ -31,7 +31,7 @@ export class VcpkgRunner {
       baseUtil.baseLib.info(`The vcpkg's URL Git repository is not provided, using the predefined: '${VcpkgRunner.DEFAULTVCPKGURL}'`);
     }
 
-    VcpkgRunner.setEnvVarIfUndefined("VCPKG_INSTALLED_DIR", await vcpkgutils.getDefaultVcpkgCacheDirectory(baseUtil.baseLib))
+    VcpkgRunner.setEnvVarIfUndefined("VCPKG_INSTALLED_DIR", await vcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib))
     if (!vcpkgInstallCmd) {
       vcpkgInstallCmd = baseutillib.replaceFromEnvVar(VcpkgRunner.VCPKGINSTALLCMDDEFAULT);
     } else {
@@ -341,7 +341,7 @@ export class VcpkgRunner {
       needRebuild = true;
     } else {
       if (!this.baseUtils.isWin32()) {
-        await this.baseUtils.baseLib.execSync('chmod', ["+x", vcpkgExePath])
+        await this.baseUtils.baseLib.execSync('chmod', ["+x", vcpkgExePath]);
       }
       this.baseUtils.baseLib.info(`vcpkg executable exists at: '${vcpkgExePath}'.`);
       const result = await this.baseUtils.baseLib.execSync(vcpkgExePath, ['version']);

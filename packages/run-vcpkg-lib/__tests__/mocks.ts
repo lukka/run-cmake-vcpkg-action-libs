@@ -96,19 +96,15 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
           jest.fn().mockImplementation((name: string, separator?: string, required?: boolean) =>
             inputsMocks.getDelimitedInput(name, separator, required)),
         debug:
-          jest.fn().mockImplementation((msg: string) => console.log(`test debug: ${msg}`)),
+          jest.fn().mockImplementation((msg: string) => testutils.testLog(`debug: ${msg}`)),
         warning:
-          jest.fn().mockImplementation((msg: string) => {
-            console.log(`warn: ${msg}`);
-          }),
+          jest.fn().mockImplementation((msg: string) => testutils.testLog(`warn: ${msg}`)),
         error:
-          jest.fn().mockImplementation((msg: string) => {
-            console.log(`err: ${msg}`);
-          }),
+          jest.fn().mockImplementation((msg: string) =>
+            testutils.testLog(`err: ${msg}`)),
         info:
-          baselibInfo.mockImplementation((msg: string) => {
-            console.log(`info: ${msg}`);
-          }),
+          baselibInfo.mockImplementation((msg: string) =>
+            testutils.testLog(`info: ${msg}`)),
         beginOperation:
           jest.fn().mockImplementation((operationName: string) => {
             testutils.testLog(`beginOperation('${operationName}')`);
@@ -167,8 +163,8 @@ jest.spyOn(ActionToolRunner.prototype, 'execSync').mockImplementation(
   function (this: ActionToolRunner, options?: ExecOptions): Promise<baselib.ExecResult> {
     const toolRunnerPrivateAccess: any = this;
     const response = answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
-    console.log(response);
-    console.log(JSON.stringify(response));
+    testutils.testLog(response);
+    testutils.testLog(JSON.stringify(response));
     return Promise.resolve({ code: response.code, stdout: response.stdout, stderr: response.stderr } as baselib.ExecResult);
   });
 
@@ -176,7 +172,7 @@ jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
   function (this: ActionToolRunner, options?: ExecOptions): Promise<number> {
     const toolRunnerPrivateAccess: any = this;
     const response = answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
-    console.log(response);
+    testutils.testLog(response);
     return Promise.resolve(response.code);
   });
 

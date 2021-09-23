@@ -2,12 +2,13 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as globals from '../src/vcpkg-globals'
-import * as testutils from './utils'
-import * as path from 'path'
-import * as mock from './mocks'
-import * as assert from 'assert'
+import * as globals from '../src/vcpkg-globals';
+import * as testutils from './utils';
+import * as path from 'path';
+import * as mock from './mocks';
+import * as assert from 'assert';
 import * as utils from '@lukka/base-util-lib';
+import * as runvcpkgutils from '../src/vcpkg-utils'
 
 // Arrange.
 const isWin = process.platform === "win32";
@@ -28,9 +29,9 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseUtilLib, file: string): string {
     if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
       return oldGitRef;
-    }
-    else
+    } else {
       throw `readFile called with unexpected file name: '${file}'.`;
+    }
   });
 
 jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
@@ -50,6 +51,8 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
       assert.fail(`Unexpected variable name: '${name}'`);
     }
   });
+
+const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
@@ -73,7 +76,7 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build`]:
+      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build --x-install-root ${await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib)}`]:
         { 'code': 0, 'stdout': 'this is the `vcpkg install` output' },
     },
     "exist": { [vcpkgRoot]: true },
@@ -87,7 +90,6 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
   };
   mock.answersMocks.reset(answers);
 
-  const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
   let vcpkg = await VcpkgRunner.create(
     baseUtil,
     vcpkgRoot,
@@ -100,7 +102,7 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
     null);
 
   // Act.
-  // HACK: any to access private fields.
+  // HACK: 'any' to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
   try {
     await vcpkg.run();
