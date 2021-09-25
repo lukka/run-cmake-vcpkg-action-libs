@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as del from 'del'
 import { performance } from 'perf_hooks'
 import * as baselib from "@lukka/base-lib"
-import * as glob from "glob"
+import * as fastglob from "fast-glob"
 
 export class BaseUtilLib {
 
@@ -259,15 +259,13 @@ export class BaseUtilLib {
    * @returns {[string, string]} The file hit and its hash, or [null, null] if no its.
    * @throws When multiple hits occur.
    */
-  public async getFileHash(globExpr: string): Promise<[string | null, string | null]> {
+  public async getFileHash(globPattern: string, ignorePatterns: string[]): Promise<[string | null, string | null]> {
     let ret: [string | null, string | null] = [null, null];
     this.baseLib.debug(`getFileHash()<<`);
-    const files = await new Promise<string[]>((resolve, reject) => {
-      try { glob.glob(globExpr, (err, matches) => resolve(matches)); } catch (err) { reject(err); }
-    });
+    const files = await fastglob.default(globPattern, { ignore: ignorePatterns });
 
     if (files.length > 1) {
-      throw new Error(`Error computing hash on '${globExpr}' as it matches multiple files: ${files}. It must match only one file.`);
+      throw new Error(`Error computing hash on '${globPattern}' as it matches multiple files: ${files}. It must match only one file.`);
     }
     else if (files.length == 0) {
       ret = [null, null];
@@ -276,7 +274,7 @@ export class BaseUtilLib {
       const fileHash = await this.baseLib.hashFiles(file);
       ret = [file, fileHash];
     }
-    this.baseLib.debug(`getFileHash()>> -> ${ret}`);
+    this.baseLib.debug(`getFileHash()>> -> file='${ret[0]}' hash='${ret[1]}'`);
     return ret;
   }
 }

@@ -53,8 +53,10 @@ test('tests for dumpError()', async () => {
 const baseUtil: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(new actionlib.ActionLib());
 
 test('vcpkg.json must be found once', async () => {
-  expect(() => baseUtil.getFileHash("**/dir/vcpkg.json")).toBeTruthy();
-  const [file, hash] = await baseUtil.getFileHash("**/dir/vcpkg.json")
+  const globExpr = "**/dir/vcpkg.json";
+  const ignoreExpr = "**/node_modules/**";
+  expect(async () => await baseUtil.getFileHash(globExpr, [ignoreExpr])).toBeTruthy();
+  const [file, hash] = await baseUtil.getFileHash(globExpr, [ignoreExpr]);
   expect(hash).toStrictEqual(
     '5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456');
   expect(file).toStrictEqual(
@@ -62,11 +64,16 @@ test('vcpkg.json must be found once', async () => {
 });
 
 test('vcpkg.json must be found multiple times', async () => {
-  await expect(() => baseUtil.getFileHash("**/vcpkg.json")).rejects.toThrow();
+  await expect(() => baseUtil.getFileHash("**/vcpkg.json", [])).rejects.toThrow();
 });
 
 test('vcpkg.json must not be found', async () => {
-  const empty = await baseUtil.getFileHash("**/notexistent/vcpkg.json");
+  const empty = await baseUtil.getFileHash("**/notexistent/vcpkg.json", []);
+  expect(empty).toStrictEqual([null, null]);
+});
+
+test('vcpkg.json must not be found because of the ignore pattern', async () => {
+  const empty = await baseUtil.getFileHash("**/vcpkg.json", ["**/**"]);
   expect(empty).toStrictEqual([null, null]);
 });
 

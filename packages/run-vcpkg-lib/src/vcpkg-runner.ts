@@ -10,8 +10,8 @@ import * as baseutillib from '@lukka/base-util-lib';
 import { using } from "using-statement";
 
 export class VcpkgRunner {
-  private static readonly VCPKGINSTALLCMDDEFAULT: string = `install --recurse --clean-after-build --x-install-root $[env.VCPKG_INSTALLED_DIR]`;
-  private static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
+  public static readonly VCPKGINSTALLCMDDEFAULT: string = `install --recurse --clean-after-build --x-install-root $[env.VCPKG_INSTALLED_DIR]`;
+  public static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
 
   /**
    * @description Used only in tests.
@@ -128,9 +128,9 @@ export class VcpkgRunner {
     }
 
     let needRebuild = false;
-    const currentCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.options.cwd);
+    const currentCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.vcpkgDestPath);
     if (this.doNotUpdateVcpkg) {
-      this.baseUtils.baseLib.info(`Skipping any check to update the vcpkg directory (${this.vcpkgDestPath}).`);
+      this.baseUtils.baseLib.info(`DoNotUpdateVcpkg' is 'true', skipping any check to update the vcpkg directory (${this.vcpkgDestPath}).`);
     } else {
       const updated = await this.baseUtils.wrapOp("Check whether vcpkg repository is up to date",
         () => this.checkRepoUpdated(currentCommitId),
@@ -381,7 +381,7 @@ export class VcpkgRunner {
     }
 
     // After a build, refetch the commit id of the vcpkg's repo, and store it into the file.
-    const builtCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.options.cwd);
+    const builtCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.vcpkgDestPath);
     this.baseUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
     // Keep track of last successful build commit id.
     this.baseUtils.baseLib.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}'.`);

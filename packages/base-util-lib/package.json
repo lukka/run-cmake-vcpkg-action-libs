@@ -21,8 +21,8 @@
 		"test": "jest"
 	},
 	"dependencies": {
-		"@lukka/base-lib": "^2.0.0-alpha.2",
-		"glob": "^7.1.7"
+		"@lukka/base-lib": "^2.0.0-alpha.1",
+		"fast-glob": "3.2.7"
 	},
 	"devDependencies": {
 		"lerna": "^4.0.0",
