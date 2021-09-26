@@ -8,6 +8,7 @@ import * as stream from 'stream';
 import * as baselib from '@lukka/base-lib';
 import * as utils from '@lukka/base-util-lib';
 import * as core from '@actions/core';
+import * as corecommand from '@actions/core/lib/command';
 import * as execifaces from '@actions/exec/lib/interfaces';
 import * as toolrunner from '@actions/exec/lib/toolrunner';
 import * as actionglob from '@actions/glob'
@@ -391,7 +392,7 @@ export class ActionLib implements baselib.BaseLib {
   async which(name: string, required: boolean): Promise<string> {
     core.debug(`"which(${name})<<`);
     const filePath = await io.which(name, required);
-    console.log(`tool: ${filePath}`);
+    core.debug(`tool: ${filePath}`);
     core.debug(`"which(${name}) >> ${filePath}`);
     return filePath;
   }
@@ -466,11 +467,11 @@ export class ActionLib implements baselib.BaseLib {
   }
 
   addMatcher(file: string): void {
-    console.log(`::add-matcher::${file}`);
+    corecommand.issueCommand('ádd-matcher', {}, file);
   }
 
-  removeMatcher(file: string): void {
-    console.log(`::remove-matcher::${file}`);
+  removeMatcher(owner: string): void {
+    corecommand.issueCommand('remove-matcher', { owner: owner }, "");
   }
 
   hashFiles(fileGlob: string, options?: baselib.GlobOptions): Promise<string> {

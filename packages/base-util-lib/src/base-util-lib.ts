@@ -282,7 +282,6 @@ export class BaseUtilLib {
 export class Matcher {
   constructor(private name: string, private baseLib: baselib.BaseLib, private fromPath?: string) {
     const matcherFilePath = path.join(__dirname, `${name}.json`);
-    fromPath;
     this.baseLib.addMatcher(matcherFilePath);
   }
 
