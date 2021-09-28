@@ -127,13 +127,13 @@ export class BaseUtilLib {
     this.baseLib.writeFile(file, content);
   }
 
-  public getDefaultTriplet(): string {
+  public getDefaultTriplet(): string | null{
     const envVar = process.env["VCPKG_DEFAULT_TRIPLET"];
     if (envVar) {
       return envVar;
     } else {
       if (this.isWin32()) {
-        return "x86-windows";
+        return "x64-windows";
       } else if (this.isLinux()) {
         return "x64-linux";
       } else if (this.isMacos()) {
@@ -142,7 +142,7 @@ export class BaseUtilLib {
         return "x64-freebsd";
       }
     }
-    return "";
+    return null;
   }
 
   // Force 'name' env variable to have value of 'value'.

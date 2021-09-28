@@ -7,21 +7,21 @@ import * as baseutillib from '@lukka/base-util-lib';
 import * as path from 'path';
 import * as cmakeglobals from './cmake-globals';
 import { using } from "using-statement";
-import * as cmakelib from './utils'
+import * as cmakeutil from './cmake-utils'
+import * as runvcpkglib from '@lukka/run-vcpkg-lib'
 
 export class CMakeRunner {
-  private static readonly configurePresetDefault = "[`--preset`, `$[env.CONFIGURE_PRESET_NAME]`]";
-  private static readonly buildPresetDefault = "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]";
-  private static readonly testPresetDefault = "[`--preset`, `$[env.TEST_PRESET_NAME]`]";
+  public static readonly configurePresetDefault = "[`--preset`, `$[env.CONFIGURE_PRESET_NAME]`]";
+  public static readonly buildPresetDefault = "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]";
+  public static readonly testPresetDefault = "[`--preset`, `$[env.TEST_PRESET_NAME]`]";
+  public static readonly vcpkgEnvDefault = "[`env`, `--bin`, `--include`, `--tools`, `--python`, `--triplet $[env.VCPKG_DEFAULT_TRIPLET]`, `set`]";
 
   private readonly baseUtils: baseutillib.BaseUtilLib;
-  private readonly cmakeUtils: cmakelib.CMakeUtils;
   private readonly cmakeListsTxtPath: string;
   private readonly cmakeConfigurePreset: string | null;
   private readonly cmakeBuildPreset: string | null;
   private readonly cmakeTestPreset: string | null;
   private readonly cmakeSourceDir: string;
-  private readonly vcpkgTriplet: string | null = null;
   private readonly logFilesCollector: baseutillib.LogFileCollector;
 
   public static async run(baseLib: baselib.BaseLib,
@@ -43,9 +43,9 @@ export class CMakeRunner {
     private baseLib: baselib.BaseLib,
     private configurePresetCmdStringFormat: string = CMakeRunner.configurePresetDefault,
     private buildPresetCmdStringFormat: string = CMakeRunner.buildPresetDefault,
-    private testPresetCmdStringFormat: string = CMakeRunner.testPresetDefault) {
+    private testPresetCmdStringFormat: string = CMakeRunner.testPresetDefault,
+    private vcpkgEnvStringFormat: string = CMakeRunner.vcpkgEnvDefault) {
     this.baseUtils = new baseutillib.BaseUtilLib(this.baseLib);
-    this.cmakeUtils = new cmakelib.CMakeUtils(this.baseUtils);
     const regs = this.baseLib.getDelimitedInput(cmakeglobals.logCollectionRegExps, ';', false) ?? [];
     this.logFilesCollector = new baseutillib.LogFileCollector(this.baseLib,
       regs, (path: string) => baseutillib.dumpFile(this.baseLib, path));
@@ -60,8 +60,6 @@ export class CMakeRunner {
 
     this.cmakeSourceDir = path.dirname(baseutillib.BaseUtilLib.normalizePath(this.cmakeListsTxtPath) ?? "");
     baseutillib.BaseUtilLib.throwIfNull(this.cmakeSourceDir, cmakeglobals.cmakeListsTxtPath);
-
-    this.vcpkgTriplet = this.baseLib.getInput(cmakeglobals.cmakeVcpkgTriplet, false) ?? null;
   }
 
   public async run(): Promise<void> {
@@ -89,7 +87,7 @@ export class CMakeRunner {
 
   private async test(cmake: baselib.ToolRunner, testPresetName: string): Promise<void> {
     this.baseLib.debug('test()<<');
-    CMakeRunner.setEnvVarIfUndefined("TEST_PRESET_NAME", testPresetName);
+    cmakeutil.setEnvVarIfUndefined("TEST_PRESET_NAME", testPresetName);
     const args: string = baseutillib.replaceFromEnvVar(this.testPresetCmdStringFormat);
     const cmakeArgs: string[] = eval(args);
 
@@ -111,7 +109,7 @@ export class CMakeRunner {
   private async build(cmake: baselib.ToolRunner, buildPresetName: string): Promise<void> {
     this.baseLib.debug('build()<<');
 
-    CMakeRunner.setEnvVarIfUndefined("BUILD_PRESET_NAME", buildPresetName);
+    cmakeutil.setEnvVarIfUndefined("BUILD_PRESET_NAME", buildPresetName);
     const args: string = baseutillib.replaceFromEnvVar(this.buildPresetCmdStringFormat);
     const cmakeArgs: string[] = eval(args);
     this.baseLib.debug(`CMake arguments: ${cmakeArgs}`);
@@ -132,7 +130,7 @@ export class CMakeRunner {
   private async configure(cmake: baselib.ToolRunner, configurePresetName: string): Promise<void> {
     this.baseLib.debug('configure()<<');
 
-    CMakeRunner.setEnvVarIfUndefined("CONFIGURE_PRESET_NAME", configurePresetName);
+    cmakeutil.setEnvVarIfUndefined("CONFIGURE_PRESET_NAME", configurePresetName);
     const args: string = baseutillib.replaceFromEnvVar(this.configurePresetCmdStringFormat);
     // Transform to array.
     const cmakeArgs: string[] = eval(args);
@@ -141,14 +139,34 @@ export class CMakeRunner {
       cmake.arg(arg);
     }
 
-    // Use vcpkg toolchain if requested, and setenvironment using the triplet (used to setup the environment for MSVC on Windows).
-    if (this.vcpkgTriplet) {
-      await this.cmakeUtils.setEnvironmentForVcpkgTriplet(this.vcpkgTriplet, this.baseLib)
-    }
+    await this.baseUtils.wrapOp(`Setup environment variables using '${JSON.stringify(args)}''`, async () => {
+      const vcpkgRoot: string | undefined = process.env[runvcpkglib.vcpkgRoot];
 
+      // if VCPKG_ROOT is defined, then use it.
+      if (!vcpkgRoot || vcpkgRoot.length == 0) {
+        this.baseLib.info(`Skipping setting up the environment since VCPKG_ROOT is not defined. It is needed to know where vcpkg executable is located.`);
+      } else if (!this.baseUtils.isWin32()) {
+        this.baseLib.info(`Skipping setting up the environment since the platform is not Windows.`);
+      } else if (process.env.CXX || process.env.CC) {
+        // If a C++ compiler is user-enforced, skip setting up the environment for MSVC.
+        this.baseLib.info(`Skipping setting up the environment since CXX or CC environment variable are defined. This allows user customization.`);
+      } else {
+        // Use vcpkg to set the environment using provided command line (which include the triplet).
+        // This is only useful to setup the environment for MSVC on Windows.
+        cmakeutil.setEnvVarIfUndefined("VCPKG_DEFAULT_TRIPLET", this.baseUtils.getDefaultTriplet());
+        const vcpkgEnvArgsString: string = baseutillib.replaceFromEnvVar(this.vcpkgEnvStringFormat);
+        const vcpkgEnvArgs: string[] = eval(vcpkgEnvArgsString);
+        this.baseLib.debug(`'vcpkg env' arguments: ${vcpkgEnvArgs}`);
+        await cmakeutil.injectEnvVariables(this.baseUtils, vcpkgRoot, vcpkgEnvArgs);
+      }
+    });
+
+    // 
     this.baseLib.debug(`Generating project files with CMake ...`);
     await this.baseUtils.wrapOp("Generate project files with CMake",
       async () => await this.launchCMake(cmake, this.cmakeSourceDir, this.logFilesCollector));
+
+    this.baseLib.debug('configure()>>');
   }
 
   private async launchCMake(
@@ -174,10 +192,5 @@ export class CMakeRunner {
     if (code !== 0) {
       throw new Error(`"CMake failed with error code: '${code}'.`);
     }
-  }
-
-  private static setEnvVarIfUndefined(name: string, value: string): void {
-    if (!process.env[name])
-      process.env[name] = value;
   }
 }

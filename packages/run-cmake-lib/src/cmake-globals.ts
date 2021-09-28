@@ -6,6 +6,5 @@ export const cmakeListsTxtPath = 'cmakeListsTxtPath';
 export const configurePreset = 'configurePreset';
 export const buildPreset = 'buildPreset';
 export const testPreset = 'testPreset';
-export const cmakeVcpkgTriplet = 'vcpkgTriplet';
 export const logCollectionRegExps = 'logCollectionRegExps';
 

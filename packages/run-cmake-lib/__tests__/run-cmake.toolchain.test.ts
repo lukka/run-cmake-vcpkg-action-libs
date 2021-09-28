@@ -24,16 +24,15 @@ const buildPreset = 'build';
 const testPreset = 'test';
 
 import { CMakeRunner } from '../src/cmake-runner';
-import * as cmakeutils from '../src/utils'
+import * as cmakeutils from '../src/cmake-utils'
 
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
 mock.inputsMocks.setInput(globals.configurePreset, cmakePreset);
 mock.inputsMocks.setInput(globals.buildPreset, buildPreset);
 mock.inputsMocks.setInput(globals.testPreset, testPreset);
-mock.inputsMocks.setInput(globals.cmakeVcpkgTriplet, "x64-windows");
-process.env.VCPKG_ROOT = vcpkgRoot;
 
-testutils.testWithHeader('run-cmake with toolchain must configure and build and test successfully', async () => {
+testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and build and test successfully', async () => {
+  process.env.VCPKG_ROOT = vcpkgRoot;
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -58,7 +57,7 @@ testutils.testWithHeader('run-cmake with toolchain must configure and build and 
   };
   mock.answersMocks.reset(answers);
 
-  const setupEnvVcpkg = jest.spyOn(cmakeutils.CMakeUtils.prototype, 'setEnvironmentForVcpkgTriplet');
+  const setupEnvVcpkg = jest.spyOn(cmakeutils, 'injectEnvVariables');
   // Act and Assert.
   try {
     await CMakeRunner.run(mock.exportedBaselib);
@@ -69,6 +68,47 @@ testutils.testWithHeader('run-cmake with toolchain must configure and build and 
 
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
-  expect(setupEnvVcpkg).toBeCalledTimes(1);
+  expect(setupEnvVcpkg).toBeCalledTimes(isWin ? 1 : 0);
+  setupEnvVcpkg.mockRestore();
+});
+
+testutils.testWithHeader('run-cmake with VCPKG_ROOT not defined must configure and build and test successfully', async () => {
+  delete process.env.VCPKG_ROOT;
+  const answers: testutils.BaseLibAnswers = {
+    "exec": {
+      [`${gitPath}`]:
+        { code: 0, stdout: "git output" },
+      [`${cmakeExePath} --preset ${cmakePreset}`]: { 'code': 0, "stdout": 'cmake --preset output here' },
+      [`${cmakeExePath} --build --preset ${buildPreset}`]: { 'code': 0, "stdout": 'cmake --build --preset output here' },
+      [`${ctestExePath} --preset ${testPreset}`]: { 'code': 0, "stdout": 'ctest --preset output here' },
+      [gitPath]: { 'code': 0, 'stdout': 'git output here' },
+      [`${ctestExePath} --preset ${testPreset}`]: { 'code': 0, "stdout": 'ctest --preset output here' },
+      [`${vcpkgExePath} env --bin --include --tools --python --triplet x64-windows set`]: { 'code': 0, "stdout": 'vcpkg env output here.' }
+    },
+    "exist": { [vcpkgRoot]: true },
+    'which': {
+      'git': '/usr/local/bin/git',
+      'sh': '/bin/bash',
+      'chmod': '/bin/chmod',
+      'cmd.exe': 'cmd.exe',
+      'cmake': cmakeExePath,
+      'ctest': ctestExePath,
+      'ninja': ninjaExePath
+    },
+  };
+  mock.answersMocks.reset(answers);
+
+  const setupEnvVcpkg = jest.spyOn(cmakeutils, 'injectEnvVariables');
+  // Act and Assert.
+  try {
+    await CMakeRunner.run(mock.exportedBaselib);
+  }
+  catch (error) {
+    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
+  }
+
+  expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
+  expect(mock.exportedBaselib.error).toBeCalledTimes(0);
+  expect(setupEnvVcpkg).toBeCalledTimes(0);
   setupEnvVcpkg.mockRestore();
 });
