@@ -27,14 +27,16 @@ export class CMakeRunner {
   public static async run(baseLib: baselib.BaseLib,
     configurePresetCmdStringFormat?: string,
     buildPresetCmdStringFormat?: string,
-    testPresetCmdStringFormat?: string): Promise<void> {
+    testPresetCmdStringFormat?: string,
+    vcpkgEnvCmdStringFormat?: string): Promise<void> {
     await using(baseutillib.Matcher.createMatcher('all', baseLib, __dirname),
       async () => {
         const cmakeRunner: CMakeRunner = new CMakeRunner(
           baseLib,
           configurePresetCmdStringFormat,
           buildPresetCmdStringFormat,
-          testPresetCmdStringFormat);
+          testPresetCmdStringFormat,
+          vcpkgEnvCmdStringFormat);
         await cmakeRunner.run();
       });
   }
