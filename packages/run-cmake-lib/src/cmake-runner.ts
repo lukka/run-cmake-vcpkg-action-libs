@@ -141,7 +141,7 @@ export class CMakeRunner {
       cmake.arg(arg);
     }
 
-    await this.baseUtils.wrapOp(`Setup environment variables using '${JSON.stringify(args)}''`, async () => {
+    await this.baseUtils.wrapOp(`Setup C/C++ toolset environment variables`, async () => {
       const vcpkgRoot: string | undefined = process.env[runvcpkglib.vcpkgRoot];
 
       // if VCPKG_ROOT is defined, then use it.
@@ -153,7 +153,13 @@ export class CMakeRunner {
         // If a C++ compiler is user-enforced, skip setting up the environment for MSVC.
         this.baseLib.info(`Skipping setting up the environment since CXX or CC environment variable are defined. This allows user customization.`);
       } else {
-        // Use vcpkg to set the environment using provided command line (which include the triplet).
+        // If Win32 && (!CC && !CXX), let hardcode CC and CXX so that CMake uses the MSVC toolset.
+        process.env.CC = "cl.exe";
+        process.env.CXX = "cl.exe";
+        this.baseLib.setVariable("CC", "cl.exe");
+        this.baseLib.setVariable("CXX", "cl.exe");
+
+        // Use vcpkg to set the environment using provided command line (which includes the triplet).
         // This is only useful to setup the environment for MSVC on Windows.
         cmakeutil.setEnvVarIfUndefined("VCPKG_DEFAULT_TRIPLET", this.baseUtils.getDefaultTriplet());
         const vcpkgEnvArgsString: string = baseutillib.replaceFromEnvVar(this.vcpkgEnvStringFormat);
