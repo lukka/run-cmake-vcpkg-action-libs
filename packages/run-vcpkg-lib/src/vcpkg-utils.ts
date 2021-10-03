@@ -14,6 +14,7 @@ export function getOrdinaryCachedPaths(vcpkgRootDir: string): string[] {
   const pathsToCache: string[] = [
     vcpkgRootDir,
     path.normalize(`!${path.join(vcpkgRootDir, 'installed')}`),
+    path.normalize(`!${path.join(vcpkgRootDir, 'vcpkg_installed')}`),
     path.normalize(`!${path.join(vcpkgRootDir, 'packages')}`),
     path.normalize(`!${path.join(vcpkgRootDir, 'buildtrees')}`),
     path.normalize(`!${path.join(vcpkgRootDir, 'downloads')}`)
@@ -23,13 +24,17 @@ export function getOrdinaryCachedPaths(vcpkgRootDir: string): string[] {
 }
 
 export async function getDefaultVcpkgDirectory(baseLib: baselib.BaseLib,): Promise<string> {
-  return path.join(await baseLib.getBinDir(), 'vcpkg');
+  return fwSlash(path.join(await baseLib.getBinDir(), 'vcpkg'));
 }
 
 export async function getDefaultVcpkgInstallDirectory(baseLib: baselib.BaseLib,): Promise<string> {
-  return path.join(await baseLib.getBinDir(), 'vcpkg_installed');
+  return fwSlash(path.join(await baseLib.getBinDir(), 'vcpkg_installed'));
 }
 
 export async function getDefaultVcpkgCacheDirectory(baseLib: baselib.BaseLib,): Promise<string> {
-  return path.join(await baseLib.getBinDir(), 'vcpkg_cache');
+  return fwSlash(path.join(await baseLib.getBinDir(), 'vcpkg_cache'));
+}
+
+function fwSlash(p: string): string {
+  return p.replace(/\\/g, '/');
 }

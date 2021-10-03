@@ -15,6 +15,7 @@ test('tests for run-vcpkg utils.ts ...', async () => {
   expect(paths).toStrictEqual(
     [vcpkgRoot,
       excludedPath(vcpkgRoot, "installed"),
+      excludedPath(vcpkgRoot, "vcpkg_installed"),
       excludedPath(vcpkgRoot, "packages"),
       excludedPath(vcpkgRoot, "buildtrees"),
       excludedPath(vcpkgRoot, "downloads")]
