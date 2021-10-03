@@ -10,7 +10,7 @@ import * as baseutillib from '@lukka/base-util-lib';
 import { using } from "using-statement";
 
 export class VcpkgRunner {
-  public static readonly VCPKGINSTALLCMDDEFAULT: string = `install --recurse --clean-after-build --x-install-root $[env.VCPKG_INSTALLED_DIR]`;
+  public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`]';
   public static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
 
   /**
@@ -37,6 +37,8 @@ export class VcpkgRunner {
     } else {
       vcpkgInstallCmd = baseutillib.replaceFromEnvVar(vcpkgInstallCmd);
     }
+
+    const vcpkgInstallArgs: string[] = eval(vcpkgInstallCmd);
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
     const pathToLastBuiltCommitId = path.join(vcpkgDestPath, globals.vcpkgLastBuiltCommitId);
@@ -69,7 +71,7 @@ export class VcpkgRunner {
       runVcpkgInstallPath,
       pathToLastBuiltCommitId,
       options,
-      vcpkgInstallCmd);
+      vcpkgInstallArgs);
   }
 
   public static async run(
@@ -108,7 +110,7 @@ export class VcpkgRunner {
     private readonly runVcpkgInstallPath: string | null,
     private readonly pathToLastBuiltCommitId: string,
     private readonly options: baselib.ExecOptions = {} as baselib.ExecOptions,
-    private vcpkgInstallCmd: string) {
+    private vcpkgInstallCmd: string[]) {
   }
 
   public async run(): Promise<void> {
@@ -184,7 +186,8 @@ export class VcpkgRunner {
 
     // Run the command.
     const vcpkgTool = this.baseUtils.baseLib.tool(vcpkgPath);
-    vcpkgTool.line(this.vcpkgInstallCmd);
+    for (const arg of this.vcpkgInstallCmd)
+      vcpkgTool.arg(arg);
     this.baseUtils.baseLib.info(
       `Running 'vcpkg ${this.vcpkgInstallCmd}' in directory '${optionsForRunningVcpkgInstall.cwd}' ...`);
     this.baseUtils.throwIfErrorCode(await vcpkgTool.exec(optionsForRunningVcpkgInstall));
