@@ -131,7 +131,8 @@ export class VcpkgRunner {
     }
 
     let needRebuild = false;
-    const currentCommitId = await VcpkgRunner.getCommitId(this.baseUtils, this.vcpkgDestPath);
+    const currentCommitId = await this.baseUtils.wrapOp(`Retrieving the vcpkg Git commit id (${this.vcpkgDestPath})`,
+      async () => await VcpkgRunner.getCommitId(this.baseUtils, this.vcpkgDestPath));
     if (this.doNotUpdateVcpkg) {
       this.baseUtils.baseLib.info(`DoNotUpdateVcpkg' is 'true', skipping any check to update the vcpkg directory (${this.vcpkgDestPath}).`);
     } else {
