@@ -420,3 +420,8 @@ export function replaceFromEnvVar(text: string, values?: { [key: string]: string
     return ret;
   });
 }
+
+export function setEnvVarIfUndefined(name: string, value: string | null): void {
+  if (!process.env[name] && value)
+    process.env[name] = value;
+}

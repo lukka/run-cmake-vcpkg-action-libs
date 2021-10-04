@@ -10,7 +10,7 @@ import * as baseutillib from '@lukka/base-util-lib';
 import { using } from "using-statement";
 
 export class VcpkgRunner {
-  public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`]';
+  public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
   public static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
 
   /**
@@ -31,7 +31,8 @@ export class VcpkgRunner {
       baseUtil.baseLib.info(`The vcpkg's URL Git repository is not provided, using the predefined: '${VcpkgRunner.DEFAULTVCPKGURL}'`);
     }
 
-    VcpkgRunner.setEnvVarIfUndefined("VCPKG_INSTALLED_DIR", await vcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib))
+    baseutillib.setEnvVarIfUndefined("VCPKG_INSTALLED_DIR", await vcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib));
+    baseutillib.setEnvVarIfUndefined(globals.VCPKGDEFAULTTRIPLET, baseUtil.getDefaultTriplet());
     if (!vcpkgInstallCmd) {
       vcpkgInstallCmd = baseutillib.replaceFromEnvVar(VcpkgRunner.VCPKGINSTALLCMDDEFAULT);
     } else {
@@ -198,7 +199,7 @@ export class VcpkgRunner {
     this.baseUtils.setEnvVar(globals.outVcpkgRootPath, this.vcpkgDestPath);
     // Override the VCPKG_ROOT value, it must point to this vcpkg instance, it is used by 
     // any subsequent invocation of the vcpkg executable.
-    this.baseUtils.setEnvVar(globals.vcpkgRoot, this.vcpkgDestPath);
+    this.baseUtils.setEnvVar(globals.VCPKGROOT, this.vcpkgDestPath);
 
     // The output variable must have a different name than the
     // one set with setVariable(), as the former get a prefix added out of our control.
@@ -388,10 +389,5 @@ export class VcpkgRunner {
     this.baseUtils.writeFile(this.pathToLastBuiltCommitId, builtCommitId);
     // Keep track of last successful build commit id.
     this.baseUtils.baseLib.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}'.`);
-  }
-
-  private static setEnvVarIfUndefined(name: string, value: string): void {
-    if (!process.env[name])
-      process.env[name] = value;
   }
 }

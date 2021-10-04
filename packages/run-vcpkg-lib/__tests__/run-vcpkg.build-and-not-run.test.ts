@@ -44,7 +44,7 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
     // Ensure their values are the expected ones.
     if (name === globals.outVcpkgRootPath) {
       assert.strictEqual(value, vcpkgRoot);
-    } else if (name === globals.vcpkgRoot) {
+    } else if (name === globals.VCPKGROOT) {
       assert.strictEqual(value, vcpkgRoot);
     } else {
       assert.fail(`Unexpected variable name: '${name}'`);

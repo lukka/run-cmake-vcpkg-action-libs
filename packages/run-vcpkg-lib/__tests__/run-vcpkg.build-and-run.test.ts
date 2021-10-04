@@ -45,7 +45,7 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
     // Ensure their values are the expected ones.
     if (name === globals.outVcpkgRootPath) {
       assert.strictEqual(value, vcpkgRoot);
-    } else if (name === globals.vcpkgRoot) {
+    } else if (name === globals.VCPKGROOT) {
       assert.strictEqual(value, vcpkgRoot);
     } else {
       assert.fail(`Unexpected variable name: '${name}'`);
@@ -76,7 +76,7 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build --x-install-root ${await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib)}`]:
+      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build --x-install-root ${await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib)} --triplet ${baseUtil.getDefaultTriplet()}`]:
         { 'code': 0, 'stdout': 'this is the `vcpkg install` output' },
     },
     "exist": { [vcpkgRoot]: true },

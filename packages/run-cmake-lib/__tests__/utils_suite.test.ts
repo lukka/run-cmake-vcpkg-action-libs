@@ -56,7 +56,7 @@ describe("cmakeutils tests", function () {
     // Arrange
     mock.answersMocks.reset(answers);
 
-    cmakeutils.setEnvVarIfUndefined("VCPKG_DEFAULT_TRIPLET", baseUtilLib.getDefaultTriplet());
+    baseutillib.setEnvVarIfUndefined("VCPKG_DEFAULT_TRIPLET", baseUtilLib.getDefaultTriplet());
     const vcpkgEnvArgsString: string = baseutillib.replaceFromEnvVar(cmakerunner.CMakeRunner.vcpkgEnvDefault);
     const vcpkgEnvArgs: string[] = eval(vcpkgEnvArgsString);
 

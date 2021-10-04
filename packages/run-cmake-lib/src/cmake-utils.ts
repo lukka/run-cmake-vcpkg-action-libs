@@ -46,9 +46,4 @@ export async function injectEnvVariables(baseUtils: baseutillib.BaseUtilLib, vcp
   }
 }
 
-export function setEnvVarIfUndefined(name: string, value: string | null): void {
-  if (!process.env[name] && value)
-    process.env[name] = value;
-}
-
 

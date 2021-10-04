@@ -4,4 +4,5 @@
 
 export const outVcpkgRootPath = "RUNVCPKG_VCPKG_ROOT";
 export const vcpkgLastBuiltCommitId = 'vcpkgLastBuiltCommitId';
-export const vcpkgRoot = 'VCPKG_ROOT';
+export const VCPKGROOT = 'VCPKG_ROOT';
+export const VCPKGDEFAULTTRIPLET = "VCPKG_DEFAULT_TRIPLET";

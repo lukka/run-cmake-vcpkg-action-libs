@@ -56,8 +56,11 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and b
     },
   };
   mock.answersMocks.reset(answers);
+  delete process.env.CC;
+  delete process.env.CXX;
 
   const setupEnvVcpkg = jest.spyOn(cmakeutils, 'injectEnvVariables');
+
   // Act and Assert.
   try {
     await CMakeRunner.run(mock.exportedBaselib);
@@ -70,6 +73,9 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and b
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
   expect(setupEnvVcpkg).toBeCalledTimes(isWin ? 1 : 0);
   setupEnvVcpkg.mockRestore();
+
+  expect(isWin ? process.env['CXX'] : true).toBeTruthy();
+  expect(isWin ? process.env['CC'] : true).toBeTruthy();
 });
 
 testutils.testWithHeader('run-cmake with VCPKG_ROOT not defined must configure and build and test successfully', async () => {
@@ -98,6 +104,9 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT not defined must configure a
   };
   mock.answersMocks.reset(answers);
 
+  delete process.env.CC;
+  delete process.env.CXX;
+
   const setupEnvVcpkg = jest.spyOn(cmakeutils, 'injectEnvVariables');
   // Act and Assert.
   try {
@@ -111,4 +120,8 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT not defined must configure a
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
   expect(setupEnvVcpkg).toBeCalledTimes(0);
   setupEnvVcpkg.mockRestore();
+
+  // Since VCPKG_ROOT is not defined, CC and CXX will not be set.
+  expect(isWin ? process.env['CXX'] : false).toBeFalsy();
+  expect(isWin ? process.env['CC'] : false).toBeFalsy();
 });

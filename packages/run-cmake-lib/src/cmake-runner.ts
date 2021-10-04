@@ -89,7 +89,7 @@ export class CMakeRunner {
 
   private async test(cmake: baselib.ToolRunner, testPresetName: string): Promise<void> {
     this.baseLib.debug('test()<<');
-    cmakeutil.setEnvVarIfUndefined("TEST_PRESET_NAME", testPresetName);
+    baseutillib.setEnvVarIfUndefined("TEST_PRESET_NAME", testPresetName);
     const args: string = baseutillib.replaceFromEnvVar(this.testPresetCmdStringFormat);
     const cmakeArgs: string[] = eval(args);
 
@@ -111,7 +111,7 @@ export class CMakeRunner {
   private async build(cmake: baselib.ToolRunner, buildPresetName: string): Promise<void> {
     this.baseLib.debug('build()<<');
 
-    cmakeutil.setEnvVarIfUndefined("BUILD_PRESET_NAME", buildPresetName);
+    baseutillib.setEnvVarIfUndefined("BUILD_PRESET_NAME", buildPresetName);
     const args: string = baseutillib.replaceFromEnvVar(this.buildPresetCmdStringFormat);
     const cmakeArgs: string[] = eval(args);
     this.baseLib.debug(`CMake arguments: ${cmakeArgs}`);
@@ -132,7 +132,7 @@ export class CMakeRunner {
   private async configure(cmake: baselib.ToolRunner, configurePresetName: string): Promise<void> {
     this.baseLib.debug('configure()<<');
 
-    cmakeutil.setEnvVarIfUndefined("CONFIGURE_PRESET_NAME", configurePresetName);
+    baseutillib.setEnvVarIfUndefined("CONFIGURE_PRESET_NAME", configurePresetName);
     const args: string = baseutillib.replaceFromEnvVar(this.configurePresetCmdStringFormat);
     // Transform to array.
     const cmakeArgs: string[] = eval(args);
@@ -142,7 +142,7 @@ export class CMakeRunner {
     }
 
     await this.baseUtils.wrapOp(`Setup C/C++ toolset environment variables`, async () => {
-      const vcpkgRoot: string | undefined = process.env[runvcpkglib.vcpkgRoot];
+      const vcpkgRoot: string | undefined = process.env[runvcpkglib.VCPKGROOT];
 
       // if VCPKG_ROOT is defined, then use it.
       if (!vcpkgRoot || vcpkgRoot.length == 0) {
@@ -154,14 +154,14 @@ export class CMakeRunner {
         this.baseLib.info(`Skipping setting up the environment since CXX or CC environment variable are defined. This allows user customization.`);
       } else {
         // If Win32 && (!CC && !CXX), let hardcode CC and CXX so that CMake uses the MSVC toolset.
-        process.env.CC = "cl.exe";
-        process.env.CXX = "cl.exe";
+        process.env['CC'] = "cl.exe";
+        process.env['CXX'] = "cl.exe";
         this.baseLib.setVariable("CC", "cl.exe");
         this.baseLib.setVariable("CXX", "cl.exe");
 
         // Use vcpkg to set the environment using provided command line (which includes the triplet).
         // This is only useful to setup the environment for MSVC on Windows.
-        cmakeutil.setEnvVarIfUndefined("VCPKG_DEFAULT_TRIPLET", this.baseUtils.getDefaultTriplet());
+        baseutillib.setEnvVarIfUndefined(runvcpkglib.VCPKGDEFAULTTRIPLET, this.baseUtils.getDefaultTriplet());
         const vcpkgEnvArgsString: string = baseutillib.replaceFromEnvVar(this.vcpkgEnvStringFormat);
         const vcpkgEnvArgs: string[] = eval(vcpkgEnvArgsString);
         this.baseLib.debug(`'vcpkg env' arguments: ${vcpkgEnvArgs}`);
