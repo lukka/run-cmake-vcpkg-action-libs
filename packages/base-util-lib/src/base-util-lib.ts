@@ -127,7 +127,7 @@ export class BaseUtilLib {
     this.baseLib.writeFile(file, content);
   }
 
-  public getDefaultTriplet(): string | null{
+  public getDefaultTriplet(): string | null {
     const envVar = process.env["VCPKG_DEFAULT_TRIPLET"];
     if (envVar) {
       return envVar;
@@ -277,6 +277,18 @@ export class BaseUtilLib {
     this.baseLib.debug(`getFileHash()>> -> file='${ret[0]}' hash='${ret[1]}'`);
     return ret;
   }
+
+  public setVariableVerbose(name: string, value: string): void {
+    this.baseLib.info(`Set the workflow environment variable '${name}' to value '${value}'`);
+    this.setEnvVar(name, value);
+  }
+
+  public setOutputVerbose(name: string, value: string): void {
+    this.baseLib.info(`Set the step output variable '${name}' to value '${value}''`);
+    this.baseLib.setOutput(name, value);
+
+  }
+
 }
 
 export class Matcher {

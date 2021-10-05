@@ -122,8 +122,6 @@ export class VcpkgRunner {
   protected async runImpl(): Promise<void> {
     this.baseUtils.baseLib.debug("runImpl()<<");
 
-    this.baseUtils.wrapOpSync("Set output environment variables", () => this.setOutputs());
-
     // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
     if (!await this.baseUtils.baseLib.exist(this.vcpkgDestPath)) {
       this.baseUtils.baseLib.debug(`Creating vcpkg root directory as it is not existing: ${this.vcpkgDestPath}`);
@@ -161,6 +159,8 @@ export class VcpkgRunner {
 
     await this.runVcpkgInstall();
 
+    this.baseUtils.wrapOpSync("Set output environment variables", () => this.setOutputs());
+
     this.baseUtils.baseLib.debug("runImpl()>>");
   }
 
@@ -197,16 +197,27 @@ export class VcpkgRunner {
 
   private setOutputs(): void {
     // Set the RUNVCPKG_VCPKG_ROOT value, it could be re-used later by run-cmake.
-    this.baseUtils.setEnvVar(globals.outVcpkgRootPath, this.vcpkgDestPath);
+    this.baseUtils.setVariableVerbose(globals.RUNVCPKG_VCPKG_ROOT, this.vcpkgDestPath)
     // Override the VCPKG_ROOT value, it must point to this vcpkg instance, it is used by 
     // any subsequent invocation of the vcpkg executable.
-    this.baseUtils.setEnvVar(globals.VCPKGROOT, this.vcpkgDestPath);
+    this.baseUtils.setVariableVerbose(globals.VCPKGROOT, this.vcpkgDestPath);
 
     // The output variable must have a different name than the
     // one set with setVariable(), as the former get a prefix added out of our control.
-    const outVarName = `${globals.outVcpkgRootPath}_OUT`;
-    this.baseUtils.baseLib.info(`Set the output variable '${outVarName}' to value: ${this.vcpkgDestPath}`);
-    this.baseUtils.baseLib.setOutput(`${outVarName}`, this.vcpkgDestPath);
+    const outVarName = `${globals.RUNVCPKG_VCPKG_ROOT}_OUT`;
+    this.baseUtils.setOutputVerbose(outVarName, this.vcpkgDestPath);
+
+    if (this.doRunVcpkgInstall) {
+      // If vcpkg install was run, expose which triplet has been used to run it with.
+      const triplet = process.env[globals.VCPKGDEFAULTTRIPLET];
+      if (triplet) {
+        this.baseUtils.setVariableVerbose(globals.VCPKGDEFAULTTRIPLET, triplet);
+        const vcpkgTripletOutVarName = `${globals.RUNVCPKG_VCPKG_DEFAULT_TRIPLET}_OUT`;
+        this.baseUtils.setOutputVerbose(vcpkgTripletOutVarName, triplet);
+      } else {
+        this.baseUtils.baseLib.warning(`Environment variable ${globals.VCPKGDEFAULTTRIPLET} is not defined. Cannot set the output/environment variables containing the used vcpkg's triplet.`);
+      }
+    }
   }
 
   /**

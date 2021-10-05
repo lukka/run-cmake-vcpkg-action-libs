@@ -2,7 +2,8 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-export const outVcpkgRootPath = "RUNVCPKG_VCPKG_ROOT";
+export const RUNVCPKG_VCPKG_ROOT = "RUNVCPKG_VCPKG_ROOT";
+export const RUNVCPKG_VCPKG_DEFAULT_TRIPLET = "RUNVCPKG_VCPKG_DEFAULT_TRIPLET";
 export const vcpkgLastBuiltCommitId = 'vcpkgLastBuiltCommitId';
 export const VCPKGROOT = 'VCPKG_ROOT';
 export const VCPKGDEFAULTTRIPLET = "VCPKG_DEFAULT_TRIPLET";
