@@ -1,6 +1,6 @@
 {
   "name": "@lukka/base-lib",
-  "version": "2.0.0-alpha.10",
+  "version": "2.0.0",
   "description": "Continuous integration systems abstraction layer.",
   "repository": {
     "type": "git",
