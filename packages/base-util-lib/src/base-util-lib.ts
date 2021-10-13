@@ -5,23 +5,22 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as baselib from '@lukka/base-lib';
-import AdmZip from 'adm-zip';
-import * as http from 'follow-redirects'
 import * as del from 'del'
 import { performance } from 'perf_hooks'
+import * as baselib from "@lukka/base-lib"
+import * as fastglob from "fast-glob"
 
 export class BaseUtilLib {
-
-  public static readonly cachingFormatEnvName = 'AZP_CACHING_CONTENT_FORMAT';
 
   public constructor(public readonly baseLib: baselib.BaseLib) {
   }
 
   public async isVcpkgSubmodule(gitPath: string, fullVcpkgPath: string): Promise<boolean> {
+    this.baseLib.debug(`isVcpkgSubmodule()<<`);
+    let isSubmodule = false;
     try {
       const options: baselib.ExecOptions = {
-        cwd: process.env.BUILD_SOURCESDIRECTORY,
+        cwd: process.env.GITHUB_WORKSPACE,
         failOnStdErr: false,
         errStream: process.stdout,
         outStream: process.stdout,
@@ -32,7 +31,6 @@ export class BaseUtilLib {
       } as baselib.ExecOptions;
 
       const res: baselib.ExecResult = await this.baseLib.execSync(gitPath, ['submodule', 'status', fullVcpkgPath], options);
-      let isSubmodule = false;
       if (res.error !== null) {
         isSubmodule = res.code == 0;
         let msg: string;
@@ -49,12 +47,14 @@ export class BaseUtilLib {
 
         this.baseLib.debug(msg);
       }
-
-      return isSubmodule;
     }
     catch (error) {
       this.baseLib.warning(`ïsVcpkgSubmodule() failed: ${error}`);
-      return false;
+      isSubmodule = false;
+    }
+    finally {
+      this.baseLib.debug(`isVcpkgSubmodule()>> --> ${isSubmodule}`);
+      return isSubmodule;
     }
   }
 
@@ -111,14 +111,14 @@ export class BaseUtilLib {
     }
   }
 
-  public readFile(path: string): [boolean, string] {
+  public readFile(path: string): string | null {
     try {
       const readString: string = fs.readFileSync(path, { encoding: 'utf8', flag: 'r' });
       this.baseLib.debug(`readFile(${path})='${readString}'.`);
-      return [true, readString];
+      return readString;
     } catch (error) {
       this.baseLib.debug(`readFile(${path}): ${"" + error}`);
-      return [false, error];
+      return null;
     }
   }
 
@@ -127,13 +127,13 @@ export class BaseUtilLib {
     this.baseLib.writeFile(file, content);
   }
 
-  public getDefaultTriplet(): string {
+  public getDefaultTriplet(): string | null {
     const envVar = process.env["VCPKG_DEFAULT_TRIPLET"];
     if (envVar) {
       return envVar;
     } else {
       if (this.isWin32()) {
-        return "x86-windows";
+        return "x64-windows";
       } else if (this.isLinux()) {
         return "x64-linux";
       } else if (this.isMacos()) {
@@ -142,66 +142,7 @@ export class BaseUtilLib {
         return "x64-freebsd";
       }
     }
-    return "";
-  }
-
-  public static extractTriplet(args: string, readFile: (path: string) => [boolean, string]): string | null {
-    let triplet: string | null = null;
-    // Split string on any 'whitespace' character
-    const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
-    let index = 0;
-    for (; index < argsSplitted.length; index++) {
-      let arg: string = argsSplitted[index].trim();
-      // remove all whitespace characters (e.g. newlines, tabs, blanks)
-      arg = arg.replace(/\s/, '')
-      if (arg === "--triplet") {
-        index++;
-        if (index < argsSplitted.length) {
-          triplet = argsSplitted[index];
-          return triplet.trim();
-        }
-      }
-      if (arg.startsWith("@")) {
-        const [ok, content] = readFile(arg.substring(1));
-        if (ok) {
-          const t = BaseUtilLib.extractTriplet(content, readFile);
-          if (t) {
-            return t.trim();
-          }
-        }
-      }
-    }
-    return triplet;
-  }
-
-  public async resolveArguments(args: string, readFile: (path: string) => [boolean, string]): Promise<string> {
-    let resolvedArguments = "";
-
-    // Split string on any 'whitespace' character
-    const argsSplitted: string[] = args.split(/\s/).filter((a) => a.length != 0);
-    let index = 0;
-    for (; index < argsSplitted.length; index++) {
-      let arg: string = argsSplitted[index].trim();
-      // remove all whitespace characters (e.g. newlines, tabs, blanks)
-      arg = arg.replace(/\s/, '');
-      let isResponseFile = false;
-      if (arg.startsWith("@")) {
-        const resolvedFilePath: string = BaseUtilLib.normalizePath(arg);
-        if (await this.baseLib.exist(resolvedFilePath)) {
-          const [ok, content] = readFile(resolvedFilePath);
-          if (ok && content) {
-            isResponseFile = true;
-            resolvedArguments += content;
-          }
-        }
-      }
-
-      if (!isResponseFile) {
-        resolvedArguments += arg;
-      }
-    }
-
-    return resolvedArguments;
+    return null;
   }
 
   // Force 'name' env variable to have value of 'value'.
@@ -246,60 +187,6 @@ export class BaseUtilLib {
     return result;
   }
 
-  /**
-   * Check whether the current generator selected in the command line
-   * is -G Ninja or -G Ninja Multi-Config.
-   * @export
-   * @param {string} commandLineString The command line as string
-   * @returns {boolean}
-   */
-  public isNinjaGenerator(args: string[]): boolean {
-    for (const arg of args) {
-      if (/-G[\s]*(?:\"Ninja.*\"|Ninja.*)/.test(arg))
-        return true;
-    }
-
-    return false;
-  }
-
-  public isMakeProgram(args: string[]): boolean {
-    for (const arg of args) {
-      if (/-DCMAKE_MAKE_PROGRAM/.test(arg))
-        return true;
-    }
-
-    return false;
-  }
-
-  public isToolchainFile(args: string[]): boolean {
-    for (const arg of args) {
-      if (/-DCMAKE_TOOLCHAIN_FILE/.test(arg))
-        return true;
-    }
-
-    return false;
-  }
-
-  public getToolchainFile(args: string[]): string | undefined {
-    this.baseLib.debug(`getToolchainFile(${JSON.stringify(args)})<<`);
-    for (const arg of args) {
-      const matches = /-DCMAKE_TOOLCHAIN_FILE(?::[^\s]*)?=([^\s]*)/.exec(arg);
-
-      if (matches != null) {
-        if (matches.length > 1) {
-          this.baseLib.debug(`match found=${matches[1]}`);
-          return matches[1];
-        }
-      }
-    }
-
-    return undefined;
-  }
-
-  public removeToolchainFile(args: string[]): string[] {
-    return args.filter(a => !/-DCMAKE_TOOLCHAIN_FILE(:[A-Za-z]+)?=[^\s]+/.test(a));
-  }
-
   public mkdir(target: string, options: fs.MakeDirectoryOptions): void {
     fs.mkdirSync(target, options);
   }
@@ -308,112 +195,9 @@ export class BaseUtilLib {
     del.sync(target);
   }
 
-  public test(aPath: any): boolean {
+  public test(aPath: string): boolean {
     const result: boolean = fs.existsSync(aPath);
     return result;
-  }
-
-  public async downloadFile(url: string): Promise<string> {
-    const downloadsDirName = "dl";
-    // validate parameters
-    if (!url) {
-      throw new Error('downloadFile: Parameter "url" must be set.');
-    }
-
-    const downloadsDirectory = path.join(await this.baseLib.getBinDir(), downloadsDirName);
-    const scrubbedUrl = url.replace(/[/\:?]/g, '_');
-    const targetPath = path.join(downloadsDirectory, scrubbedUrl);
-    const marker = targetPath + '.completed';
-
-    // skip if already downloaded
-    if (this.test(marker)) {
-      console.log(`Found downloaded file at: ${targetPath}`);
-      return Promise.resolve(targetPath);
-    } else {
-      console.log(`Downloading url '${url}' to file '${targetPath}'.`);
-
-      // delete any previous partial attempt
-      if (this.test(targetPath)) {
-        this.rm(targetPath);
-      }
-
-      // download the file
-      this.mkdir(downloadsDirectory, { recursive: true });
-      const file: fs.WriteStream = fs.createWriteStream(targetPath, { autoClose: true });
-
-      return new Promise<string>((resolve: any, reject: any) => {
-        const request = http.https.get(url, (response) => {
-          response.pipe(file).on('finish', () => {
-            this.baseLib.debug(`statusCode: ${response.statusCode}.`);
-            this.baseLib.debug(`headers: ${response.headers}.`)
-            console.log(`'${url}' downloaded to: '${targetPath}'`);
-            fs.writeFileSync(marker, '');
-            request.end();
-            resolve(targetPath)
-          }).on('error', (error: Error) =>
-            reject(new Error(`statusCode='${response.statusCode}', error='${error.toString()}'.`)));
-        });
-      });
-    }
-  }
-
-  /**
-   * Downloads and extracts an archive file.
-   * @returns The path to the extracted content.
-   */
-  public async downloadArchive(url: string): Promise<string> {
-    if (!url) {
-      throw new Error('downloadArchive: url must be provided!');
-    }
-
-    try {
-      const targetFileName: string = url.replace(/[\/\\:?]/g, '_');
-      // 'x' for extracted content.
-      const targetPath: string =
-        path.join(await this.baseLib.getBinDir(), 'x', targetFileName);
-      const marker: string = targetPath + '.completed';
-      if (!this.test(marker)) {
-        // download the whole archive.
-        const archivePath = await this.downloadFile(url);
-
-        // extract the archive overwriting anything.
-        console.log(`Extracting archive '${archivePath}' ...`);
-        this.mkdir(targetPath, { recursive: true });
-        const zip = new AdmZip(archivePath);
-        zip.extractAllTo(targetPath, true);
-
-        // write the completed file marker.
-        fs.writeFileSync(marker, '');
-      }
-
-      return targetPath;
-    } catch (exception) {
-      throw new Error(`Failed to download the Ninja executable: '${exception}'.`);
-    }
-  }
-
-  /**
-   * Get a set of commands to be run in the shell of the host OS.
-   * @export
-   * @param {string[]} args
-   * @returns {(trm.ToolRunner | undefined)}
-   */
-  public async getScriptCommand(args: string): Promise<baselib.ToolRunner | undefined> {
-
-    let tool: baselib.ToolRunner;
-    if (this.isWin32()) {
-      const cmdExe = process.env.COMSPEC ?? "cmd.exe";
-      const cmdPath: string = await this.baseLib.which(cmdExe, true);
-      tool = this.baseLib.tool(cmdPath);
-      tool.arg('/c');
-      tool.line(args);
-    } else {
-      const shPath: string = await this.baseLib.which('sh', true);
-      tool = this.baseLib.tool(shPath);
-      tool.arg('-c');
-      tool.arg(args);
-      return tool;
-    }
   }
 
   public isVariableStrippingPath(variableName: string): boolean {
@@ -459,15 +243,57 @@ export class BaseUtilLib {
       throw new Error(`Agument '${name}' is undefined`);
   }
 
+  public static throwIfNull<T>(obj: T, name: string): void {
+    if (obj === null)
+      throw new Error(`Agument '${name}' is null`);
+  }
+
   public static isValidSHA1(text: string): boolean {
     return /^[a-fA-F0-9]{40}$/.test(text);
   }
+
+  /**
+   * Get the hash of one (and only one) file.
+   * @export
+   * @param {string} globExpr A glob expression to identify one file.
+   * @returns {[string, string]} The file hit and its hash, or [null, null] if no its.
+   * @throws When multiple hits occur.
+   */
+  public async getFileHash(globPattern: string, ignorePatterns: string[]): Promise<[string | null, string | null]> {
+    let ret: [string | null, string | null] = [null, null];
+    this.baseLib.debug(`getFileHash()<<`);
+    const files = await fastglob.default(globPattern, { ignore: ignorePatterns });
+
+    if (files.length > 1) {
+      throw new Error(`Error computing hash on '${globPattern}' as it matches multiple files: ${files}. It must match only one file.`);
+    }
+    else if (files.length == 0) {
+      ret = [null, null];
+    } else {
+      const file = path.resolve(files[0]);
+      const fileHash = await this.baseLib.hashFiles(file);
+      ret = [file, fileHash];
+    }
+    this.baseLib.debug(`getFileHash()>> -> file='${ret[0]}' hash='${ret[1]}'`);
+    return ret;
+  }
+
+  public setVariableVerbose(name: string, value: string): void {
+    this.baseLib.info(`Set the workflow environment variable '${name}' to value '${value}'`);
+    this.setEnvVar(name, value);
+  }
+
+  public setOutputVerbose(name: string, value: string): void {
+    this.baseLib.info(`Set the step output variable '${name}' to value '${value}''`);
+    this.baseLib.setOutput(name, value);
+
+  }
+
 }
 
 export class Matcher {
   constructor(private name: string, private baseLib: baselib.BaseLib, private fromPath?: string) {
     const matcherFilePath = path.join(__dirname, `${name}.json`);
-    fromPath;
     this.baseLib.addMatcher(matcherFilePath);
   }
 
@@ -480,9 +306,8 @@ export class Matcher {
   }
 }
 
-export function dumpError(baseLib: baselib.BaseLib, err: any): void {
-  const error: Error = err as Error;
-  const errorAsString = (error ?? "undefined error").toString();
+export function dumpError(baseLib: baselib.BaseLib, error: Error): void {
+  const errorAsString = (error?.message ?? "undefined error");
   baseLib.debug(errorAsString);
   if (error?.stack) {
     baseLib.debug(error.stack);
@@ -493,11 +318,15 @@ export class LogFileCollector {
   private readonly regExps: RegExp[] = [];
   private bufferString = "";
   public static readonly MAXLEN = 1024;
-  public constructor(private baseLib: baselib.BaseLib, regExps: string[],
+  public constructor(
+    private baseLib: baselib.BaseLib,
+    regExps: string[],
     private func: (path: string) => void) {
+    baseLib.debug(`LogFileCollector(${JSON.stringify(regExps)})<<`);
     for (const s of regExps) {
       this.regExps.push(new RegExp(s, "g"));
     }
+    baseLib.debug(`LogFileCollector()>>`);
   }
 
   private appendBuffer(buffer: Buffer): void {
@@ -507,16 +336,16 @@ export class LogFileCollector {
   private limitBuffer(consumeUntil?: number): void {
     if (consumeUntil && consumeUntil > 0)
       this.bufferString = this.bufferString.slice(consumeUntil);
-      const len = this.bufferString.length;
+    const len = this.bufferString.length;
     if (len > LogFileCollector.MAXLEN)
       this.bufferString = this.bufferString.slice(len - LogFileCollector.MAXLEN);
-    }
+  }
 
   public handleOutput(buffer: Buffer): void {
     this.appendBuffer(buffer);
 
-    this.baseLib.debug(`\n\nappending: ${buffer}\n\n`);
-    this.baseLib.debug(`\n\nbuffer: ${this.bufferString}\n\n`);
+    _debug(`\n\nappending: ${buffer}\n\n`);
+    _debug(`\n\nbuffer: ${this.bufferString}\n\n`);
     let consumedUntil = -1;
     for (const re of this.regExps) {
       re.lastIndex = 0;
@@ -532,12 +361,12 @@ export class LogFileCollector {
         }
       }
       catch (err) {
-        dumpError(this.baseLib, err);
+        dumpError(this.baseLib, err as Error);
       }
     }
 
     this.limitBuffer(consumedUntil);
-    this.baseLib.debug(`\n\nremaining: ${this.bufferString}\n\n`);
+    _debug(`\n\nremaining: ${this.bufferString}\n\n`);
   }
 }
 
@@ -549,12 +378,62 @@ export function dumpFile(baseLib: baselib.BaseLib, filePath: string): void {
         baseLib.info(`[LogCollection][Start]File:'${filePath}':\n${content}\n[LogCollection][End]File:'${filePath}'.`);
       }
       else
-        baseLib.warning(`[LogCollection][Warn]File empty:'${filePath}'.`);        
+        baseLib.warning(`[LogCollection][Warn]File empty:'${filePath}'.`);
     }
     else
-      baseLib.warning(`[LogCollection][Warn]File not found:'${filePath}'.`);        
+      baseLib.warning(`[LogCollection][Warn]File not found:'${filePath}'.`);
   }
   catch (err) {
-    dumpError(baseLib, err);
+    dumpError(baseLib, err as Error);
   }
+}
+
+export interface KeySet {
+  primary: string;
+  restore?: string[];
+}
+
+export function createKeySet(segments: string[]): KeySet {
+  const keys: string[] = [];
+  for (let i: number = segments.length; i > 0; i--) {
+    let key: string = segments[0];
+    for (let j = 1; j < i; j++) {
+      key += `_${segments[j]}`;
+    }
+    keys.push(key);
+  }
+
+  // Extract the primary key and all the rest.
+  const primaryKey = keys.shift();
+  if (!primaryKey)
+    throw Error("createKeySet(): primary key is undefined!");
+
+  return { primary: primaryKey, restore: keys } as KeySet;
+}
+
+function _debug(msg: string): void {
+  if (process.env.DEBUG) console.log(`DEBUG: '${msg}'`);
+}
+
+export function replaceFromEnvVar(text: string, values?: { [key: string]: string; }): string {
+  return text.replace(/\$\[(.*?)\]/gi, (a, b) => {
+    let ret = "undefined";
+    if (typeof b == "string") {
+      if (b.startsWith("env.")) {
+        b = b.slice(4);
+        ret = process.env[b] ?? `${b}-is-undefined`;
+      } else {
+        ret = `${b}-is-undefined`;
+        if (values && values[b])
+          ret = values[b];
+      }
+    }
+
+    return ret;
+  });
+}
+
+export function setEnvVarIfUndefined(name: string, value: string | null): void {
+  if (!process.env[name] && value)
+    process.env[name] = value;
 }

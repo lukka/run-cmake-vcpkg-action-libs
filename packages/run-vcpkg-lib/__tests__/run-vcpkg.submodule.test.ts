@@ -24,12 +24,9 @@ mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
 
 jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
-    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
-      return [true, "!.git\n"];
-    }
-    else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
-      return [true, gitRef];
+  function (this: utils.BaseUtilLib, file: string): string {
+    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
+      return gitRef;
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -44,31 +41,22 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
     }
 
     // Ensure their values are the expected ones.
-    if (name === utils.BaseUtilLib.cachingFormatEnvName) {
-      assert.strictEqual(value, "Files");
-    } else if (name === globals.outVcpkgRootPath) {
-      assert.strictEqual(value, vcpkgRoot);
-    } else if (name === globals.outVcpkgTriplet) {
-      // no check on value here...
-    } else if (name === globals.vcpkgRoot) {
-      // no check on value here...
-    } else {
-      assert.fail(`Unexpected variable name: '${name}'`);
+    switch (name) {
+      case globals.VCPKGROOT:
+      case globals.RUNVCPKG_VCPKG_ROOT:
+        assert.strictEqual(value, vcpkgRoot);
+        break;
+      case globals.VCPKGDEFAULTTRIPLET:
+      case globals.RUNVCPKG_VCPKG_DEFAULT_TRIPLET:
+        break;
+      default:
+        assert.fail(`Unexpected variable name: '${name}'`);
     }
   });
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
-mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
-mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
-mock.inputsMocks.setInput(globals.vcpkgCommitId, gitRef);
-mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
-mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
-
-testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build and install successfully', async () => {
+testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       // Action must not call any git clone operation, only to check the submodule status.
@@ -82,10 +70,6 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build and insta
         { 'code': 0, stdout: 'this is git submodule output' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} version`]:
         { 'code': 0, 'stdout': 'this is the "vcpkg version" output with exit code=0' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
-        { 'code': 0, 'stdout': 'this is the vcpkg output' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
-        { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
       [`chmod +x ${path.join(vcpkgRoot, "vcpkg")}`]:
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
@@ -104,10 +88,21 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build and insta
   };
   mock.answersMocks.reset(answers);
 
+  const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
+
   // Act.
-  const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
   try {
-    await vcpkg.run();
+    await VcpkgRunner.run(
+      baseUtil,
+      vcpkgRoot, // Must be provided
+      null,
+      gitRef, // Must be provided.
+      false,
+      false, // Must be provided.
+      [],
+      null,
+      null
+    );
   }
   catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
@@ -115,17 +110,7 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build and insta
 
   // Assert.
 
-  // 1 warning about the GitCommitId input provided, that is not needed (and ignored) when using vcpkg as a submodule.
+  // One warning about the GitCommitId input provided, that is not needed (and ignored) when using vcpkg as a submodule.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(1);
   expect(mock.exportedBaselib.error).toBeCalledTimes(0);
-
-  // There must not be a call to writeFile with "!.git", i.e. it must be ignored and not cached.
-  const calls = mock.baselibwriteFile.mock.calls.filter((item) => {
-    return RegExp('.*\!\.git.*').test(item[1])
-  });
-  expect(calls.length).toBe(0);
-  const calls2 = mock.baselibwriteFile.mock.calls.filter((item) => {
-    return item[1] === ".git";
-  });
-  expect(calls2.length).toBe(1);
 });

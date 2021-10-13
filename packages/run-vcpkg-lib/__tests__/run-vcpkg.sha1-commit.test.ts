@@ -24,12 +24,9 @@ mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
 
 jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
-  function (this: utils.BaseUtilLib, file: string): [boolean, string] {
-    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, '.artifactignore'))) {
-      return [true, "!.git\n"];
-    }
-    else if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
-      return [true, invalidSHA1HashGitCommit];
+  function (this: utils.BaseUtilLib, file: string): string | null {
+    if (testutils.areEqualVerbose(file, path.join(vcpkgRoot, globals.vcpkgLastBuiltCommitId))) {
+      return invalidSHA1HashGitCommit;
     }
     else
       throw `readFile called with unexpected file name: '${file}'.`;
@@ -44,41 +41,28 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
     }
 
     // Ensure their values are the expected ones.
-    if (name === utils.BaseUtilLib.cachingFormatEnvName) {
-      assert.strictEqual(value, "Files");
-    } else if (name === globals.outVcpkgRootPath) {
-      assert.strictEqual(value, vcpkgRoot);
-    } else if (name === globals.outVcpkgTriplet) {
-      // no check on value here...
-    } else if (name === globals.vcpkgRoot) {
-      // no check on value here...
-    } else {
-      assert.fail(`Unexpected variable name: '${name}'`);
+    switch (name) {
+      case globals.VCPKGROOT:
+      case globals.RUNVCPKG_VCPKG_ROOT:
+        assert.strictEqual(value, vcpkgRoot);
+        break;
+      case globals.VCPKGDEFAULTTRIPLET:
+      case globals.RUNVCPKG_VCPKG_DEFAULT_TRIPLET:
+        break;
+      default:
+        assert.fail(`Unexpected variable name: '${name}'`);
     }
   });
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
-mock.inputsMocks.setInput(globals.vcpkgArguments, 'vcpkg_args');
-mock.inputsMocks.setInput(globals.vcpkgTriplet, 'triplet');
-mock.inputsMocks.setInput(globals.vcpkgCommitId, invalidSHA1HashGitCommit);
-mock.inputsMocks.setInput(globals.vcpkgArtifactIgnoreEntries, '!.git');
-mock.inputsMocks.setInput(globals.vcpkgDirectory, vcpkgRoot);
-mock.inputsMocks.setBooleanInput(globals.setupOnly, false);
-mock.inputsMocks.setBooleanInput(globals.doNotUpdateVcpkg, false);
-mock.inputsMocks.setBooleanInput(globals.cleanAfterBuild, true);
-
-testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git comit', async () => {
+testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git commit', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
       [`${gitPath} rev-parse HEAD`]:
         { code: 0, stdout: 'mygitref' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse vcpkg_args --triplet triplet --clean-after-build`]:
-        { 'code': 0, 'stdout': 'this is the vcpkg output' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} remove --outdated --recurse`]:
-        { 'code': 0, 'stdout': 'this is the vcpkg remove output' },
       [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
         { 'code': 0, 'stdout': 'this is git clone ... output' },
       [`${gitPath} submodule status ${vcpkgRoot}`]:
@@ -104,9 +88,20 @@ testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git
   };
   mock.answersMocks.reset(answers);
 
+  const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
+
   // Act.
-  const vcpkg: VcpkgRunner = new VcpkgRunner(mock.exportedBaselib);
-  await expect(() => vcpkg.run()).rejects.toThrowError(new RegExp('.*input parameter must be a full SHA1 hash.*'));
+  await expect(() => VcpkgRunner.run(
+    baseUtil,
+    vcpkgRoot,
+    null,
+    invalidSHA1HashGitCommit,
+    false,
+    false,// Must be false
+    [],
+    null,
+    null
+  )).rejects.toThrowError(new RegExp('.*must be a full SHA1 hash.*'));
 
   // Assert.
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);

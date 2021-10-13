@@ -2,89 +2,88 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
-import * as assert from 'assert';
-import * as utils from '../src/utils'
+import * as cmakeutils from '../src/cmake-utils'
+import * as cmakerunner from '../src/cmake-runner'
 import * as baseutillib from '@lukka/base-util-lib'
-import * as actionlib from '@lukka/action-lib'
 import path from 'path'
 import * as mock from '../../run-vcpkg-lib/__tests__/mocks'
 import * as testutils from '../../run-vcpkg-lib/__tests__/utils'
 import { BaseLib } from '@lukka/base-lib';
 
+const baseLib: BaseLib = mock.exportedBaselib;
+const baseUtilLib: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(baseLib);
+
 const vcpkgRoot = "/vcpkgroot/";
-const vcpkgCMakeToolchain = path.join(vcpkgRoot, "scripts/buildsystems/vcpkg.cmake");
 const isWin = process.platform === "win32";
+const vcpkgExe = isWin ? 'vcpkg.exe' : 'vcpkg';
+const triplet = baseUtilLib.getDefaultTriplet();
+const vcpkgEnvOutput = "vcpkg env's output:\nA=1\nB=2\n";
 jest.spyOn(baseutillib.BaseUtilLib.prototype, 'isWin32').mockImplementation(() => isWin);
 const answers: testutils.BaseLibAnswers = {
   "exec": {
-    [`${path.join(vcpkgRoot, 'vcpkg.exe')} env --bin --include --tools --python --triplet triplet set`]:
-      { code: 0, stdout: "vcpkg output" },
+    [`${path.join(vcpkgRoot, vcpkgExe)} env --bin --include --tools --python --triplet ${triplet} set`]:
+      { code: 0, stdout: vcpkgEnvOutput },
   },
 };
 
-describe('BaseUtilLib tests', function () {
-  test('testing for presence of CMake flags', async () => {
-    const actionLib: actionlib.ActionLib = new actionlib.ActionLib();
-    const BaseUtilLib: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(actionLib);
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-GNinja']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G Ninja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-G ninja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g Ninja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-Gninja']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G"Ninja"']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G Ninja"']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G  Ninja"']));
-    assert.ok(BaseUtilLib.isNinjaGenerator(['-G  "Ninja"']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-G  "Ninja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g"Ninja"']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-gNinja']));
-    assert.ok(!BaseUtilLib.isNinjaGenerator(['-g"Ninja']));
+describe("cmakeutils tests", function () {
+  test("injectEnvVariables() should succeed", async () => {
+    // Arrange.
+    const answers2: testutils.BaseLibAnswers = {
+      "exec": {
+        [`${path.join(vcpkgRoot, vcpkgExe)} `]:
+          { code: 0, stdout: vcpkgEnvOutput },
+      },
+    };
+    mock.answersMocks.reset(answers2);
 
-    assert.ok(BaseUtilLib.isMakeProgram(['-DCMAKE_MAKE_PROGRAM=']));
-    assert.ok(!BaseUtilLib.isMakeProgram(['-D CMAKE_MAKE_PROGRAM=']));
-    assert.ok(!BaseUtilLib.isMakeProgram(['-dCMAKE_MAKE_PROGRAM=']));
-    assert.ok(!BaseUtilLib.isMakeProgram(['-d CMAKE_MAKE_PROGRAM=']));
-    assert.ok(!BaseUtilLib.isMakeProgram(['']));
-    assert.ok(!BaseUtilLib.isMakeProgram([' ']));
+    const baseLib: BaseLib = mock.exportedBaselib;
+    const baseUtilLib: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(baseLib);
 
-    assert.ok(BaseUtilLib.isToolchainFile(['-DCMAKE_TOOLCHAIN_FILE']));
-    assert.ok(BaseUtilLib.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE']));
-    assert.ok(!BaseUtilLib.isToolchainFile([' -dCMAKE_TOOLCHAIN_FILE']));
+    // Act
+    await cmakeutils.injectEnvVariables(baseUtilLib, vcpkgRoot, []);
 
-    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']).length === 0);
-    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILEPATH=/path/to/file.cmake ']).length === 0);
-    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:FILE=/path/to/file.cmake ']).length === 0);
-    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE:STRING="/path/to/file.cmake" ']).length === 0);
-    assert.ok(BaseUtilLib.removeToolchainFile([' -DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake" ']).length === 0);
-    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME', '-DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake']), ['-DVAR=NAME']);
-    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME ', '-DCMAKE_TOOLCHAIN_FILE="/path/to/file.cmake"']), ['-DVAR=NAME ']);
-    assert.deepEqual(BaseUtilLib.removeToolchainFile(['-DVAR=NAME ', ' -DCMAKE_TOOLCHAIN_FILE=c:\\path\\to\\file.cmake']), ['-DVAR=NAME ']);
-    assert.ok(BaseUtilLib.isToolchainFile([' -DCMAKE_TOOLCHAIN_FILE=/path/to/file.cmake ']));
-    assert.ok(!BaseUtilLib.isToolchainFile([' -DVAR=NAME ']));
+    // Assert
+    expect(process.env['A']).toBe('1');
+    expect(process.env['B']).toBe('2');
+
+    // Cleanup
+    delete process.env['A'];
+    delete process.env['B'];
   });
 
-});
-
-describe("CMakeUtils tests", function () {
-  test("CMakeUtils.injectVcpkgToolchain tests", async () => {
+  test("injectEnvVariables() with args passed in.", async () => {
+    // Arrange
     mock.answersMocks.reset(answers);
 
-    //const actionLib: actionlib.ActionLib = new actionlib.ActionLib();
-    const baseLib: BaseLib = mock.exportedBaselib;
-    const BaseUtilLib: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(baseLib);
-    const cmakeUtils = new utils.CMakeUtils(BaseUtilLib);
+    baseutillib.setEnvVarIfUndefined("VCPKG_DEFAULT_TRIPLET", baseUtilLib.getDefaultTriplet());
+    const vcpkgEnvArgsString: string = baseutillib.replaceFromEnvVar(cmakerunner.CMakeRunner.vcpkgEnvDefault);
+    const vcpkgEnvArgs: string[] = eval(vcpkgEnvArgsString);
 
-    process.env.RUNVCPKG_VCPKG_ROOT = vcpkgRoot;
-    let ret: string[] = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_TOOLCHAIN_FILE=existing.cmake'], "triplet", baseLib);
-    assert.deepEqual(ret, [`-DCMAKE_TOOLCHAIN_FILE=${vcpkgCMakeToolchain}`, '-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=existing.cmake', '-DVCPKG_TARGET_TRIPLET=triplet']);
-    ret = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_TOOLCHAIN_FILE:FILEPATH=existing.cmake'], "triplet", baseLib);
-    assert.deepEqual(ret, [`-DCMAKE_TOOLCHAIN_FILE=${vcpkgCMakeToolchain}`, '-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=existing.cmake', '-DVCPKG_TARGET_TRIPLET=triplet']);
-    ret = await cmakeUtils.injectVcpkgToolchain(['-DCMAKE_BUILD_TYPE=Debug'], "triplet", baseLib);
-    assert.deepEqual(ret, ['-DCMAKE_BUILD_TYPE=Debug', `-DCMAKE_TOOLCHAIN_FILE=${vcpkgCMakeToolchain}`, '-DVCPKG_TARGET_TRIPLET=triplet']);
+    // Act
+    await cmakeutils.injectEnvVariables(baseUtilLib, vcpkgRoot, vcpkgEnvArgs);
 
-    process.env.RUNVCPKG_VCPKG_ROOT = "";
-    const arg: string[] = [' -DCMAKE_BUILD_TYPE=Debug'];
-    ret = await cmakeUtils.injectVcpkgToolchain(arg, "triplet", baseLib);
-    assert.deepEqual(ret, arg);
+    // Assert
+    expect(process.env['A']).toBe('1');
+    expect(process.env['B']).toBe('2');
+  });
+
+  test("injectEnvVariables() with 'vcpkg env' failure (exit code 1)", async () => {
+    // Arrange
+    mock.answersMocks.reset(answers);
+
+    const vcpkgEnvArgsString: string = baseutillib.replaceFromEnvVar(cmakerunner.CMakeRunner.vcpkgEnvDefault);
+    const vcpkgEnvArgs: string[] = eval(vcpkgEnvArgsString);
+
+    const answers2: testutils.BaseLibAnswers = {
+      "exec": {
+        [`${path.join(vcpkgRoot, vcpkgExe)} env --bin --include --tools --python --triplet ${triplet} set`]:
+          { code: 1, stdout: "" },
+      },
+    };
+    mock.answersMocks.reset(answers2);
+
+    // Act and Assert
+    await expect(() => cmakeutils.injectEnvVariables(baseUtilLib, vcpkgRoot, vcpkgEnvArgs)).rejects.toThrow();
   });
 });

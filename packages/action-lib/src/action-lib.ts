@@ -2,12 +2,16 @@
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
+// Implementation of the base-lib for GitHub Actions
+
 import * as stream from 'stream';
 import * as baselib from '@lukka/base-lib';
 import * as utils from '@lukka/base-util-lib';
 import * as core from '@actions/core';
-import * as execIfaces from '@actions/exec/lib/interfaces';
+import * as corecommand from '@actions/core/lib/command';
+import * as execifaces from '@actions/exec/lib/interfaces';
 import * as toolrunner from '@actions/exec/lib/toolrunner';
+import * as actionglob from '@actions/glob'
 import * as ioutil from '@actions/io/lib/io-util';
 import * as io from '@actions/io/lib/io';
 import * as fs from 'fs';
@@ -69,7 +73,7 @@ function escapeCmdExeArgument(argument: string): string {
  * @returns {Promise<number>}
  * @memberof ActionLib
  */
-async function exec(commandPath: string, args: string[], execOptions?: execIfaces.ExecOptions): Promise<number> {
+async function exec(commandPath: string, args: string[], execOptions?: execifaces.ExecOptions): Promise<number> {
   core.debug(`exec(${commandPath}, ${JSON.stringify(args)}, {${execOptions?.cwd}})<<`);
 
   let useShell: string | boolean = false;
@@ -108,6 +112,7 @@ async function exec(commandPath: string, args: string[], execOptions?: execIface
   }
   args = args2;
 
+  core.info(`Running command '${commandPath}' with args '${args}' in current directory '${opts?.cwd}'.`);
   core.debug(`cp.spawn("${commandPath}", ${JSON.stringify(args)}, {cwd=${opts?.cwd}, shell=${opts?.shell}, path=${JSON.stringify(opts?.env?.PATH)}})`);
   return new Promise<number>((resolve, reject) => {
     const child: cp.ChildProcess = cp.spawn(`${commandPath}`, args, opts);
@@ -185,7 +190,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
     let stdout = "";
     let stderr = "";
 
-    let options2: execIfaces.ExecOptions | undefined;
+    let options2: execifaces.ExecOptions | undefined;
     if (options) {
       options2 = this.convertExecOptions(options);
       options2.listeners = {
@@ -208,7 +213,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
     return Promise.resolve(res2);
   }
 
-  private convertExecOptions(options: baselib.ExecOptions): execIfaces.ExecOptions {
+  private convertExecOptions(options: baselib.ExecOptions): execifaces.ExecOptions {
     const result: any = {
       cwd: options.cwd ?? process.cwd(),
       env: options.env ?? process.env,
@@ -220,7 +225,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
         stdout: options.listeners?.stdout,
         stderr: options.listeners?.stderr,
       }
-    } as execIfaces.ExecOptions;
+    } as execifaces.ExecOptions;
     result.outStream = options.outStream || process.stdout as stream.Writable;
     result.errStream = options.errStream || process.stderr as stream.Writable;
 
@@ -278,46 +283,52 @@ export class ActionToolRunner implements baselib.ToolRunner {
       args.push(arg.trim());
     }
     return args;
-  };
+  }
 }
 
 export class ActionLib implements baselib.BaseLib {
 
-  getInput(name: string, isRequired: boolean): string {
-    const value = core.getInput(name, { required: isRequired });
+  getInput(name: string, isRequired: boolean): string | undefined {
+    let value: string | undefined = core.getInput(name, { required: isRequired });
+    if (!value && isRequired)
+      throw new Error(`Not existent input ${name}`);
+    else if (!value)
+      value = undefined;
     this.debug(`getInput(${name}, ${isRequired}) -> '${value}'`);
     return value;
   }
 
-  getBoolInput(name: string, isRequired: boolean): boolean {
+  getBoolInput(name: string, isRequired: boolean): boolean | undefined {
     const value = (core.getInput(name, { required: isRequired }) ?? "").toUpperCase() === "TRUE";
     this.debug(`getBoolInput(${name}, ${isRequired}) -> '${value}'`);
     return value;
   }
 
-  getPathInput(name: string, isRequired: boolean, checkExists: boolean): string {
-    const value = path.resolve(core.getInput(name, { required: isRequired }));
-    this.debug(`getPathInput(${name}) -> '${value}'`);
-    if (checkExists) {
+  getPathInput(name: string, isRequired: boolean, checkExists: boolean): string | undefined {
+    let value: string | undefined = core.getInput(name, { required: isRequired });
+    if (!value && isRequired)
+      throw new Error(`not existent input '${name}'`);
+    else if (!value)
+      value = undefined;
+    if (checkExists && value) {
       if (!fs.existsSync(value))
         throw new Error(`input path '${value}' for '${name}' does not exist.`);
+      value = path.resolve(value);
     }
+    this.debug(`getPathInput(${name}) -> '${value}'`);
     return value;
   }
 
-  isFilePathSupplied(name: string): boolean {
-    // normalize paths
-    const pathValue = this.resolve(this.getPathInput(name, false, false) ?? '');
-    const repoRoot = this.resolve(process.env.GITHUB_WORKSPACE ?? '');
-    const isSupplied = pathValue !== repoRoot;
-    this.debug(`isFilePathSupplied(s file path=('${name}') -> '${isSupplied}'`);
-    return isSupplied;
-  }
-
-  getDelimitedInput(name: string, delim: string, required: boolean): string[] {
-    const input = core.getInput(name, { required: required });
-    const inputs: string[] = input.split(delim);
-    this.debug(`getDelimitedInput(${name}, ${delim}, ${required}) -> '${inputs}'`);
+  getDelimitedInput(name: string, delim: string, isRequired: boolean): string[] {
+    let value: string | undefined = core.getInput(name, { required: isRequired });
+    if (!value && isRequired)
+      throw new Error(`not existent input '${name}'`);
+    else if (!value)
+      value = undefined;
+    let inputs: string[] = [];
+    if (value)
+      inputs = value.split(delim);
+    this.debug(`getDelimitedInput(${name}, ${delim}, ${isRequired}) -> '${inputs}'`);
     return inputs;
   }
 
@@ -331,9 +342,16 @@ export class ActionLib implements baselib.BaseLib {
     core.setOutput(name, value);
   }
 
-  getVariable(name: string): string {
-    //?? Is it really fine to return an empty string in case of undefined variable?
-    return process.env[name] ?? "";
+  getVariable(name: string): string | undefined {
+    return process.env[name];
+  }
+
+  setState(name: string, value: string): void {
+    core.saveState(name, value);
+  }
+
+  getState(name: string): string | undefined {
+    return core.getState(name);
   }
 
   debug(message: string): void {
@@ -374,7 +392,7 @@ export class ActionLib implements baselib.BaseLib {
   async which(name: string, required: boolean): Promise<string> {
     core.debug(`"which(${name})<<`);
     const filePath = await io.which(name, required);
-    console.log(`tool: ${filePath}`);
+    core.debug(`tool: ${filePath}`);
     core.debug(`"which(${name}) >> ${filePath}`);
     return filePath;
   }
@@ -410,45 +428,34 @@ export class ActionLib implements baselib.BaseLib {
     return ioutil.exists(path);
   }
 
-  getBinDir(): string {
+  async getBinDir(): Promise<string> {
     if (!process.env.GITHUB_WORKSPACE) {
       throw new Error("GITHUB_WORKSPACE is not set.");
     }
 
     const binPath = utils.BaseUtilLib.normalizePath(path.join(process.env.GITHUB_WORKSPACE, "../b/"));
-    if (!fs.existsSync(binPath)) {
-      core.debug(`BinDir '${binPath}' does not exists, creating it...`);
-      fs.mkdirSync(binPath);
-    }
-
+    await this.mkdirP(binPath);
     return binPath;
   }
 
-  getSrcDir(): string {
+  async getSrcDir(): Promise<string> {
     if (!process.env.GITHUB_WORKSPACE) {
       throw new Error("GITHUB_WORKSPACE env var is not set.");
     }
 
     const srcPath = utils.BaseUtilLib.normalizePath(process.env.GITHUB_WORKSPACE);
-    if (!fs.existsSync(srcPath)) {
-      throw new Error(`SourceDir '${srcPath}' does not exists.`);
-    }
-
+    await this.mkdirP(srcPath);
     return srcPath;
   }
 
-  getArtifactsDir(): string {
+  async getArtifactsDir(): Promise<string> {
     if (!process.env.GITHUB_WORKSPACE) {
-      throw new Error("GITHUB_WORKSPACE is not set.");
+      throw new Error("GITHUB_WORKSPACE env var is not set.");
     }
 
     //?? HACK. How to get the value of '{{ runner.temp }}' in JS's action?
     const artifactsPath = utils.BaseUtilLib.normalizePath(path.join(process.env.GITHUB_WORKSPACE, "../../_temp"));
-    if (!fs.existsSync(artifactsPath)) {
-      core.debug(`ArtifactsDir '${artifactsPath}' does not exists, creating it...`);
-      fs.mkdirSync(artifactsPath);
-    }
-
+    await this.mkdirP(artifactsPath);
     return artifactsPath;
   }
 
@@ -460,10 +467,14 @@ export class ActionLib implements baselib.BaseLib {
   }
 
   addMatcher(file: string): void {
-    console.log(`::add-matcher::${file}`);
+    corecommand.issueCommand('ádd-matcher', {}, file);
   }
 
-  removeMatcher(file: string): void {
-    console.log(`::remove-matcher::${file}`);
+  removeMatcher(owner: string): void {
+    corecommand.issueCommand('remove-matcher', { owner: owner }, "");
+  }
+
+  hashFiles(fileGlob: string, options?: baselib.GlobOptions): Promise<string> {
+    return actionglob.hashFiles(fileGlob, options as actionglob.GlobOptions);
   }
 }

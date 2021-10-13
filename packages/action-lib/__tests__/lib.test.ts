@@ -10,6 +10,16 @@ import * as fs from 'fs';
 import * as path from 'path'
 import * as os from 'os'
 
+function getExistingTempDir(): string {
+  if (!process.env.GITHUB_WORKSPACE) {
+    process.env.GITHUB_WORKSPACE = path.join(os.tmpdir(), process.pid.toString());
+  }
+
+  const testDir = path.join(process.env.GITHUB_WORKSPACE, "testDir");
+  fs.mkdirSync(testDir, { recursive: true });
+  return testDir;
+}
+
 test('ActionToolRunner exec() and execSync() tests', async () => {
   const options: baselib.ExecOptions = {
     cwd: process.cwd(),
@@ -93,45 +103,73 @@ test('ActionLib which()/exists() tests', async () => {
   expect(doGitExist).toBeTruthy();
 });
 
-test('ActionLib&Utils mkdirP()/exist()/readFile()/writeFile()/get*Dir() tests', async () => {
+test('ActionLib&Utils mkdirP() tests', async () => {
   const actionLib: lib.ActionLib = new lib.ActionLib();
   const util: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(actionLib);
 
-  if (!process.env.GITHUB_WORKSPACE) {
-    process.env.GITHUB_WORKSPACE = path.join(os.tmpdir(), process.pid.toString());
-    fs.mkdirSync(process.env.GITHUB_WORKSPACE);
-  }
-
-  expect(actionLib.getArtifactsDir()).toBeTruthy();
-  expect(actionLib.getBinDir()).toBeTruthy();
-  expect(actionLib.getSrcDir()).toBeTruthy();
-
-  const createdDir = path.join(actionLib.getArtifactsDir(), "testDir")
+  const createdDir = getExistingTempDir();
   await actionLib.mkdirP(createdDir);
   const exist = await actionLib.exist(createdDir);
   expect(exist).toBeTruthy();
+  await actionLib.mkdirP(createdDir);// Creating the second time should not throw.
+});
+
+test('ActionLib&Utils exist()/readFile()/writeFile()/get*Dir() tests', async () => {
+  const actionLib: lib.ActionLib = new lib.ActionLib();
+  const util: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(actionLib);
+
+  expect(async () => await actionLib.getArtifactsDir()).toBeTruthy();
+  expect(async () => await actionLib.getBinDir()).toBeTruthy();
+  expect(async () => await actionLib.getSrcDir()).toBeTruthy();
+
+  const createdDir = getExistingTempDir();
 
   const createdFile = path.join(createdDir, "file");
   const fileContent = "fileContent";
   actionLib.writeFile(createdFile, fileContent);
-  const [ok, content] = util.readFile(createdFile);
-  expect(ok).toBeTruthy();
+  const content = util.readFile(createdFile);
+  expect(content).toBeTruthy();
   expect(content).toBe(fileContent);
 
   util.writeFile(createdFile, fileContent);
-  const [ok2, content2] = util.readFile(createdFile);
-  expect(ok2).toBeTruthy();
+  const content2 = util.readFile(createdFile);
   expect(content2).toBe(fileContent);
 
   await actionLib.rmRF(createdDir);
   const dontExist = await actionLib.exist(createdDir);
   expect(dontExist).toBeFalsy();
 
-  expect(actionLib.resolve(process.env.GITHUB_WORKSPACE)).toBe(process.env.GITHUB_WORKSPACE);
-
+  // Just call, expect not exceptions.
   actionLib.beginOperation("operation");
   actionLib.endOperation();
 
-  util.wrapOp("wrapOp", () => { return Promise.resolve() });
-  util.wrapOpSync("wrapOpSync", () => { return Promise.resolve() });
+  actionLib.setState("name", "value");
+  actionLib.getState("name");
+});
+
+test('getInput()/getPathInput(): when input is not defined, it must return undefined', async () => {
+  // core.getInput return an empty string when the input is not defined.
+  jest.spyOn(core, "getInput").mockImplementation(() => { return ""; });
+
+  const actionLib: lib.ActionLib = new lib.ActionLib();
+  expect(actionLib.getInput("not-existent", false)).toBeUndefined();
+  expect(actionLib.getPathInput("not-existent", false, false)).toBeUndefined();
+});
+
+test('getInput()/getPathInput(): when input is not defined and it is required, it must throw.', async () => {
+  // core.getInput return an empty string when the input is not defined.
+  jest.spyOn(core, "getInput").mockImplementation(() => { return ""; });
+
+  const actionLib: lib.ActionLib = new lib.ActionLib();
+  expect(() => actionLib.getInput("existent", true)).toThrowError();
+  expect(() => actionLib.getPathInput("existent", true, false)).toThrowError();
+});
+
+test('getPathInput(): when input is defined, but not existent, it must throw.', async () => {
+  // core.getInput return an empty string when the input is not defined.
+  jest.spyOn(core, "getInput").mockImplementation(() => { return "/not/existent/"; });
+
+  const actionLib: lib.ActionLib = new lib.ActionLib();
+  expect(() => actionLib.getPathInput("existent", true, true)).toThrowError();
+  expect(() => actionLib.getPathInput("existent", false, true)).toThrowError();
 });
