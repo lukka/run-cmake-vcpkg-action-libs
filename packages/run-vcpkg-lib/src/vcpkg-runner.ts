@@ -171,12 +171,13 @@ export class VcpkgRunner {
     if (!this.runVcpkgInstallPath) {
       throw new Error(`Cannot run '${this.vcpkgInstallCmd}' because no valid directory has been provided.`);
     }
+    const vcpkgRunPath: string = this.runVcpkgInstallPath;
 
     await this.baseUtils.wrapOp("Install/Update ports using vcpkg.json",
-      async () => await this.runVcpkgInstallImpl());
+      async () => await this.runVcpkgInstallImpl(vcpkgRunPath));
   }
 
-  private async runVcpkgInstallImpl(): Promise<void> {
+  private async runVcpkgInstallImpl(vcpkgRunPath: string): Promise<void> {
     let vcpkgPath: string = path.join(this.vcpkgDestPath, 'vcpkg');
     if (this.baseUtils.isWin32()) {
       vcpkgPath += '.exe';
@@ -184,7 +185,8 @@ export class VcpkgRunner {
 
     // A shallow copy the ExecOptions suffices.
     const optionsForRunningVcpkgInstall = { ...this.options };
-    optionsForRunningVcpkgInstall.cwd = this.runVcpkgInstallPath!;
+
+    optionsForRunningVcpkgInstall.cwd = vcpkgRunPath;
 
     // Run the command.
     const vcpkgTool = this.baseUtils.baseLib.tool(vcpkgPath);
