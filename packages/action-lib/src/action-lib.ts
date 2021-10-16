@@ -467,7 +467,7 @@ export class ActionLib implements baselib.BaseLib {
   }
 
   addMatcher(file: string): void {
-    corecommand.issueCommand('ádd-matcher', {}, file);
+    corecommand.issueCommand('add-matcher', {}, file);
   }
 
   removeMatcher(owner: string): void {
