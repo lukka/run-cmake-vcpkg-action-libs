@@ -12,6 +12,8 @@ import { using } from "using-statement";
 export class VcpkgRunner {
   public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
   public static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
+  protected static readonly VCPKG_ENABLE_METRICS = "VCPKG_ENABLE_METRICS";
+  protected static readonly VCPKG_DISABLE_METRICS = "VCPKG_DISABLE_METRICS";
 
   /**
    * @description Used only in tests.
@@ -121,6 +123,11 @@ export class VcpkgRunner {
 
   protected async runImpl(): Promise<void> {
     this.baseUtils.baseLib.debug("runImpl()<<");
+
+    // By default disable vcpkg telemetry, unless VCPKG_ENABLE_METRICS is set.
+    if (!process.env[VcpkgRunner.VCPKG_ENABLE_METRICS]) {
+      process.env[VcpkgRunner.VCPKG_DISABLE_METRICS] = "1";
+    }
 
     // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
     if (!await this.baseUtils.baseLib.exist(this.vcpkgDestPath)) {
