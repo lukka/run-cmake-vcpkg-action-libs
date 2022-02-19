@@ -16,6 +16,19 @@ test('replaceFromEnvVar() positive tests', async () => {
         expect(baseutillib.replaceFromEnvVar("$[env.ENVNAME]", { "name": "value" })).toStrictEqual("envvalue");
 
         expect(baseutillib.replaceFromEnvVar("text $[env.ENVNAME] ${aaa} $[bbb] text $[undef]", { "bbb": "bbb-value" })).toStrictEqual("text envvalue ${aaa} bbb-value text undef-is-undefined");
+
+        // Tests for dropped slashes as reported in https://github.com/lukka/run-vcpkg/issues/130
+        {
+            const value = "d:\\a\\b\\c";
+            process.env["ENVNAME"] = value;
+            expect(baseutillib.replaceFromEnvVar("text $[env.ENVNAME]", {})).toStrictEqual(`text ${value}`);
+        }
+        {
+            const value = "d:/a/b/c";
+            process.env["ENVNAME"] = value;
+            expect(baseutillib.replaceFromEnvVar("text $[env.ENVNAME]", {})).toStrictEqual(`text ${value}`);
+            delete process.env["ENVNAME"];
+        }
     }
 });
 
