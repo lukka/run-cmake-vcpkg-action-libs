@@ -9,6 +9,7 @@ import * as mock from './mocks';
 import * as assert from 'assert';
 import * as utils from '@lukka/base-util-lib';
 import * as runvcpkgutils from '../src/vcpkg-utils'
+import * as os from 'os'
 
 // Arrange.
 const isWin = process.platform === "win32";
@@ -61,6 +62,12 @@ const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
 testutils.testWithHeader('run-vcpkg must build and run successfully', async () => {
+  let installRoot: string = await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib);
+  if (baseUtil.isWin32()) {
+    installRoot = 'c:\\github\\workspace\\on\\windows\\';
+    process.env["VCPKG_INSTALLED_DIR"] = installRoot;
+  }
+  
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -80,7 +87,7 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build --x-install-root ${await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib)} --triplet ${baseUtil.getDefaultTriplet()}`]:
+      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build --x-install-root ${installRoot} --triplet ${baseUtil.getDefaultTriplet()}`]:
         { 'code': 0, 'stdout': 'this is the `vcpkg install` output' },
     },
     "exist": { [vcpkgRoot]: true },

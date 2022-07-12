@@ -415,6 +415,7 @@ function _debug(msg: string): void {
   if (process.env.DEBUG) console.log(`DEBUG: '${msg}'`);
 }
 
+// Remark: the output of replaceFromEnvVar is always passed thru eval().
 export function replaceFromEnvVar(text: string, values?: { [key: string]: string; }): string {
   return text.replace(/\$\[(.*?)\]/gi, (a, b) => {
     let ret = "undefined";
@@ -422,6 +423,9 @@ export function replaceFromEnvVar(text: string, values?: { [key: string]: string
       if (b.startsWith("env.")) {
         b = b.slice(4);
         ret = process.env[b] ?? `${b}-is-undefined`;
+        // Issue https://github.com/lukka/run-vcpkg/issues/144
+        // Ensure backslashes are preserved: escape them before passing the value into 'eval()'.
+        ret = ret.replace(/\\/g, '\\\\');
       } else {
         ret = `${b}-is-undefined`;
         if (values && values[b])

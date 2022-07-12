@@ -40,8 +40,10 @@ export class VcpkgRunner {
     } else {
       vcpkgInstallCmd = baseutillib.replaceFromEnvVar(vcpkgInstallCmd);
     }
-
+    
+    baseUtil.baseLib.debug(`vcpkgInstallCmd=${vcpkgInstallCmd}`);
     const vcpkgInstallArgs: string[] = eval(vcpkgInstallCmd);
+    baseUtil.baseLib.debug(`vcpkgInstallArgs=${vcpkgInstallArgs}`);
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
     const pathToLastBuiltCommitId = path.join(vcpkgDestPath, globals.vcpkgLastBuiltCommitId);

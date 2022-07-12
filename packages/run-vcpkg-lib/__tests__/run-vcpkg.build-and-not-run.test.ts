@@ -100,7 +100,7 @@ testutils.testWithHeader('run-vcpkg must build (and not run) successfully', asyn
     [],
     null,
     null);
-  // HACK: any to access private fields.
+  // HACK: cast to `any` to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
   let vcpkgInstallImplMock = jest.spyOn(vcpkg as any, 'runVcpkgInstallImpl');
 
