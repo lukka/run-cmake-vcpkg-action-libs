@@ -1,36 +1,36 @@
 {
-	"name": "@lukka/base-util-lib",
-	"version": "2.0.6",
-	"description": "Utilities library for Continuous integration systems.",
-	"repository": {
-		"type": "git",
-		"url": "ssh://git@github.com:lukka/run-cmake-vcpkg-action-libs.git",
-		"directory": "packages/base-util-lib"
-	},
-	"publishConfig": {
-		"access": "public",
-		"registry": "https://npm.pkg.github.com/lukka"
-	},
-	"author": "Luca Cappa (https://github.com/lukka)",
-	"license": "MIT",
-	"main": "build/index.js",
-	"types": "build/index.d.ts",
-	"scripts": {
-		"build": "tsc -b . -v",
-		"lint": "eslint src/*.ts",
-		"test": "jest"
-	},
-	"dependencies": {
-		"@lukka/base-lib": "^2.0.6",
-		"fast-glob": "3.2.7"
-	},
-	"devDependencies": {
-		"lerna": "^4.0.0",
-		"typescript": "^4.3.5"
-	},
-	"files": [
-		"build",
-		"./build",
-		"!__tests__"
-	]
+    "name": "@lukka/base-util-lib",
+    "version": "2.0.6",
+    "description": "Utilities library for Continuous integration systems.",
+    "repository": {
+        "type": "git",
+        "url": "ssh://git@github.com:lukka/run-cmake-vcpkg-action-libs.git",
+        "directory": "packages/base-util-lib"
+    },
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://npm.pkg.github.com/lukka"
+    },
+    "author": "Luca Cappa (https://github.com/lukka)",
+    "license": "MIT",
+    "main": "build/index.js",
+    "types": "build/index.d.ts",
+    "scripts": {
+        "build": "tsc -b . -v",
+        "lint": "eslint src/*.ts",
+        "test": "jest"
+    },
+    "dependencies": {
+        "@lukka/base-lib": "^2.0.6",
+        "fast-glob": "3.2.7"
+    },
+    "devDependencies": {
+        "lerna": "^5.4.3",
+        "typescript": "^4.3.5"
+    },
+    "files": [
+        "build",
+        "./build",
+        "!__tests__"
+    ]
 }
