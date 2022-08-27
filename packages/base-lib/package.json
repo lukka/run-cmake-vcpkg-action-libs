@@ -41,7 +41,7 @@
     "adm-zip": "^0.4.13",
     "del": "^5.1.0",
     "eslint": "^6.7.2",
-    "follow-redirects": "^1.14.8",
+    "follow-redirects": "^1.15.1",
     "minimist": ">=1.2.2",
     "using-statement": "^0.3.1"
   },
