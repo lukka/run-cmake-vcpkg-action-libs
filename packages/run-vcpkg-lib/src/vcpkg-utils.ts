@@ -12,7 +12,7 @@ import * as baselib from '@lukka/base-lib'
  */
 export function getOrdinaryCachedPaths(vcpkgRootDir: string): string[] {
   const pathsToCache: string[] = [
-    vcpkgRootDir,
+    path.join(vcpkgRootDir, '*'),
     path.normalize(`!${path.join(vcpkgRootDir, 'installed')}`),
     path.normalize(`!${path.join(vcpkgRootDir, 'vcpkg_installed')}`),
     path.normalize(`!${path.join(vcpkgRootDir, 'packages')}`),
