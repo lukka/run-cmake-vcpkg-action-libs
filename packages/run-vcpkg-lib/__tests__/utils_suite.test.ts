@@ -13,11 +13,11 @@ test('tests for run-vcpkg utils.ts ...', async () => {
   const vcpkgRoot = "vcpkgRoot";
   const paths = vcpkgutils.getOrdinaryCachedPaths("vcpkgRoot");
   expect(paths).toStrictEqual(
-    [vcpkgRoot,
-      excludedPath(vcpkgRoot, "installed"),
-      excludedPath(vcpkgRoot, "vcpkg_installed"),
-      excludedPath(vcpkgRoot, "packages"),
-      excludedPath(vcpkgRoot, "buildtrees"),
-      excludedPath(vcpkgRoot, "downloads")]
+    [path.join(vcpkgRoot, '*'),
+    excludedPath(vcpkgRoot, "installed"),
+    excludedPath(vcpkgRoot, "vcpkg_installed"),
+    excludedPath(vcpkgRoot, "packages"),
+    excludedPath(vcpkgRoot, "buildtrees"),
+    excludedPath(vcpkgRoot, "downloads")]
   );
 });

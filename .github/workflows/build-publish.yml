@@ -67,13 +67,11 @@ jobs:
         name: test
       - run: git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com" && git config --global user.name "$GITHUB_ACTOR"
       - run: |
-          npm run version -- prerelease
           npm run publish from-package -- --dist-tag=prerelease --registry https://npm.pkg.github.com
         if: contains(github.ref, 'refs/heads/prerelease')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: |
-          npm run version -- patch
           npm run publish from-package -- --registry https://npm.pkg.github.com
         if: contains(github.ref, 'refs/heads/release')
         env:
