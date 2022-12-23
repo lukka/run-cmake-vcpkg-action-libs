@@ -26,7 +26,6 @@ const testPreset = 'test';
 import { CMakeRunner } from '../src/cmake-runner';
 
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
-mock.inputsMocks.setInput(globals.configurePreset, cmakePreset);
 
 testutils.testWithHeader('run-cmake must fail when a tool returns error code 1', async () => {
   const answers: testutils.BaseLibAnswers = {
@@ -50,7 +49,7 @@ testutils.testWithHeader('run-cmake must fail when a tool returns error code 1',
   mock.answersMocks.reset(answers);
 
   // Act.
-  const cmakeRunner: CMakeRunner = new CMakeRunner(mock.exportedBaselib);
+  const cmakeRunner: CMakeRunner = new CMakeRunner(mock.exportedBaselib, cmakePreset);
   await expect(() => cmakeRunner.run()).rejects.toThrowError();// Assert
 
   // Assert.

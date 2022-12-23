@@ -27,9 +27,6 @@ import { CMakeRunner } from '../src/cmake-runner';
 import * as cmakeutils from '../src/cmake-utils'
 
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
-mock.inputsMocks.setInput(globals.configurePreset, cmakePreset);
-mock.inputsMocks.setInput(globals.buildPreset, buildPreset);
-mock.inputsMocks.setInput(globals.testPreset, testPreset);
 
 testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and build and test successfully', async () => {
   process.env.VCPKG_ROOT = vcpkgRoot;
@@ -63,7 +60,10 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and b
 
   // Act and Assert.
   try {
-    await CMakeRunner.run(mock.exportedBaselib);
+    await CMakeRunner.run(mock.exportedBaselib, 
+      cmakePreset, undefined, undefined,
+      buildPreset, undefined, undefined,
+      testPreset, undefined, undefined);
   }
   catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
