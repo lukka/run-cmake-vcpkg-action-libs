@@ -172,7 +172,7 @@ jest.spyOn(ActionToolRunner.prototype, 'exec').mockImplementation(
   function (this: ActionToolRunner, options?: ExecOptions): Promise<number> {
     const toolRunnerPrivateAccess: any = this;
     const response = answersMocks.getResponse('exec', `${toolRunnerPrivateAccess.path} ${toolRunnerPrivateAccess.arguments.join(' ')}`);
-    testutils.testLog(response);
+    testutils.testLog(JSON.stringify(response));
     return Promise.resolve(response.code);
   });
 

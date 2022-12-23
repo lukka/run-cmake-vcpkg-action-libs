@@ -20,22 +20,22 @@ const cmakeListsTxtPath = path.join('/home/user/project/src/path/', 'CMakeLists.
 const cmakePreset = 'cmake';
 const buildPreset = 'build';
 const testPreset = 'test';
+const configureAddedArg = "-DVARIABLE=VALUECONFIGURE";
+const buildAddedArg = "-DVARIABLE=VALUEBUILD";
+const testAddedArg = "-DVARIABLE=VALUETEST";
 
 import { CMakeRunner } from '../src/cmake-runner';
 
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
-mock.inputsMocks.setInput(globals.configurePreset, cmakePreset);
-mock.inputsMocks.setInput(globals.buildPreset, buildPreset);
-mock.inputsMocks.setInput(globals.testPreset, testPreset);
 
 testutils.testWithHeader('run-cmake must configure and build successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
-      [`${cmakeExePath} --preset ${cmakePreset}`]: { 'code': 0, "stdout": 'cmake --preset output here' },
-      [`${cmakeExePath} --build --preset ${buildPreset}`]: { 'code': 0, "stdout": 'cmake --build --preset output here' },
-      [`${ctestExePath} --preset ${testPreset}`]: { 'code': 0, "stdout": 'ctest --preset output here' },
+      [`${cmakeExePath} --preset ${cmakePreset} ${configureAddedArg}`]: { 'code': 0, "stdout": 'cmake --preset output here' },
+      [`${cmakeExePath} --build --preset ${buildPreset} ${buildAddedArg}`]: { 'code': 0, "stdout": 'cmake --build --preset output here' },
+      [`${ctestExePath} --preset ${testPreset} ${testAddedArg}`]: { 'code': 0, "stdout": 'ctest --preset output here' },
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
     },
     "exist": { [vcpkgRoot]: true },
@@ -53,7 +53,18 @@ testutils.testWithHeader('run-cmake must configure and build successfully', asyn
 
   // Act.
   try {
-    await CMakeRunner.run(mock.exportedBaselib);
+    await CMakeRunner.run(
+      mock.exportedBaselib,
+      cmakePreset,
+      undefined,
+      `['${configureAddedArg}']`,
+      buildPreset,
+      undefined,
+      `['${buildAddedArg}']`,
+      testPreset,
+      undefined,
+      `['${testAddedArg}']`,
+      );
   }
   catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
