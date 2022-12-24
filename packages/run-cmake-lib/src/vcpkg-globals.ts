@@ -5,3 +5,4 @@
 export const outVcpkgRootPath = "RUNVCPKG_VCPKG_ROOT";
 export const vcpkgLastBuiltCommitId = 'vcpkgLastBuiltCommitId';
 export const vcpkgRoot = 'VCPKG_ROOT';
+export const runVcpkgEnvFormatStringInput = "RUNVCPKGENVFORMATSTRING";
