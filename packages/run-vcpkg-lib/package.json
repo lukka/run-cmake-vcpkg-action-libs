@@ -1,6 +1,6 @@
 {
 	"name": "@lukka/run-vcpkg-lib",
-	"version": "3.0.0-alpha.0",
+	"version": "3.0.1-alpha.0",
 	"description": "vcpkg runner for continuous integration systems.",
 	"repository": {
 		"type": "git",
@@ -21,9 +21,9 @@
 		"test": "jest"
 	},
 	"dependencies": {
-		"@lukka/action-lib": "^3.0.0-alpha.0",
-		"@lukka/base-lib": "^3.0.0-alpha.0",
-		"@lukka/base-util-lib": "^3.0.0-alpha.0",
+		"@lukka/action-lib": "^3.0.1-alpha.0",
+		"@lukka/base-lib": "^3.0.1-alpha.0",
+		"@lukka/base-util-lib": "^3.0.1-alpha.0",
 		"@types/adm-zip": "^0.4.32",
 		"@types/follow-redirects": "^1.14.1",
 		"@types/q": "^1.5.1",
