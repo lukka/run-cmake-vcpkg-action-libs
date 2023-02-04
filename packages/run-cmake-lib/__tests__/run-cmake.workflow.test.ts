@@ -6,7 +6,6 @@ import * as globals from '../src/cmake-globals'
 import * as testutils from '../../run-vcpkg-lib/__tests__/utils'
 import * as path from 'path'
 import * as mock from '../../run-vcpkg-lib/__tests__/mocks'
-import * as utils from '@lukka/base-util-lib';
 
 // Arrange.
 const isWin = process.platform === "win32";
@@ -23,19 +22,18 @@ const testPreset = 'test';
 const configureAddedArg = "-DVARIABLE=VALUECONFIGURE";
 const buildAddedArg = "-DVARIABLE=VALUEBUILD";
 const testAddedArg = "-DVARIABLE=VALUETEST";
+const workflowPreset = "MyWorkflow";
 
 import { CMakeRunner } from '../src/cmake-runner';
 
 mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
 
-testutils.testWithHeader('run-cmake must configure and build successfully', async () => {
+testutils.testWithHeader('run-cmake must run the workflow successfully', async () => {
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
         { code: 0, stdout: "git output" },
-      [`${cmakeExePath} --preset ${cmakePreset} ${configureAddedArg}`]: { 'code': 0, "stdout": 'cmake --preset output here' },
-      [`${cmakeExePath} --build --preset ${buildPreset} ${buildAddedArg}`]: { 'code': 0, "stdout": 'cmake --build --preset output here' },
-      [`${ctestExePath} --preset ${testPreset} ${testAddedArg}`]: { 'code': 0, "stdout": 'ctest --preset output here' },
+      [`${cmakeExePath} --workflow --preset ${workflowPreset} --fresh`]: { 'code': 0, "stdout": 'cmake --workflow --preset output here' },
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
     },
     "exist": { [vcpkgRoot]: true },
@@ -55,7 +53,7 @@ testutils.testWithHeader('run-cmake must configure and build successfully', asyn
   try {
     await CMakeRunner.run(
       mock.exportedBaselib,
-      undefined,
+      workflowPreset,
       undefined,
       cmakePreset,
       undefined,

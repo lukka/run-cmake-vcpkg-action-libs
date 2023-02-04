@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021-2022 Luca Cappa
+// Copyright (c) 2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -61,6 +61,7 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and b
   // Act and Assert.
   try {
     await CMakeRunner.run(mock.exportedBaselib, 
+      undefined, undefined,
       cmakePreset, undefined, undefined,
       buildPreset, undefined, undefined,
       testPreset, undefined, undefined);

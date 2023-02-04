@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020-2021-2022 Luca Cappa
+// Copyright (c) 2019-2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -11,6 +11,7 @@ import * as cmakeutil from './cmake-utils'
 import * as runvcpkglib from '@lukka/run-vcpkg-lib'
 
 export class CMakeRunner {
+  public static readonly workflowPresetDefault = "[`--workflow`, `--preset`, `$[env.WORKFLOW_PRESET_NAME]`, `--fresh`]";
   public static readonly configurePresetDefault = "[`--preset`, `$[env.CONFIGURE_PRESET_NAME]`]";
   public static readonly buildPresetDefault = "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]";
   public static readonly testPresetDefault = "[`--preset`, `$[env.TEST_PRESET_NAME]`]";
@@ -22,6 +23,8 @@ export class CMakeRunner {
   private readonly logFilesCollector: baseutillib.LogFileCollector;
 
   public static async run(baseLib: baselib.BaseLib,
+    workflowPreset?: string,
+    workflowPresetCmdStringFormat?: string,
     configurePreset?: string,
     configurePresetCmdStringFormat?: string,
     configurePresetCmdStringAddArgs?: string,
@@ -36,6 +39,8 @@ export class CMakeRunner {
       async () => {
         const cmakeRunner: CMakeRunner = new CMakeRunner(
           baseLib,
+          workflowPreset,
+          workflowPresetCmdStringFormat,
           configurePreset,
           configurePresetCmdStringFormat,
           configurePresetCmdStringAddArgs,
@@ -52,6 +57,8 @@ export class CMakeRunner {
 
   public constructor(
     private baseLib: baselib.BaseLib,
+    private workflowPreset: string | null = null,
+    private workflowPresetCmdStringFormat: string = CMakeRunner.workflowPresetDefault,
     private configurePreset: string | null = null,
     private configurePresetCmdStringFormat: string = CMakeRunner.configurePresetDefault,
     private configurePresetCmdStringAddArgs: string | null = null,
@@ -83,19 +90,24 @@ export class CMakeRunner {
     const ctest: string = await this.baseLib.which('ctest', true);
     this.baseLib.debug(`ctest located at: '${ctest}'.`);
 
-    if (this.configurePreset) {
-      const configureTool: baselib.ToolRunner = this.baseLib.tool(cmake);
-      await this.configure(configureTool, this.configurePreset);
-    }
+    if (this.workflowPreset) {
+      const workflowTool: baselib.ToolRunner = this.baseLib.tool(cmake);
+      await this.workflow(workflowTool, this.workflowPreset);
+    } else {
+      if (this.configurePreset) {
+        const configureTool: baselib.ToolRunner = this.baseLib.tool(cmake);
+        await this.configure(configureTool, this.configurePreset);
+      }
 
-    if (this.buildPreset) {
-      const buildTool: baselib.ToolRunner = this.baseLib.tool(cmake);
-      await this.build(buildTool, this.buildPreset);
-    }
+      if (this.buildPreset) {
+        const buildTool: baselib.ToolRunner = this.baseLib.tool(cmake);
+        await this.build(buildTool, this.buildPreset);
+      }
 
-    if (this.testPreset) {
-      const testTool: baselib.ToolRunner = this.baseLib.tool(ctest);
-      await this.test(testTool, this.testPreset);
+      if (this.testPreset) {
+        const testTool: baselib.ToolRunner = this.baseLib.tool(ctest);
+        await this.test(testTool, this.testPreset);
+      }
     }
 
     this.baseLib.debug('run()>>');
@@ -142,7 +154,6 @@ export class CMakeRunner {
     this.baseLib.debug('configure()<<');
 
     baseutillib.setEnvVarIfUndefined("CONFIGURE_PRESET_NAME", configurePresetName);
-    const args: string = baseutillib.replaceFromEnvVar(this.configurePresetCmdStringFormat);
     CMakeRunner.addArguments(cmake, this.configurePresetCmdStringFormat);
     if (this.configurePresetCmdStringAddArgs) {
       CMakeRunner.addArguments(cmake, this.configurePresetCmdStringAddArgs);
@@ -182,6 +193,19 @@ export class CMakeRunner {
       async () => await this.launchCMake(cmake, this.cmakeSourceDir, this.logFilesCollector));
 
     this.baseLib.debug('configure()>>');
+  }
+
+  private async workflow(cmake: baselib.ToolRunner, workflowPresetName: string): Promise<void> {
+    this.baseLib.debug('workflow()<<');
+    baseutillib.setEnvVarIfUndefined("WORKFLOW_PRESET_NAME", workflowPresetName);
+    CMakeRunner.addArguments(cmake, this.workflowPresetCmdStringFormat);
+
+    // 
+    this.baseLib.debug(`Running the workflow preset named '${workflowPresetName}' ...`);
+    await this.baseUtils.wrapOp(`Running workflow '${workflowPresetName}' with CMake`,
+      async () => await this.launchCMake(cmake, this.cmakeSourceDir, this.logFilesCollector));
+
+    this.baseLib.debug('workflow()>>');
   }
 
   private async launchCMake(
