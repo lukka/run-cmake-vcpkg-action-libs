@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020-2021-2022 Luca Cappa
+// Copyright (c) 2019-2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -55,6 +55,7 @@ testutils.testWithHeader('run-cmake must configure successfully and skip build a
   // Act.
   try {
     await CMakeRunner.run(mock.exportedBaselib,
+      undefined, undefined,
       cmakePreset, undefined, `['${configureAddedArg}']`);
   }
   catch (error) {
@@ -94,6 +95,7 @@ testutils.testWithHeader('run-cmake must build successfully and skip configure a
   // Act.
   try {
     await CMakeRunner.run(mock.exportedBaselib,
+      undefined, undefined,
       undefined, undefined, undefined,
       buildPreset, undefined, `['${buildAddedArg}']`);
   }
