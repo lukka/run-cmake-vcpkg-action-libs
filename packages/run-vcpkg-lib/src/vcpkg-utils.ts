@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021-2022 Luca Cappa
+// Copyright (c) 2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -8,7 +8,7 @@ import * as baselib from '@lukka/base-lib'
 /**
  * 
  * @param vcpkgRootDir The VCPKG_ROOT directory.
- * @returns The list of paths to cache, and the ones to not cache (with the prefix exclamation mark).
+ * @returns The list of paths to cache, and the ones to not cache (with the exclamation mark prefix).
  */
 export function getOrdinaryCachedPaths(vcpkgRootDir: string): string[] {
   const pathsToCache: string[] = [

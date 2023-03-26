@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020-2021-2022 Luca Cappa
+// Copyright (c) 2019-2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -10,11 +10,12 @@ import * as baseutillib from '@lukka/base-util-lib';
 import { using } from "using-statement";
 
 export class VcpkgRunner {
-  public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, --binarysource="clear;x-gha,readwrite"`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
-  public static readonly VCPKGINSTALLCMDLOCALDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, --binarysource="clear;default,readwrite"`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
+  public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
   public static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
   protected static readonly VCPKG_ENABLE_METRICS = "VCPKG_ENABLE_METRICS";
   protected static readonly VCPKG_DISABLE_METRICS = "VCPKG_DISABLE_METRICS";
+  private static readonly VCPKG_BINARY_SOURCES_GHA = 'clear;x-gha,readwrite';
+  private static readonly VCPKG_FORCE_SYSTEM_BINARIES = "VCPKG_FORCE_SYSTEM_BINARIES";
 
   /**
    * @description Used only in tests.
@@ -34,14 +35,14 @@ export class VcpkgRunner {
       baseUtil.baseLib.info(`The vcpkg's URL Git repository is not provided, using the predefined: '${VcpkgRunner.DEFAULTVCPKGURL}'`);
     }
 
-    baseutillib.setEnvVarIfUndefined("VCPKG_INSTALLED_DIR", await vcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib));
+    baseutillib.setEnvVarIfUndefined(globals.VCPKG_INSTALLED_DIR, await vcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib));
     baseutillib.setEnvVarIfUndefined(globals.VCPKGDEFAULTTRIPLET, baseUtil.getDefaultTriplet());
     if (!vcpkgInstallCmd) {
       vcpkgInstallCmd = baseutillib.replaceFromEnvVar(VcpkgRunner.VCPKGINSTALLCMDDEFAULT);
     } else {
       vcpkgInstallCmd = baseutillib.replaceFromEnvVar(vcpkgInstallCmd);
     }
-    
+
     baseUtil.baseLib.debug(`vcpkgInstallCmd=${vcpkgInstallCmd}`);
     const vcpkgInstallArgs: string[] = eval(vcpkgInstallCmd);
     baseUtil.baseLib.debug(`vcpkgInstallArgs=${vcpkgInstallArgs}`);
@@ -130,6 +131,13 @@ export class VcpkgRunner {
     // By default disable vcpkg telemetry, unless VCPKG_ENABLE_METRICS is set.
     if (!process.env[VcpkgRunner.VCPKG_ENABLE_METRICS]) {
       process.env[VcpkgRunner.VCPKG_DISABLE_METRICS] = "1";
+    }
+
+    // If running in a GitHub Runner, enable the GH's cache provider for the vcpkg's binary cache.
+    if (process.env['GITHUB_ACTIONS'] === 'true') {
+      // Allow users to define the vcpkg's binary source explicitly in the workflow, in that case don't override it.
+      if (!process.env[globals.VCPKG_BINARY_SOURCES])
+        this.baseUtils.setVariableVerbose(globals.VCPKG_BINARY_SOURCES, VcpkgRunner.VCPKG_BINARY_SOURCES_GHA);
     }
 
     // Ensuring `this.vcpkgDestPath` is existent, since is going to be used as current working directory.
@@ -379,7 +387,7 @@ export class VcpkgRunner {
       }
     }
 
-    this.baseUtils.baseLib.debug(`checkExecutable()>> -> ${needRebuild}`);
+    this.baseUtils.baseLib.debug(`checkExecutable()>> -> DoesItNeedRebuild=${needRebuild}`);
     return needRebuild;
   }
 
@@ -391,6 +399,11 @@ export class VcpkgRunner {
     } else {
       bootstrapFileName += '.sh';
     }
+
+    // On on arm platforms the VCPKG_FORCE_SYSTEM_BINARIES 
+    // environment variable must be set.
+    if (process.arch === 'arm64')
+      this.baseUtils.baseLib.setVariable(VcpkgRunner.VCPKG_FORCE_SYSTEM_BINARIES, "1");
 
     if (this.baseUtils.isWin32()) {
       const cmdPath: string = await this.baseUtils.baseLib.which('cmd.exe', true);

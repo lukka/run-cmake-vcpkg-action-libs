@@ -49,7 +49,8 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
         break;
       case globals.VCPKGDEFAULTTRIPLET:
       case globals.RUNVCPKG_VCPKG_DEFAULT_TRIPLET:
-        break;
+      case globals.VCPKG_BINARY_SOURCES:
+          break;
       default:
         assert.fail(`Unexpected variable name: '${name}'`);
     }
