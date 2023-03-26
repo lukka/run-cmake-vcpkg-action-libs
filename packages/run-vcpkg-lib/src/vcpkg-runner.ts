@@ -10,7 +10,8 @@ import * as baseutillib from '@lukka/base-util-lib';
 import { using } from "using-statement";
 
 export class VcpkgRunner {
-  public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
+  public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, --binarysource="clear;x-gha,readwrite"`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
+  public static readonly VCPKGINSTALLCMDLOCALDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, --binarysource="clear;default,readwrite"`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
   public static readonly DEFAULTVCPKGURL = 'https://github.com/microsoft/vcpkg.git';
   protected static readonly VCPKG_ENABLE_METRICS = "VCPKG_ENABLE_METRICS";
   protected static readonly VCPKG_DISABLE_METRICS = "VCPKG_DISABLE_METRICS";
