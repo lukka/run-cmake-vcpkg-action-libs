@@ -477,4 +477,8 @@ export class ActionLib implements baselib.BaseLib {
   hashFiles(fileGlob: string, options?: baselib.GlobOptions): Promise<string> {
     return actionglob.hashFiles(fileGlob, options as actionglob.GlobOptions);
   }
+
+  addPath(path: string): void {
+    core.addPath(path);
+  }
 }
