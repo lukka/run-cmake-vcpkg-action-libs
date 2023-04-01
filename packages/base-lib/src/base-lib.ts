@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020-2021-2022 Luca Cappa
+// Copyright (c) 2019-2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -75,4 +75,5 @@ export interface BaseLib {
   addMatcher(file: string): void;
   removeMatcher(owner: string): void;
   hashFiles(fileGlob: string, options?: GlobOptions): Promise<string>;
+  addPath(path: string): void;
 }

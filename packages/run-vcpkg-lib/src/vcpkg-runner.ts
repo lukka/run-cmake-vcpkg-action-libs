@@ -175,6 +175,10 @@ export class VcpkgRunner {
       await this.baseUtils.wrapOp("Build vcpkg executable", () => this.build());
     }
 
+    this.baseUtils.wrapOpSync(`Add to PATH vcpkg at '${this.vcpkgDestPath}'`, () =>
+      this.baseUtils.baseLib.addPath(this.vcpkgDestPath)
+    );
+
     await this.runVcpkgInstall();
 
     this.baseUtils.wrapOpSync("Set output environment variables", () => this.setOutputs());
