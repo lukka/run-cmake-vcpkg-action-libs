@@ -1,6 +1,6 @@
 {
   "name": "@lukka/run-cmake-lib",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "description": "CMake runner for continuous integration systems.",
   "repository": {
     "type": "git",
@@ -32,10 +32,10 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "@lukka/action-lib": "^3.5.1",
-    "@lukka/base-lib": "^3.5.1",
-    "@lukka/base-util-lib": "^3.5.1",
-    "@lukka/run-vcpkg-lib": "^3.5.1",
+    "@lukka/action-lib": "^3.5.2",
+    "@lukka/base-lib": "^3.5.2",
+    "@lukka/base-util-lib": "^3.5.2",
+    "@lukka/run-vcpkg-lib": "^3.5.2",
     "@types/adm-zip": "^0.4.32",
     "@types/follow-redirects": "^1.14.1",
     "@types/q": "^1.5.1",
