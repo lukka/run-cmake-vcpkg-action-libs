@@ -51,6 +51,11 @@ jest.spyOn(baseutillib.BaseUtilLib.prototype, 'fileExists').mockImplementation(
     assert.strictEqual(path, VcpkgMocks.vcpkgExePath);
     return VcpkgMocks.vcpkgExeExists;
   });
+jest.spyOn(baseutillib.BaseUtilLib.prototype, 'setVariableIfUndefined').mockImplementation(
+  function (name: string, value: string | null): void {
+    console.log(`call to mocked baseUtilLib.setVariableIfUndefined(${name}, ${value})`);
+  }
+);
 
 // Mock for environment variables.
 export const envVarSetDict: { [name: string]: string } = {};

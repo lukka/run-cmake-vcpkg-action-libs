@@ -136,9 +136,10 @@ export class VcpkgRunner {
     // If running in a GitHub Runner, enable the GH's cache provider for the vcpkg's binary cache.
     if (process.env['GITHUB_ACTIONS'] === 'true') {
       await this.baseUtils.wrapOp(`Setup to run on GitHub Action runners`, async () => {
-        // Allow users to define the vcpkg's binary source explicitly in the workflow, in that case don't override it.
-        if (!process.env[globals.VCPKG_BINARY_SOURCES])
-          this.baseUtils.setVariableVerbose(globals.VCPKG_BINARY_SOURCES, VcpkgRunner.VCPKG_BINARY_SOURCES_GHA);
+        // Allow users to define the vcpkg's binary source explicitly in the workflow, in that case do not override it.
+        this.baseUtils.setVariableIfUndefined(globals.VCPKG_BINARY_SOURCES, VcpkgRunner.VCPKG_BINARY_SOURCES_GHA);
+        this.baseUtils.setVariableIfUndefined(globals.ACTIONS_CACHE_URL, process.env.ACTIONS_CACHE_URL || null);
+        this.baseUtils.setVariableIfUndefined(globals.ACTIONS_RUNTIME_TOKEN, process.env.ACTIONS_RUNTIME_TOKEN || null);
       });
     }
 
