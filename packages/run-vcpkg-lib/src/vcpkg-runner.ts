@@ -138,8 +138,10 @@ export class VcpkgRunner {
       await this.baseUtils.wrapOp(`Setup to run on GitHub Action runners`, async () => {
         // Allow users to define the vcpkg's binary source explicitly in the workflow, in that case do not override it.
         this.baseUtils.setVariableIfUndefined(globals.VCPKG_BINARY_SOURCES, VcpkgRunner.VCPKG_BINARY_SOURCES_GHA);
-        this.baseUtils.setVariableIfUndefined(globals.ACTIONS_CACHE_URL, process.env.ACTIONS_CACHE_URL || null);
-        this.baseUtils.setVariableIfUndefined(globals.ACTIONS_RUNTIME_TOKEN, process.env.ACTIONS_RUNTIME_TOKEN || null);
+        if (process.env.ACTIONS_CACHE_URL)
+          this.baseUtils.setVariableVerbose(globals.ACTIONS_CACHE_URL, process.env.ACTIONS_CACHE_URL);
+        if (process.env.ACTIONS_RUNTIME_TOKEN)
+          this.baseUtils.setVariableVerbose(globals.ACTIONS_RUNTIME_TOKEN, process.env.ACTIONS_RUNTIME_TOKEN);
       });
     }
 
