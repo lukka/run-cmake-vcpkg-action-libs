@@ -286,9 +286,22 @@ export class BaseUtilLib {
   public setOutputVerbose(name: string, value: string): void {
     this.baseLib.info(`Set the step output variable '${name}' to value '${value}''`);
     this.baseLib.setOutput(name, value);
-
   }
 
+  /**
+   * Set a workflow variable if not set already.
+   * @param name The name of the variable.
+   * @param value The value.
+   */
+  public setVariableIfUndefined(name: string, value: string | null): void {
+    if (!process.env[name]) {
+      if (!value) {
+        this.baseLib.warning(`Cannot set '${name}' variable because the provided value is null.`);
+      } else {
+        this.setVariableVerbose(name, value);
+      }
+    }
+  }
 }
 
 export class Matcher {
