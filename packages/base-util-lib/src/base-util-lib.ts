@@ -294,13 +294,17 @@ export class BaseUtilLib {
    * @param value The value.
    */
   public setVariableIfUndefined(name: string, value: string | null): void {
+    this.baseLib.debug(`setVariableIfUndefined()<<`);
     if (!process.env[name]) {
       if (!value) {
         this.baseLib.warning(`Cannot set '${name}' variable because the provided value is null.`);
       } else {
         this.setVariableVerbose(name, value);
       }
+    } else {
+      this.baseLib.debug(`${name} is already set to: '${value}'`);
     }
+    this.baseLib.debug(`setVariableIfUndefined()>>`);
   }
 }
 
