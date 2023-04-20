@@ -4,6 +4,9 @@
     "description": "Core engines for running vcpkg and CMake in continuous integration systems.",
     "author": "Luca Cappa (https://github.com/lukka)",
     "license": "MIT",
+    "workspaces": [
+        "packages/*"
+    ],
     "scripts": {
         "clean": "rm -rf ./build/",
         "bootstrap": "npx lerna bootstrap",
@@ -26,7 +29,7 @@
         "jest": "^26.0.1",
         "jest-circus": "^26.0.1",
         "jest-cli": "^26.0.1",
-        "lerna": "^6.1.0",
+        "lerna": "^6.6.1",
         "nock": "^12.0.3",
         "ts-jest": "^26.1.0",
         "ts-node": "^10.2.0",
