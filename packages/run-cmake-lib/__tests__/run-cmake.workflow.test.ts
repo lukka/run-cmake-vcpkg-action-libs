@@ -14,6 +14,7 @@ const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const cmakeExePath = '/usr/bin/cmake';
 const ctestExePath = '/usr/bin/ctest';
+const cpackExePath = '/usr/bin/cpack';
 const ninjaExePath = '/usr/bin/ninja';
 const cmakeListsTxtPath = path.join('/home/user/project/src/path/', 'CMakeLists.txt');
 const cmakePreset = 'cmake';
@@ -44,6 +45,7 @@ testutils.testWithHeader('run-cmake must run the workflow successfully', async (
       'cmd.exe': 'cmd.exe',
       'cmake': cmakeExePath,
       'ctest': ctestExePath,
+      'cpack': cpackExePath,
       'ninja': ninjaExePath
     },
   };

@@ -14,6 +14,7 @@ const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = path.join('/path/to/', 'vcpkg');
 const cmakeExePath = '/usr/bin/cmake';
 const ninjaExePath = '/usr/bin/ninja';
+const cpackExePath = '/usr/bin/cpack';
 const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
@@ -49,6 +50,7 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and b
       'cmd.exe': 'cmd.exe',
       'cmake': cmakeExePath,
       'ctest': ctestExePath,
+      'cpack': cpackExePath,
       'ninja': ninjaExePath
     },
   };
@@ -100,6 +102,7 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT not defined must configure a
       'cmd.exe': 'cmd.exe',
       'cmake': cmakeExePath,
       'ctest': ctestExePath,
+      'cpack': cpackExePath,
       'ninja': ninjaExePath
     },
   };

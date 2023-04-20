@@ -15,6 +15,7 @@ export class CMakeRunner {
   public static readonly configurePresetDefault = "[`--preset`, `$[env.CONFIGURE_PRESET_NAME]`]";
   public static readonly buildPresetDefault = "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]";
   public static readonly testPresetDefault = "[`--preset`, `$[env.TEST_PRESET_NAME]`]";
+  public static readonly packagePresetDefault = "[`--preset`, `$[env.PACKAGE_PRESET_NAME]`]";
   public static readonly vcpkgEnvDefault = "[`env`, `--bin`, `--include`, `--tools`, `--python`, `--triplet $[env.VCPKG_DEFAULT_TRIPLET]`, `set`]";
 
   private readonly baseUtils: baseutillib.BaseUtilLib;
@@ -34,6 +35,9 @@ export class CMakeRunner {
     testPreset?: string,
     testPresetCmdStringFormat?: string,
     testPresetCmdStringAddArgs?: string,
+    packagePreset?: string,
+    packagePresetCmdStringFormat?: string,
+    packagePresetCmdStringAddArgs?: string,
     vcpkgEnvCmdStringFormat?: string): Promise<void> {
     await using(baseutillib.Matcher.createMatcher('all', baseLib, __dirname),
       async () => {
@@ -50,6 +54,9 @@ export class CMakeRunner {
           testPreset,
           testPresetCmdStringFormat,
           testPresetCmdStringAddArgs,
+          packagePreset,
+          packagePresetCmdStringFormat,
+          packagePresetCmdStringAddArgs,
           vcpkgEnvCmdStringFormat);
         await cmakeRunner.run();
       });
@@ -68,6 +75,9 @@ export class CMakeRunner {
     private testPreset: string | null = null,
     private testPresetCmdStringFormat: string = CMakeRunner.testPresetDefault,
     private testPresetCmdStringAddArgs: string | null = null,
+    private packagePreset: string | null = null,
+    private packagePresetCmdStringFormat: string = CMakeRunner.packagePresetDefault,
+    private packagePresetCmdStringAddArgs: string | null = null,
     private vcpkgEnvStringFormat: string = CMakeRunner.vcpkgEnvDefault) {
     this.baseUtils = new baseutillib.BaseUtilLib(this.baseLib);
     const regs = this.baseLib.getDelimitedInput(cmakeglobals.logCollectionRegExps, ';', false) ?? [];
@@ -89,6 +99,8 @@ export class CMakeRunner {
     this.baseLib.debug(`cmake located at: '${cmake}'.`);
     const ctest: string = await this.baseLib.which('ctest', true);
     this.baseLib.debug(`ctest located at: '${ctest}'.`);
+    const cpack: string = await this.baseLib.which('cpack', true);
+    this.baseLib.debug(`cpack located at: '${cpack}'.`);
 
     if (this.workflowPreset) {
       const workflowTool: baselib.ToolRunner = this.baseLib.tool(cmake);
@@ -108,6 +120,11 @@ export class CMakeRunner {
         const testTool: baselib.ToolRunner = this.baseLib.tool(ctest);
         await this.test(testTool, this.testPreset);
       }
+
+      if (this.packagePreset) {
+        const packageTool: baselib.ToolRunner = this.baseLib.tool(cpack);
+        await this.package(packageTool, this.packagePreset);
+      }
     }
 
     this.baseLib.debug('run()>>');
@@ -123,12 +140,30 @@ export class CMakeRunner {
 
     this.baseLib.debug(`Testing with CTest ...`);
     await this.baseUtils.wrapOp("Test with CTest",
-      async () => await this.launchCMake(
+      async () => await this.launchTool(
         ctest,
         this.cmakeSourceDir,
         this.logFilesCollector));
 
     this.baseLib.debug('test()>>');
+  }
+
+  private async package(cpack: baselib.ToolRunner, packagePresetName: string): Promise<void> {
+    this.baseLib.debug('package()<<');
+    baseutillib.setEnvVarIfUndefined("PACKAGE_PRESET_NAME", packagePresetName);
+    CMakeRunner.addArguments(cpack, this.packagePresetCmdStringFormat);
+    if (this.packagePresetCmdStringAddArgs) {
+      CMakeRunner.addArguments(cpack, this.packagePresetCmdStringAddArgs);
+    }
+
+    this.baseLib.debug(`Packaging with CPack ...`);
+    await this.baseUtils.wrapOp("Package with CPack",
+      async () => await this.launchTool(
+        cpack,
+        this.cmakeSourceDir,
+        this.logFilesCollector));
+
+    this.baseLib.debug('package()>>');
   }
 
   private async build(cmake: baselib.ToolRunner, buildPresetName: string): Promise<void> {
@@ -142,7 +177,7 @@ export class CMakeRunner {
 
     this.baseLib.debug(`Building with CMake ...`);
     await this.baseUtils.wrapOp("Build with CMake",
-      async () => await this.launchCMake(
+      async () => await this.launchTool(
         cmake,
         this.cmakeSourceDir,
         this.logFilesCollector));
@@ -190,7 +225,7 @@ export class CMakeRunner {
     // 
     this.baseLib.debug(`Generating project files with CMake ...`);
     await this.baseUtils.wrapOp("Generate project files with CMake",
-      async () => await this.launchCMake(cmake, this.cmakeSourceDir, this.logFilesCollector));
+      async () => await this.launchTool(cmake, this.cmakeSourceDir, this.logFilesCollector));
 
     this.baseLib.debug('configure()>>');
   }
@@ -203,13 +238,13 @@ export class CMakeRunner {
     // 
     this.baseLib.debug(`Running the workflow preset named '${workflowPresetName}' ...`);
     await this.baseUtils.wrapOp(`Running workflow '${workflowPresetName}' with CMake`,
-      async () => await this.launchCMake(cmake, this.cmakeSourceDir, this.logFilesCollector));
+      async () => await this.launchTool(cmake, this.cmakeSourceDir, this.logFilesCollector));
 
     this.baseLib.debug('workflow()>>');
   }
 
-  private async launchCMake(
-    cmake: baselib.ToolRunner,
+  private async launchTool(
+    tool: baselib.ToolRunner,
     sourceDir: string, logCollector: baseutillib.LogFileCollector): Promise<void> {
     const options = {
       cwd: sourceDir,
@@ -226,10 +261,10 @@ export class CMakeRunner {
       }
     } as baselib.ExecOptions;
 
-    const code = await cmake.exec(options);
+    const code = await tool.exec(options);
 
     if (code !== 0) {
-      throw new Error(`"CMake failed with error code: '${code}'.`);
+      throw new Error(`"'${tool.getName()}' failed with error code: '${code}'.`);
     }
   }
 

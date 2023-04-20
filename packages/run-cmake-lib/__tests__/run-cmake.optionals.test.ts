@@ -15,6 +15,7 @@ const vcpkgRoot = '/path/to/vcpkg';
 const cmakeExePath = '/usr/bin/cmake';
 const ctestExePath = '/usr/bin/ctest';
 const ninjaExePath = '/usr/bin/ninja';
+const cpackExePath = '/usr/bin/cpack';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const cmakeListsTxtPath = path.join('/home/user/project/src/path', 'CMakeLists.txt');
 const cmakePreset = 'cmake';
@@ -46,6 +47,7 @@ testutils.testWithHeader('run-cmake must configure successfully and skip build a
       'cmd.exe': 'cmd.exe',
       'cmake': cmakeExePath,
       'ctest': ctestExePath,
+      'cpack': cpackExePath,
       'ninja': ninjaExePath
     },
   };
@@ -86,6 +88,7 @@ testutils.testWithHeader('run-cmake must build successfully and skip configure a
       'cmd.exe': 'cmd.exe',
       'cmake': cmakeExePath,
       'ctest': ctestExePath,
+      'cpack': cpackExePath,
       'ninja': ninjaExePath
     },
   };
