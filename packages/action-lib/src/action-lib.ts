@@ -165,6 +165,10 @@ export class ActionToolRunner implements baselib.ToolRunner {
   constructor(private readonly path: string) {
   }
 
+  getName(): string {
+    return this.path;
+  }
+
   _argStringToArray(text: string): string[] {
     return this.__argStringToArray(text);
   }

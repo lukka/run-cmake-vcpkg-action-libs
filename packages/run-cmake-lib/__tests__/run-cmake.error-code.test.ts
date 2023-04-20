@@ -16,6 +16,7 @@ const gitPath = '/usr/local/bin/git';
 const vcpkgRoot = '/path/to/vcpkg';
 const cmakeExePath = '/usr/bin/cmake';
 const ctestExePath = '/usr/bin/ctest';
+const cpackExePath = '/usr/bin/cpack';
 const ninjaExePath = '/usr/bin/ninja';
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const cmakeListsTxtPath = path.join('/home/user/project/src/path/', 'CMakeLists.txt');
@@ -43,7 +44,8 @@ testutils.testWithHeader('run-cmake must fail when a tool returns error code 1',
       'cmd.exe': 'cmd.exe',
       'cmake': cmakeExePath,
       'ninja': ninjaExePath,
-      'ctest': ctestExePath
+      'ctest': ctestExePath,
+      'cpack': cpackExePath
     },
   };
   mock.answersMocks.reset(answers);
