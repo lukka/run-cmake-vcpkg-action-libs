@@ -36,6 +36,7 @@ export interface ExecOptions {
 }
 
 export interface ToolRunner {
+  getName(): string;
   exec(options: ExecOptions): Promise<number>;
   line(line: string): void;
   arg(val: string | string[]): void;
