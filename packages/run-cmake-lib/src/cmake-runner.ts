@@ -102,29 +102,41 @@ export class CMakeRunner {
     const cpack: string = await this.baseLib.which('cpack', true);
     this.baseLib.debug(`cpack located at: '${cpack}'.`);
 
+    let onePresetInputProvided = false;
+
     if (this.workflowPreset) {
+      onePresetInputProvided = true;
       const workflowTool: baselib.ToolRunner = this.baseLib.tool(cmake);
       await this.workflow(workflowTool, this.workflowPreset);
     } else {
       if (this.configurePreset) {
+        onePresetInputProvided = true;
         const configureTool: baselib.ToolRunner = this.baseLib.tool(cmake);
         await this.configure(configureTool, this.configurePreset);
       }
 
       if (this.buildPreset) {
+        onePresetInputProvided = true;
         const buildTool: baselib.ToolRunner = this.baseLib.tool(cmake);
         await this.build(buildTool, this.buildPreset);
       }
 
       if (this.testPreset) {
+        onePresetInputProvided = true;
         const testTool: baselib.ToolRunner = this.baseLib.tool(ctest);
         await this.test(testTool, this.testPreset);
       }
 
       if (this.packagePreset) {
+        onePresetInputProvided = true;
         const packageTool: baselib.ToolRunner = this.baseLib.tool(cpack);
         await this.package(packageTool, this.packagePreset);
       }
+    }
+
+    if (!onePresetInputProvided) {
+      throw new Error(`"Error: no preset has been specified in any of the inputs. Please provide at least the name of one preset.`);
+
     }
 
     this.baseLib.debug('run()>>');
@@ -270,8 +282,8 @@ export class CMakeRunner {
 
   private static addArguments(tool: baselib.ToolRunner, args: string) {
     const additionalArgs: string = baseutillib.replaceFromEnvVar(args);
-    const arghs: string[] = eval(additionalArgs);
-    for (const arg of arghs) {
+    const evaluatedArgs: string[] = eval(additionalArgs);
+    for (const arg of evaluatedArgs) {
       tool.arg(arg);
     }
   }
