@@ -62,7 +62,7 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and b
 
   // Act and Assert.
   try {
-    await CMakeRunner.run(mock.exportedBaselib, 
+    await CMakeRunner.run(mock.exportedBaselib,
       undefined, undefined,
       cmakePreset, undefined, undefined,
       buildPreset, undefined, undefined,
@@ -114,7 +114,10 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT not defined must configure a
   const setupEnvVcpkg = jest.spyOn(cmakeutils, 'injectEnvVariables');
   // Act and Assert.
   try {
-    await CMakeRunner.run(mock.exportedBaselib);
+    await CMakeRunner.run(mock.exportedBaselib,
+      undefined, undefined,
+      cmakePreset, undefined, undefined,
+    );
   }
   catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
