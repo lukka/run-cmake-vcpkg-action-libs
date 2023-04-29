@@ -56,6 +56,15 @@ jest.spyOn(baseutillib.BaseUtilLib.prototype, 'setVariableIfUndefined').mockImpl
     console.log(`call to mocked baseUtilLib.setVariableIfUndefined(${name}, ${value})`);
   }
 );
+jest.spyOn(baseutillib.BaseUtilLib.prototype, 'wrapOp').mockImplementation(
+  (name: string, fn: () => Promise<unknown>): Promise<unknown> => {
+    return fn();
+  });
+jest.spyOn(baseutillib.BaseUtilLib.prototype, 'wrapOpSync').mockImplementation(
+  (name: string, fn: () => unknown): unknown => {
+    return fn();
+  })
+
 
 // Mock for environment variables.
 export const envVarSetDict: { [name: string]: string } = {};

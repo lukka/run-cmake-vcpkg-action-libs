@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020-2021-2022 Luca Cappa
+// Copyright (c) 2019-2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -145,12 +145,12 @@ export class BaseUtilLib {
     return null;
   }
 
-  // Force 'name' env variable to have value of 'value'.
-  public setEnvVar(name: string, value: string): void {
-    // Set variable both as env var and as step variable, which might be re-used in subseqeunt steps.  
+    // Set both the environment variable and the workflow variable with the same name.
+    // The workflow variable might be re-used in subsequent steps.
+    public setEnvVar(name: string, value: string): void {
     process.env[name] = value;
     this.baseLib.setVariable(name, value);
-    this.baseLib.debug(`Set variable and the env variable '${name}' to value '${value}'.`);
+    this.baseLib.debug(`Set env ariable and the workflow variable named '${name}' to value '${value}'.`);
   }
 
   public trimString(value?: string): string {
