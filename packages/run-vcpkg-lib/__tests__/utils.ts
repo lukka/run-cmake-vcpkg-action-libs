@@ -68,7 +68,7 @@ export class MockAnswers {
             return answer;
         }
 
-        debug(`no mock found registered for cmd=${JSON.stringify(cmd)} key=${key}, mocks=${JSON.stringify(this)}`);
+        debug(`no mock found registered for cmd=${JSON.stringify(cmd)} key='${key}', mocks=${JSON.stringify(this)}`);
         throw new Error("No response found");
     }
 

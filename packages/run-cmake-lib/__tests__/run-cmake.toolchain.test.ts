@@ -31,6 +31,7 @@ mock.inputsMocks.setInput(globals.cmakeListsTxtPath, cmakeListsTxtPath);
 
 testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and build and test successfully', async () => {
   process.env.VCPKG_ROOT = vcpkgRoot;
+  mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:

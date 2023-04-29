@@ -206,33 +206,8 @@ export class CMakeRunner {
       CMakeRunner.addArguments(cmake, this.configurePresetCmdStringAddArgs);
     }
 
-    await this.baseUtils.wrapOp(`Setup C/C++ toolset environment variables`, async () => {
-      const vcpkgRoot: string | undefined = process.env[runvcpkglib.VCPKGROOT];
-
-      // if VCPKG_ROOT is defined, then use it.
-      if (!vcpkgRoot || vcpkgRoot.length == 0) {
-        this.baseLib.info(`Skipping setting up the environment since VCPKG_ROOT is not defined. It is needed to know where vcpkg executable is located.`);
-      } else if (!this.baseUtils.isWin32()) {
-        this.baseLib.info(`Skipping setting up the environment since the platform is not Windows.`);
-      } else if (process.env.CXX || process.env.CC) {
-        // If a C++ compiler is user-enforced, skip setting up the environment for MSVC.
-        this.baseLib.info(`Skipping setting up the environment since CXX or CC environment variable are defined. This allows user customization.`);
-      } else {
-        // If Win32 && (!CC && !CXX), let hardcode CC and CXX so that CMake uses the MSVC toolset.
-        process.env['CC'] = "cl.exe";
-        process.env['CXX'] = "cl.exe";
-        this.baseLib.setVariable("CC", "cl.exe");
-        this.baseLib.setVariable("CXX", "cl.exe");
-
-        // Use vcpkg to set the environment using provided command line (which includes the triplet).
-        // This is only useful to setup the environment for MSVC on Windows.
-        baseutillib.setEnvVarIfUndefined(runvcpkglib.VCPKGDEFAULTTRIPLET, this.baseUtils.getDefaultTriplet());
-        const vcpkgEnvArgsString: string = baseutillib.replaceFromEnvVar(this.vcpkgEnvStringFormat);
-        const vcpkgEnvArgs: string[] = eval(vcpkgEnvArgsString);
-        this.baseLib.debug(`'vcpkg env' arguments: ${vcpkgEnvArgs}`);
-        await cmakeutil.injectEnvVariables(this.baseUtils, vcpkgRoot, vcpkgEnvArgs);
-      }
-    });
+    const vcpkgRoot: string | undefined = process.env[runvcpkglib.VCPKGROOT];
+    await cmakeutil.setupMsvc(this.baseUtils, vcpkgRoot, this.vcpkgEnvStringFormat);
 
     // 
     this.baseLib.debug(`Generating project files with CMake ...`);
