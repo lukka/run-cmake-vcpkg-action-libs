@@ -44,19 +44,29 @@ export async function injectEnvVariables(baseUtils: baseutillib.BaseUtilLib, vcp
 
     const map = baseUtils.parseVcpkgEnvOutput(output.stdout);
     for (const key in map) {
-      let newValue: string | undefined;
-      if (baseUtils.isVariableStrippingPath(key))
-        continue;
-      if (key.toUpperCase() === "PATH") {
-        newValue = process.env[key] + path.delimiter + map[key];
-      } else {
-        newValue = map[key];
+      try {
+        let newValue: string | undefined;
+        if (baseUtils.isVariableStrippingPath(key))
+          continue;
+        if (key.toUpperCase() === "PATH") {
+          newValue = process.env[key] + path.delimiter + map[key];
+        } else {
+          newValue = map[key];
+        }
+        if (!newValue)
+          baseUtils.baseLib.warning(`The value for '${key}' cannot be determined.`);
+        else {
+          if (key in process.env) {
+            const oldValue = process.env[key];
+            baseUtils.baseLib.debug(`Env var '${key}' changed from '${oldValue}' to '${newValue}'.`);
+          } else {
+            baseUtils.baseLib.debug(`Set env var ${key}=${newValue}`);
+          }
+          process.env[key] = newValue;
+        }
       }
-      if (!newValue)
-        baseUtils.baseLib.warning(`The value for '${key}' cannot be determined.`);
-      else {
-        baseUtils.setEnvVar(key, newValue);
-        baseUtils.baseLib.debug(`set ${key}=${newValue}`);
+      catch (err) {
+        baseutillib.dumpError(baseUtils.baseLib, err as Error);
       }
     }
   }

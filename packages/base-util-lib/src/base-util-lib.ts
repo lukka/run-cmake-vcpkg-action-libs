@@ -145,9 +145,9 @@ export class BaseUtilLib {
     return null;
   }
 
-    // Set both the environment variable and the workflow variable with the same name.
-    // The workflow variable might be re-used in subsequent steps.
-    public setEnvVar(name: string, value: string): void {
+  // Set both the environment variable and the workflow variable with the same name.
+  // The workflow variable might be re-used in subsequent steps.
+  public setEnvVar(name: string, value: string): void {
     process.env[name] = value;
     this.baseLib.setVariable(name, value);
     this.baseLib.debug(`Set env ariable and the workflow variable named '${name}' to value '${value}'.`);
