@@ -49,8 +49,6 @@ describe("cmakeutils tests", function () {
     mock.answersMocks.reset(answers2);
     jest.spyOn(baseUtilLib, 'setEnvVar').mockImplementation((name, value) => {
       switch (name) {
-        case msvcVariable1: expect(value).toStrictEqual('1'); envVarSetCount++; break;
-        case msvcVariable2: expect(value).toStrictEqual('2'); envVarSetCount++; break;
         case 'CC': envVarSetCount++; break;
         case 'CXX': envVarSetCount++; break;
         default:
@@ -62,8 +60,10 @@ describe("cmakeutils tests", function () {
     await cmakeutils.setupMsvc(baseUtilLib, vcpkgRoot, "[]");
 
     // Assert
-    // CC, CXX and the two env var must be set. Its value are checked in the setEnvVar()'s mock.
-    expect(envVarSetCount).toEqual(4);
+    // CC, CXX and nothing else should be set. Its value are checked in the setEnvVar()'s mock.
+    expect(envVarSetCount).toEqual(2);
+    expect(process.env[msvcVariable1]).toStrictEqual('1');
+    expect(process.env[msvcVariable2]).toStrictEqual('2');
   });
 
   test("setupMsvc() should warn user about non existent vcpkg's exe", async () => {
@@ -107,8 +107,6 @@ describe("cmakeutils tests", function () {
     mock.answersMocks.reset(answers);
     jest.spyOn(baseUtilLib, 'setEnvVar').mockImplementation((name, value) => {
       switch (name) {
-        case msvcVariable1: expect(value).toStrictEqual('1'); envVarSetCount++; break;
-        case msvcVariable2: expect(value).toStrictEqual('2'); envVarSetCount++; break;
         case 'CC': envVarSetCount++; break;
         case 'CXX': envVarSetCount++; break;
         default:
@@ -125,7 +123,9 @@ describe("cmakeutils tests", function () {
 
     // Assert
     // CC, CXX and the two env var must be set. Its value are checked in the setEnvVar()'s mock.
-    expect(envVarSetCount).toEqual(4);
+    expect(envVarSetCount).toEqual(2);
+    expect(process.env[msvcVariable1]).toStrictEqual('1');
+    expect(process.env[msvcVariable2]).toStrictEqual('2');
   });
 
   test("setupMsvc() with 'vcpkg env' failure (exit code 1)", async () => {
@@ -168,7 +168,7 @@ describe("cmakeutils tests", function () {
     expect(injectMock).toBeCalledTimes(0);
     // No warning messages, only info msg with: 'Skipping setting up the environment since the platform is not Windows'
     expect(warningMock).toBeCalledTimes(0);
-    
+
     // Cleanup
     injectMock.mockRestore();
     warningMock.mockRestore();
