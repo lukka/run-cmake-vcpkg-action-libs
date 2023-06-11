@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020-2021-2022 Luca Cappa
+// Copyright (c) 2019-2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -32,6 +32,12 @@ const defaultTriplet = "default-triplet";
 jest.spyOn(baseutillib.BaseUtilLib.prototype, 'isWin32').mockImplementation(() => true);
 
 describe("cmakeutils tests", function () {
+  beforeEach(() => {
+    delete process.env["CC"];
+    delete process.env["CXX"];
+    delete process.env["VCPKG_ROOT"];
+  });
+
   test("setupMsvc() should succeed", async () => {
     // Arrange.
     const baseLib: BaseLib = mock.exportedBaselib;
@@ -48,20 +54,15 @@ describe("cmakeutils tests", function () {
     let envVarSetCount = 0;
     mock.answersMocks.reset(answers2);
     jest.spyOn(baseUtilLib, 'setEnvVar').mockImplementation((name, value) => {
-      switch (name) {
-        case 'CC': envVarSetCount++; break;
-        case 'CXX': envVarSetCount++; break;
-        default:
-          throw `unexpected name:'${name}' value:'${value}'`;
-      }
+      throw `unexpected name:'${name}' value:'${value}'`;
     });
 
     // Act
     await cmakeutils.setupMsvc(baseUtilLib, vcpkgRoot, "[]");
 
     // Assert
-    // CC, CXX and nothing else should be set. Its value are checked in the setEnvVar()'s mock.
-    expect(envVarSetCount).toEqual(2);
+    // Nothing should be set. Its value are checked in the setEnvVar()'s mock.
+    expect(envVarSetCount).toEqual(0);
     expect(process.env[msvcVariable1]).toStrictEqual('1');
     expect(process.env[msvcVariable2]).toStrictEqual('2');
   });
@@ -106,12 +107,7 @@ describe("cmakeutils tests", function () {
     };
     mock.answersMocks.reset(answers);
     jest.spyOn(baseUtilLib, 'setEnvVar').mockImplementation((name, value) => {
-      switch (name) {
-        case 'CC': envVarSetCount++; break;
-        case 'CXX': envVarSetCount++; break;
-        default:
-          throw `unexpected name:'${name}' value:'${value}'`;
-      }
+      throw `unexpected name:'${name}' value:'${value}'`;
     });
     mock.VcpkgMocks.vcpkgExeExists = true;
     let envVarSetCount = 0;
@@ -122,8 +118,8 @@ describe("cmakeutils tests", function () {
       cmakerunner.CMakeRunner.vcpkgEnvDefault);
 
     // Assert
-    // CC, CXX and the two env var must be set. Its value are checked in the setEnvVar()'s mock.
-    expect(envVarSetCount).toEqual(2);
+    // Nothing should have been set.
+    expect(envVarSetCount).toEqual(0);
     expect(process.env[msvcVariable1]).toStrictEqual('1');
     expect(process.env[msvcVariable2]).toStrictEqual('2');
   });
