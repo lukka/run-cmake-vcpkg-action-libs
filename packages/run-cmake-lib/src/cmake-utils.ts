@@ -97,8 +97,8 @@ export async function setupMsvc(
             baseUtils.baseLib.warning(`Skipping setting up the environment since vcpkg's executable is not found at: '${vcpkgPath}'.`);
           } else {
             // If defined(Win32) && (!defined(CC) && !defined(CXX)), let's hardcode CC and CXX so that CMake uses the MSVC toolset.
-            baseUtils.setEnvVar('CC', "cl.exe");
-            baseUtils.setEnvVar('CXX', "cl.exe");
+            process.env['CC'] = "cl.exe";
+            process.env['CXX'] ="cl.exe";
 
             // Use vcpkg to set the environment using provided command line (which includes the triplet).
             // This is only useful to setup the environment for MSVC on Windows.
