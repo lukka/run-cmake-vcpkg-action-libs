@@ -23,7 +23,7 @@ export class CMakeRunner {
   private readonly cmakeSourceDir: string;
   private readonly logFilesCollector: baseutillib.LogFileCollector;
 
-  private msvcSetup: boolean = false;
+  private msvcSetup = false;
 
   public static async run(baseLib: baselib.BaseLib,
     workflowPreset?: string,
