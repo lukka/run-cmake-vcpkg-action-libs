@@ -49,8 +49,8 @@ export async function injectEnvVariables(baseUtils: baseutillib.BaseUtilLib, vcp
         if (baseUtils.isVariableStrippingPath(key))
           continue;
         
-        // Skip VCPKG_ROOT if already defined.
-        if (key === vcpkgRoot && vcpkgRoot in process.env)
+        // Skip VCPKG_ROOT.
+        if (key.toUpperCase() === runvcpkglib.VCPKGROOT)
           continue;
 
         if (key.toUpperCase() === "PATH") {
