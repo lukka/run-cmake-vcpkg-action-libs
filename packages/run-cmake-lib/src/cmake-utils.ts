@@ -48,6 +48,11 @@ export async function injectEnvVariables(baseUtils: baseutillib.BaseUtilLib, vcp
         let newValue: string | undefined;
         if (baseUtils.isVariableStrippingPath(key))
           continue;
+        
+        // Skip VCPKG_ROOT if already defined.
+        if (key === vcpkgRoot && vcpkgRoot in process.env)
+          continue;
+
         if (key.toUpperCase() === "PATH") {
           newValue = process.env[key] + path.delimiter + map[key];
         } else {

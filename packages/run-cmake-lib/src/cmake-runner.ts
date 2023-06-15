@@ -23,6 +23,8 @@ export class CMakeRunner {
   private readonly cmakeSourceDir: string;
   private readonly logFilesCollector: baseutillib.LogFileCollector;
 
+  private msvcSetup: boolean = false;
+
   public static async run(baseLib: baselib.BaseLib,
     workflowPreset?: string,
     workflowPresetCmdStringFormat?: string,
@@ -206,9 +208,6 @@ export class CMakeRunner {
       CMakeRunner.addArguments(cmake, this.configurePresetCmdStringAddArgs);
     }
 
-    const vcpkgRoot: string | undefined = process.env[runvcpkglib.VCPKGROOT];
-    await cmakeutil.setupMsvc(this.baseUtils, vcpkgRoot, this.vcpkgEnvStringFormat);
-
     // 
     this.baseLib.debug(`Generating project files with CMake ...`);
     await this.baseUtils.wrapOp("Generate project files with CMake",
@@ -247,6 +246,12 @@ export class CMakeRunner {
         stderr: (t: Buffer): void => logCollector.handleOutput(t),
       }
     } as baselib.ExecOptions;
+
+    if (!this.msvcSetup) {
+      this.msvcSetup = true;
+      const vcpkgRoot: string | undefined = process.env[runvcpkglib.VCPKGROOT];
+      await cmakeutil.setupMsvc(this.baseUtils, vcpkgRoot, this.vcpkgEnvStringFormat);
+    }
 
     const code = await tool.exec(options);
 
