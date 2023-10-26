@@ -1,6 +1,6 @@
 {
   "name": "@lukka/run-cmake-lib",
-  "version": "3.8.4",
+  "version": "3.8.5",
   "description": "CMake runner for continuous integration systems.",
   "repository": {
     "type": "git",
