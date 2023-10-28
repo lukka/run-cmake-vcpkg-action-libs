@@ -44,7 +44,7 @@ export class VcpkgRunner {
     }
 
     baseUtil.baseLib.debug(`vcpkgInstallCmd=${vcpkgInstallCmd}`);
-    const vcpkgInstallArgs: string[] = eval(vcpkgInstallCmd);
+    const vcpkgInstallArgs: string[] = eval(vcpkgInstallCmd) as string[];
     baseUtil.baseLib.debug(`vcpkgInstallArgs=${vcpkgInstallArgs}`);
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.

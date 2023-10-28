@@ -70,7 +70,7 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT defined must configure and b
       testPreset, undefined, undefined);
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
+    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
   }
 
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
@@ -121,7 +121,7 @@ testutils.testWithHeader('run-cmake with VCPKG_ROOT not defined must configure a
     );
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
+    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
   }
 
   expect(mock.exportedBaselib.warning).toBeCalledTimes(0);

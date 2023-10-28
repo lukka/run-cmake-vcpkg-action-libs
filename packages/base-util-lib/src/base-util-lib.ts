@@ -54,8 +54,8 @@ export class BaseUtilLib {
     }
     finally {
       this.baseLib.debug(`isVcpkgSubmodule()>> --> ${isSubmodule}`);
-      return isSubmodule;
     }
+    return isSubmodule;
   }
 
   public throwIfErrorCode(errorCode: number): void {
@@ -166,7 +166,7 @@ export class BaseUtilLib {
       result = await fn();
     } finally {
       this.baseLib.endOperation();
-      this.baseLib.info(`⏱ elapsed: ${((performance.now() - startTime) / 1000.).toFixed(3)} seconds`);
+      this.baseLib.info(`⏱ elapsed: ${((performance.now() - startTime) / 1000.0).toFixed(3)} seconds`);
     }
 
     return result
@@ -181,7 +181,7 @@ export class BaseUtilLib {
       result = fn();
     } finally {
       this.baseLib.endOperation();
-      this.baseLib.info(`⏱ elapsed: ${((performance.now() - startTime) / 1000.).toFixed(3)} seconds`);
+      this.baseLib.info(`⏱ elapsed: ${((performance.now() - startTime) / 1000).toFixed(3)} seconds`);
     }
 
     return result;
@@ -233,7 +233,7 @@ export class BaseUtilLib {
    */
   public static normalizePath(aPath: string): string {
     aPath = path.normalize(aPath);
-    if (/[\\\/]$/.test(aPath) && aPath.length > 1)
+    if (/[\\/]$/.test(aPath) && aPath.length > 1)
       aPath = aPath.slice(0, -1);
     return aPath;
   }

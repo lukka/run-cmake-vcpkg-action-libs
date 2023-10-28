@@ -20,8 +20,8 @@ import * as cp from 'child_process';
 
 function escapeCmdCommand(command: string): string {
   command = command.trim();
-  if (!/^\".*\"$/.test(command))
-    command = `\"${command}\"`;
+  if (!/^".*"$/.test(command))
+    command = `"${command}"`;
   return command;
 }
 
@@ -218,7 +218,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
   }
 
   private convertExecOptions(options: baselib.ExecOptions): execifaces.ExecOptions {
-    const result: any = {
+    const result: execifaces.ExecOptions = {
       cwd: options.cwd ?? process.cwd(),
       env: options.env ?? process.env,
       silent: options.silent ?? false,
@@ -229,7 +229,7 @@ export class ActionToolRunner implements baselib.ToolRunner {
         stdout: options.listeners?.stdout,
         stderr: options.listeners?.stderr,
       }
-    } as execifaces.ExecOptions;
+    };
     result.outStream = options.outStream || process.stdout as stream.Writable;
     result.errStream = options.errStream || process.stderr as stream.Writable;
 
@@ -479,7 +479,7 @@ export class ActionLib implements baselib.BaseLib {
   }
 
   hashFiles(fileGlob: string, options?: baselib.GlobOptions): Promise<string> {
-    return actionglob.hashFiles(fileGlob, options as actionglob.GlobOptions);
+    return actionglob.hashFiles(fileGlob, undefined, options as actionglob.GlobOptions);
   }
 
   addPath(path: string): void {

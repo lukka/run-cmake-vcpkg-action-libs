@@ -61,7 +61,7 @@ testutils.testWithHeader('run-cmake must configure successfully and skip build a
       cmakePreset, undefined, `['${configureAddedArg}']`);
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
+    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
   }
 
   // Assert.
@@ -103,7 +103,7 @@ testutils.testWithHeader('run-cmake must build successfully and skip configure a
       buildPreset, undefined, `['${buildAddedArg}']`);
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
+    throw new Error(`run must have succeeded, instead it failed: ${(error as Error)} \n ${(error as Error)?.stack}`);
   }
 
   // Assert.
