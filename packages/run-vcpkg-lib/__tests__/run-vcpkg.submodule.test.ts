@@ -106,7 +106,7 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build successfu
     );
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
+    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
   }
 
   // Assert.

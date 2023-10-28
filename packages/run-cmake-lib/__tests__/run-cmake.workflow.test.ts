@@ -69,7 +69,7 @@ testutils.testWithHeader('run-cmake must run the workflow successfully', async (
       );
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
+    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
   }
 
   // Assert.

@@ -1,12 +1,13 @@
 {
     "extends": "../../tsconfig.json",
     "include": [
-        "src/*.ts"
+        "./src/*.ts"
     ],
     "compilerOptions": {
         "outDir": "./build",
         "baseUrl": "./",
         "rootDir": "src",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "declaration": true
     }
 }

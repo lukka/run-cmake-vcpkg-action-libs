@@ -90,7 +90,6 @@ export async function setupMsvc(
     await baseUtils.wrapOp(`Setup MSVC C/C++ toolset environment variables`, async () => {
       if (!vcpkgRoot || vcpkgRoot.length == 0) {
         baseUtils.baseLib.info(`Skipping setting up the environment since VCPKG_ROOT is not defined, and it is required to locate the vcpkg executable which provides the environment variables to be set for MSVC.`);
-        const vcpkgRoot: string | undefined = process.env[runvcpkglib.VCPKGROOT];
       } else {
         // if VCPKG_ROOT is defined, then use vcpkg to setup the environment.
         if (process.env.CXX || process.env.CC) {

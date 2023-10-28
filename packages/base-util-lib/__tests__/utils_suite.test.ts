@@ -38,7 +38,7 @@ test('tests for dumpError()', async () => {
     throw new Error("error");
   }
   catch (err) {
-    baseutillib.dumpError(actionLib, err);
+    baseutillib.dumpError(actionLib, err as Error);
   }
 
   // Call dumpError() with no message.
@@ -46,7 +46,7 @@ test('tests for dumpError()', async () => {
     throw new Error();
   }
   catch (err) {
-    baseutillib.dumpError(actionLib, err);
+    baseutillib.dumpError(actionLib, err as Error);
   }
 });
 
