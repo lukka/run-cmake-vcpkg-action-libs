@@ -120,7 +120,7 @@ testutils.testWithHeader('run-vcpkg must build the vcpkg executable when, althou
     await vcpkg.run();
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error} \n ${error.stack}`);
+    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
   }
 
   // Assert.
