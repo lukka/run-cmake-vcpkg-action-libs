@@ -1,6 +1,6 @@
 {
 	"name": "@lukka/run-vcpkg-lib",
-	"version": "3.8.5",
+	"version": "3.9.2",
 	"description": "vcpkg runner for continuous integration systems.",
 	"repository": {
 		"type": "git",
