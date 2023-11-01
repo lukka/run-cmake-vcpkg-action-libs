@@ -24,5 +24,10 @@
 		"build",
 		"./build",
 		"!__tests__"
-	]
+	],
+	"dependencies": {
+		"@lukka/base-lib":"*",
+		"@lukka/base-util-lib":"*",
+		"using-statement":"^0.4.2"
+	}
 }
