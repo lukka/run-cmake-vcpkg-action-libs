@@ -432,12 +432,25 @@ export class ActionLib implements baselib.BaseLib {
     return ioutil.exists(path);
   }
 
+  private static readonly binDir: string = "969f6665-88a2-4c98-938e-ca9259871fec";
+  private static readonly RUNVCPKG_BINDIR = "RUNVCPKG_BINDIR";
+  private static getDefaultBinDirName(): string {
+    let localBinDirName = ActionLib.binDir;
+    if (process.env.RUNVCPKG_BINDIR !== undefined) {
+      if (process.env.RUNVCPKG_BINDIR.length > 0) {
+        localBinDirName = process.env.RUNVCPKG_BINDIR;
+      }
+    }
+    return localBinDirName;
+  }
+
   async getBinDir(): Promise<string> {
     if (!process.env.GITHUB_WORKSPACE) {
       throw new Error("GITHUB_WORKSPACE is not set.");
     }
 
-    const binPath = utils.BaseUtilLib.normalizePath(path.join(process.env.GITHUB_WORKSPACE, "../b/"));
+    const binPath = utils.BaseUtilLib.normalizePath(path.join(process.env.GITHUB_WORKSPACE,
+      ActionLib.getDefaultBinDirName()));
     await this.mkdirP(binPath);
     return binPath;
   }
@@ -450,17 +463,6 @@ export class ActionLib implements baselib.BaseLib {
     const srcPath = utils.BaseUtilLib.normalizePath(process.env.GITHUB_WORKSPACE);
     await this.mkdirP(srcPath);
     return srcPath;
-  }
-
-  async getArtifactsDir(): Promise<string> {
-    if (!process.env.GITHUB_WORKSPACE) {
-      throw new Error("GITHUB_WORKSPACE env var is not set.");
-    }
-
-    //?? HACK. How to get the value of '{{ runner.temp }}' in JS's action?
-    const artifactsPath = utils.BaseUtilLib.normalizePath(path.join(process.env.GITHUB_WORKSPACE, "../../_temp"));
-    await this.mkdirP(artifactsPath);
-    return artifactsPath;
   }
 
   beginOperation(message: string): void {

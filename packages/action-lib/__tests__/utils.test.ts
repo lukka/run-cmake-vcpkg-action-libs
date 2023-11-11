@@ -1,12 +1,34 @@
-// Copyright (c) 2019-2020-2021-2022 Luca Cappa
+// Copyright (c) 2019-2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
 import * as baseutillib from '@lukka/base-util-lib';
-import * as actionlibs from '../src/action-lib';
-import * as lib from '../src/action-lib'
+import * as actionlib from '../src/action-lib';
 
 jest.setTimeout(15 * 1000);
+
+test('getDefaultBinDirName', async () => {
+    // Arrange
+    // Grab the static method to get the binary directory name.
+    const getDefaultBinDirNameMethod = actionlib.ActionLib['getDefaultBinDirName'];
+    // Grab the default value
+    const defaultBinDirName = (actionlib.ActionLib as any).binDir
+
+    // Act and test: default value must be returned.
+    delete process.env[(actionlib.ActionLib as any).RUNVCPKG_BINDIR];
+    expect(getDefaultBinDirNameMethod()).toStrictEqual(defaultBinDirName);
+
+    // Arrange: set empty string for env var
+    process.env[(actionlib.ActionLib as any).RUNVCPKG_BINDIR] = "";
+    // Act and test: still the default must be returned.
+    expect(getDefaultBinDirNameMethod()).toStrictEqual(defaultBinDirName);
+
+    // Arrange: set a value to env var
+    const expected = "1234";
+    process.env[(actionlib.ActionLib as any).RUNVCPKG_BINDIR] = expected;
+    // Act and test: the set value must be returned.
+    expect(getDefaultBinDirNameMethod()).toStrictEqual(expected);
+});
 
 test('replaceFromEnvVar() positive tests', async () => {
     {
