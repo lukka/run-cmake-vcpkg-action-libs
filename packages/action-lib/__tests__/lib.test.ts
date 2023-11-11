@@ -118,7 +118,6 @@ test('ActionLib&Utils exist()/readFile()/writeFile()/get*Dir() tests', async () 
   const actionLib: lib.ActionLib = new lib.ActionLib();
   const util: baseutillib.BaseUtilLib = new baseutillib.BaseUtilLib(actionLib);
 
-  expect(async () => await actionLib.getArtifactsDir()).toBeTruthy();
   expect(async () => await actionLib.getBinDir()).toBeTruthy();
   expect(async () => await actionLib.getSrcDir()).toBeTruthy();
 

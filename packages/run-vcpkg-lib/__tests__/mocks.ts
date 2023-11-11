@@ -163,7 +163,6 @@ jest.mock('@lukka/action-lib', jest.fn().mockImplementation(() => {
         addMatcher: jest.fn(),
         removeMatcher: jest.fn(),
         getSrcDir: jest.fn(),
-        getArtifactsDir: jest.fn().mockImplementation((): Promise<string> => Promise.resolve("")),
         getBinDir: jest.fn().mockImplementation(async (): Promise<string> => os.tmpdir()),
         addPath: jest.fn(),
       };

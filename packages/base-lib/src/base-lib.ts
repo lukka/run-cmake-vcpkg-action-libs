@@ -70,7 +70,6 @@ export interface BaseLib {
   exist(path: string): Promise<boolean>;
   getBinDir(): Promise<string>;
   getSrcDir(): Promise<string>;
-  getArtifactsDir(): Promise<string>;
   beginOperation(message: string): void;
   endOperation(): void;
   addMatcher(file: string): void;

@@ -44,6 +44,10 @@ jobs:
       continue-on-error: true
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel: true
+        flag-name: ${{ matrix.os }}-build_and_unit_test
+        base-path: ${{ runner.os != 'macOS' && '__tests__/theAssets/vcpkg_project/' || '' }}
+        debug: true
 
   publish-to-github-registry:
     needs: build
