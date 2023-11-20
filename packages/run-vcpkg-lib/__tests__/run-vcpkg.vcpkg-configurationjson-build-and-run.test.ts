@@ -21,20 +21,26 @@ const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const bootstrapName = isWin ? "bootstrap-vcpkg.bat" : "bootstrap-vcpkg.sh";
+const vcpkgConfigurationJsonFile = "/path/to/vcpkg-configuration.json";
 
 mock.VcpkgMocks.isVcpkgSubmodule = false;
 mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
 
-jest.spyOn(runvcpkgrunner.VcpkgRunner, "getVcpkgConfigurationJsonPath").mockImplementationOnce(
-  function (baseUtilLib, path): Promise<string | null> {
-    return Promise.resolve("/path/to/vcpkg-configuration.json");
+jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
+  function (this: utils.BaseUtilLib, file: string): string {
+    if (testutils.areEqualVerbose(file, vcpkgConfigurationJsonFile)) {
+      return `{"default-registry": {"kind": "builtin","baseline": "${vcpkgBaselineCommitId}"}}`;
+    }
+    else
+      throw `readFile called with unexpected file name: '${file}'.`;
   });
 
-jest.spyOn(JSON, "parse").mockImplementationOnce(
-  function (text): string {
-    return JSON.parse(`{"default-registry": {"kind": "builtin","baseline": "${vcpkgBaselineCommitId}"}}`);
+jest.spyOn(runvcpkgrunner.VcpkgRunner, "getVcpkgConfigurationJsonPath").mockImplementationOnce(
+  function (baseUtilLib, path): Promise<string | null> {
+    return Promise.resolve(vcpkgConfigurationJsonFile);
   });
+
 
 jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
   function (this: utils.BaseUtilLib, name: string, value: string): void {
