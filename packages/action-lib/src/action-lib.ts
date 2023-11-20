@@ -20,6 +20,7 @@ import * as cp from 'child_process';
 
 function escapeCmdCommand(command: string): string {
   command = command.trim();
+  // If not enclosed by double quotes already, quote it.
   if (!/^".*"$/.test(command))
     command = `"${command}"`;
   return command;
@@ -487,4 +488,10 @@ export class ActionLib implements baselib.BaseLib {
   addPath(path: string): void {
     core.addPath(path);
   }
+}
+
+export const _private = {
+  escapeCmdCommand,
+  escapeShArgument,
+  escapeCmdExeArgument
 }

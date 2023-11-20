@@ -28,6 +28,7 @@
 	"dependencies": {
 		"@lukka/base-lib": "^3.10.1",
 		"@lukka/base-util-lib": "^3.10.1",
-		"using-statement": "^0.4.2"
+		"using-statement": "^0.4.2",
+		"fast-glob": "3.3.2"
 	}
 }
