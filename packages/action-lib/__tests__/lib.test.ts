@@ -146,13 +146,36 @@ test('ActionLib&Utils exist()/readFile()/writeFile()/get*Dir() tests', async () 
   actionLib.getState("name");
 });
 
-test('getInput()/getPathInput(): when input is not defined, it must return undefined', async () => {
+test('ActionLib`s getInput()/getPathInput()/getBoolInput: when input is not defined, it must return undefined', async () => {
   // core.getInput return an empty string when the input is not defined.
   jest.spyOn(core, "getInput").mockImplementation(() => { return ""; });
 
   const actionLib: lib.ActionLib = new lib.ActionLib();
   expect(actionLib.getInput("not-existent", false)).toBeUndefined();
+  expect(actionLib.getBoolInput("not-existent", false)).toBeFalsy();
   expect(actionLib.getPathInput("not-existent", false, false)).toBeUndefined();
+});
+
+test("ActionLib`s set/getVariable and others must not throw", async () => {
+  const actionLib: lib.ActionLib = new lib.ActionLib();
+  expect(actionLib.getDelimitedInput("not-existent", "", false)).toStrictEqual([]);
+  const anEnvironmentVariable = "__A_VARIABLE__";
+  const expectedValue = "value";
+  actionLib.setVariable(anEnvironmentVariable, expectedValue);
+  expect(process.env[anEnvironmentVariable]).toStrictEqual(expectedValue);
+  expect(actionLib.getVariable(anEnvironmentVariable)).toStrictEqual(expectedValue);
+  actionLib.setOutput(anEnvironmentVariable, expectedValue);
+  expect(actionLib.tool("git")).toBeTruthy();
+  actionLib.cd(".");
+  expect(actionLib.resolve(".")).toBeTruthy();
+
+  process.env.GITHUB_WORKSPACE="bizzarre-value";
+  expect(actionLib.getBinDir()).resolves.toBeTruthy();
+  delete process.env.GITHUB_WORKSPACE
+
+  actionLib.addMatcher("no-matcher");
+  actionLib.removeMatcher("no-matcher");
+  actionLib.addPath("");
 });
 
 test('getInput()/getPathInput(): when input is not defined and it is required, it must throw.', async () => {
@@ -171,4 +194,42 @@ test('getPathInput(): when input is defined, but not existent, it must throw.', 
   const actionLib: lib.ActionLib = new lib.ActionLib();
   expect(() => actionLib.getPathInput("existent", true, true)).toThrowError();
   expect(() => actionLib.getPathInput("existent", false, true)).toThrowError();
+});
+
+test('escapeCmdCommand', async () => {
+  const text = "abc";
+  const expected = "\"abc\"";
+  const actionLib = lib._private;
+  const res = actionLib.escapeCmdCommand(text);
+  expect(res).toStrictEqual(expected);
+
+  {
+    const text = "abc abc";
+    const expected = "\"abc abc\"";
+    const res = actionLib.escapeCmdCommand(text);
+    expect(res).toStrictEqual(expected);
+  }
+});
+
+test('escapeShArgument', async () => {
+  const text = " a b c"
+  const expected = "\\ a\\ b\\ c";
+  const actionLib = lib._private;
+  const res = actionLib.escapeShArgument(text);
+  expect(res).toStrictEqual(expected);
+});
+
+test("ActionToolRunner: argStringToArray and misc tests", async () => {
+  const toolName = 'git';
+  const actionLib: lib.ActionToolRunner = new lib.ActionToolRunner(toolName);
+
+  const res = actionLib._argStringToArray("arg1 arg2 arg3 \\a \"a\"");
+  expect(res).toStrictEqual(["arg1", "arg2", "arg3", "\\a", "a"]);
+
+  {
+    const res = actionLib._argStringToArray("arg1 arg2 arg3 \\a \"a\"");
+    expect(res).toStrictEqual(["arg1", "arg2", "arg3", "\\a", "a"]);
+  }
+
+  expect(actionLib.getName()).toStrictEqual(toolName);
 });

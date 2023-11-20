@@ -8,6 +8,7 @@ import * as globals from './vcpkg-globals';
 import * as vcpkgutils from './vcpkg-utils';
 import * as baseutillib from '@lukka/base-util-lib';
 import { using } from "using-statement";
+import FastGlob from 'fast-glob'
 
 export class VcpkgRunner {
   public static readonly VCPKGINSTALLCMDDEFAULT: string = '[`install`, `--recurse`, `--clean-after-build`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]';
@@ -17,9 +18,6 @@ export class VcpkgRunner {
   private static readonly VCPKG_BINARY_SOURCES_GHA = 'clear;x-gha,readwrite';
   private static readonly VCPKG_FORCE_SYSTEM_BINARIES = "VCPKG_FORCE_SYSTEM_BINARIES";
 
-  /**
-   * @description Used only in tests.
-   */
   public static async create(
     baseUtil: baseutillib.BaseUtilLib,
     vcpkgDestPath: string,
@@ -29,7 +27,8 @@ export class VcpkgRunner {
     doNotUpdateVcpkg: boolean,
     logCollectionRegExps: string[],
     runVcpkgInstallPath: string | null,
-    vcpkgInstallCmd: string | null): Promise<VcpkgRunner> {
+    vcpkgInstallCmd: string | null,
+    vcpkgConfigurationJsonGlob: string | null = null): Promise<VcpkgRunner> {
     if (!vcpkgUrl) {
       vcpkgUrl = VcpkgRunner.DEFAULTVCPKGURL;
       baseUtil.baseLib.info(`The vcpkg's URL Git repository is not provided, using the predefined: '${VcpkgRunner.DEFAULTVCPKGURL}'`);
@@ -52,6 +51,37 @@ export class VcpkgRunner {
 
     const logFilesCollector = new baseutillib.LogFileCollector(baseUtil.baseLib,
       logCollectionRegExps, (path: string) => baseutillib.dumpFile(baseUtil.baseLib, path));
+
+    const gitPath = await baseUtil.baseLib.which('git', true);
+    const isVcpkgSubmodule: boolean = await baseUtil.isVcpkgSubmodule(gitPath, vcpkgDestPath);
+
+    // If not provided, fetch the commit id from vpckg-configuration.json
+    if (!isVcpkgSubmodule && !vcpkgGitCommitId && vcpkgConfigurationJsonGlob !== null) {
+      vcpkgGitCommitId = await baseUtil.wrapOp(
+        `The vcpkgCommitId is not provided, searching for a vcpkg-configuration.json using ${vcpkgConfigurationJsonGlob}`, async () => {
+          let localVcpkgCommitId = null;
+          try {
+            const vcpkgConfigurationJsonFile = await VcpkgRunner.getVcpkgConfigurationJsonPath(baseUtil, vcpkgConfigurationJsonGlob);
+            baseUtil.baseLib.info(`Found vpckg-configuration.json at: ${vcpkgConfigurationJsonFile}`);
+            if (vcpkgConfigurationJsonFile) {
+              const jsonFile = JSON.parse(vcpkgConfigurationJsonFile);
+              console.log(jsonFile);
+              localVcpkgCommitId = jsonFile["default-registry"]["baseline"];
+            }
+
+            if (localVcpkgCommitId === null) {
+              throw "vcpkg-configuration.json not found";
+            }
+          } catch (e) {
+            console.log(e as Error);
+            const errMsg = "The 'vcpkgCommitId's input was not provided, and no vcpkg-configuration.json containing a baseline was found. Failing the action execution as it cannot continue to checkout vcpkg from the git repository.";
+            throw errMsg;
+          }
+
+          baseUtil.baseLib.info(`Found baseline '${localVcpkgCommitId}', vcpkg is going to be fetched at this Git commit id.`);
+          return localVcpkgCommitId;
+        });
+    }
 
     const options = {
       cwd: vcpkgDestPath,
@@ -78,7 +108,8 @@ export class VcpkgRunner {
       runVcpkgInstallPath,
       pathToLastBuiltCommitId,
       options,
-      vcpkgInstallArgs);
+      vcpkgInstallArgs,
+      isVcpkgSubmodule);
   }
 
   public static async run(
@@ -90,7 +121,8 @@ export class VcpkgRunner {
     doNotUpdateVcpkg: boolean,
     logCollectionRegExps: string[],
     runVcpkgInstallPath: string | null,
-    vcpkgInstallCmd: string | null): Promise<void> {
+    vcpkgInstallCmd: string | null,
+    vcpkgConfigurationJsonGlob: string | null = null): Promise<void> {
     const vcpkgRunner: VcpkgRunner = await VcpkgRunner.create(
       baseUtil,
       vcpkgRootPath,
@@ -100,7 +132,8 @@ export class VcpkgRunner {
       doNotUpdateVcpkg,
       logCollectionRegExps,
       runVcpkgInstallPath,
-      vcpkgInstallCmd);
+      vcpkgInstallCmd,
+      vcpkgConfigurationJsonGlob);
     await vcpkgRunner.run();
   }
 
@@ -117,7 +150,8 @@ export class VcpkgRunner {
     private readonly runVcpkgInstallPath: string | null,
     private readonly pathToLastBuiltCommitId: string,
     private readonly options: baselib.ExecOptions = {} as baselib.ExecOptions,
-    private vcpkgInstallCmd: string[]) {
+    private readonly vcpkgInstallCmd: string[],
+    private readonly isVcpkgSubmodule: boolean) {
   }
 
   public async run(): Promise<void> {
@@ -293,9 +327,7 @@ export class VcpkgRunner {
     this.baseUtils.baseLib.info(`Checking whether vcpkg's repository is updated to commit id '${currentCommitId}' ...`);
     let updated = false;
 
-    const gitPath = await this.baseUtils.baseLib.which('git', true);
-    const isSubmodule = await this.baseUtils.isVcpkgSubmodule(gitPath, this.vcpkgDestPath);
-    if (isSubmodule) {
+    if (this.isVcpkgSubmodule) {
       // In case vcpkg it is a Git submodule...
       this.baseUtils.baseLib.info(`'vcpkg' is detected as a submodule.`);
       updated = true;
@@ -304,10 +336,10 @@ export class VcpkgRunner {
       if (this.vcpkgGitCommitId) {
         this.baseUtils.baseLib.warning(`Since the vcpkg directory '${this.vcpkgDestPath}' is a submodule, the vcpkg's Git commit id is disregarded and should not be provided (${this.vcpkgGitCommitId})`);
       }
-    } else {
+    } else { /* vcpkg is not a submodule */
       const res: boolean = this.baseUtils.directoryExists(this.vcpkgDestPath);
       this.baseUtils.baseLib.debug(`exist('${this.vcpkgDestPath}') === ${res}`);
-      if (res && !isSubmodule) {
+      if (res && !this.isVcpkgSubmodule) {
         // Use git to verify whether the repo is up to date.
         this.baseUtils.baseLib.info(`Current commit id of vcpkg: '${currentCommitId}'.`);
         if (!this.vcpkgGitCommitId) {
@@ -436,4 +468,30 @@ export class VcpkgRunner {
     // Keep track of last successful build commit id.
     this.baseUtils.baseLib.info(`Stored last built vcpkg commit id '${builtCommitId}' in file '${this.pathToLastBuiltCommitId}'.`);
   }
+
+  public static async getVcpkgConfigurationJsonPath(baseUtil: baseutillib.BaseUtilLib, vcpkgConfigurationJsonGlob: string): Promise<string | null> {
+    baseUtil.baseLib.debug(`getVcpkgConfigurationJsonPath(${vcpkgConfigurationJsonGlob})<<`);
+    let ret: string | null = null;
+    try {
+      baseUtil.baseLib.info(`Searching for vcpkg-configuration.json using: '${vcpkgConfigurationJsonGlob}'`);
+      const vcpkgConfigurationJsonPath = await FastGlob(vcpkgConfigurationJsonGlob);
+      if (vcpkgConfigurationJsonPath?.length === 1) {
+        baseUtil.baseLib.info(`Found ${globals.VCPKG_CONFIGURATION_JSON} at '${vcpkgConfigurationJsonPath[0]}'.`);
+        ret = vcpkgConfigurationJsonPath[0];
+      } else if (vcpkgConfigurationJsonPath.length > 1) {
+        baseUtil.baseLib.warning(`The file ${globals.VCPKG_CONFIGURATION_JSON} was found multiple times with glob expression '${vcpkgConfigurationJsonGlob}'.`);
+      } else {
+        baseUtil.baseLib.warning(`The file ${globals.VCPKG_CONFIGURATION_JSON} was not found with glob expression '${vcpkgConfigurationJsonGlob}'.`);
+      }
+    }
+    catch (err) {
+      if (err instanceof Error) {
+        baseUtil.baseLib.warning(err.message);
+      }
+    }
+
+    baseUtil.baseLib.debug(`getVcpkgConfigurationJsonPath()>>`);
+    return ret;
+  }
+
 }
