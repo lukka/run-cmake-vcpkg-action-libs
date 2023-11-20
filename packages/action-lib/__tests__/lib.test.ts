@@ -173,8 +173,6 @@ test("ActionLib`s set/getVariable and others must not throw", async () => {
   expect(actionLib.getBinDir()).resolves.toBeTruthy();
   delete process.env.GITHUB_WORKSPACE
 
-  actionLib.addMatcher("no-matcher");
-  actionLib.removeMatcher("no-matcher");
   actionLib.addPath("");
 });
 

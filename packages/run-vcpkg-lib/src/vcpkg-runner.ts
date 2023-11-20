@@ -56,26 +56,29 @@ export class VcpkgRunner {
     const isVcpkgSubmodule: boolean = await baseUtil.isVcpkgSubmodule(gitPath, vcpkgDestPath);
 
     // If not provided, fetch the commit id from vpckg-configuration.json
-    if (!isVcpkgSubmodule && !vcpkgGitCommitId && vcpkgConfigurationJsonGlob !== null) {
+    if (!isVcpkgSubmodule && !vcpkgGitCommitId && vcpkgConfigurationJsonGlob) {
       vcpkgGitCommitId = await baseUtil.wrapOp(
         `The vcpkgCommitId is not provided, searching for a vcpkg-configuration.json using ${vcpkgConfigurationJsonGlob}`, async () => {
           let localVcpkgCommitId = null;
           try {
             const vcpkgConfigurationJsonFile = await VcpkgRunner.getVcpkgConfigurationJsonPath(baseUtil, vcpkgConfigurationJsonGlob);
-            baseUtil.baseLib.info(`Found vpckg-configuration.json at: ${vcpkgConfigurationJsonFile}`);
             if (vcpkgConfigurationJsonFile) {
-              const jsonFile = JSON.parse(vcpkgConfigurationJsonFile);
-              console.log(jsonFile);
-              localVcpkgCommitId = jsonFile["default-registry"]["baseline"];
+              baseUtil.baseLib.info(`Found vpckg-configuration.json at: ${vcpkgConfigurationJsonFile}`);
+              const vcpkgConfJsonContent = baseUtil.readFile(vcpkgConfigurationJsonFile);
+              if (vcpkgConfJsonContent) {
+                baseUtil.baseLib.debug(`Content of vpckg-configuration.json at: ${vcpkgConfJsonContent}`);
+                const jsonFile = JSON.parse(vcpkgConfJsonContent);
+                localVcpkgCommitId = jsonFile["default-registry"]["baseline"];
+              }
             }
 
             if (localVcpkgCommitId === null) {
               throw "vcpkg-configuration.json not found";
             }
           } catch (e) {
-            console.log(e as Error);
-            const errMsg = "The 'vcpkgCommitId's input was not provided, and no vcpkg-configuration.json containing a baseline was found. Failing the action execution as it cannot continue to checkout vcpkg from the git repository.";
-            throw errMsg;
+            baseUtil.baseLib.warning((e as Error)?.message);
+            baseUtil.baseLib.debug((e as Error)?.toString() ?? "<undefined error>");
+            throw "The 'vcpkgCommitId's input was not provided, and no vcpkg-configuration.json containing a baseline was found. Failing the action execution as it cannot continue to checkout vcpkg from the git repository.";
           }
 
           baseUtil.baseLib.info(`Found baseline '${localVcpkgCommitId}', vcpkg is going to be fetched at this Git commit id.`);
