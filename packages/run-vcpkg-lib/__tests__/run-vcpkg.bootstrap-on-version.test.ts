@@ -125,8 +125,8 @@ testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the v
   }
 
   // Assert.
-  expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
-  expect(mock.exportedBaselib.error).toBeCalledTimes(0);
+  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(0);
+  expect(mock.exportedBaselib.error).toHaveBeenCalledTimes(0);
   // Build of vcpkg must not happen.
-  expect(vcpkgBuildMock).toBeCalledTimes(1);
+  expect(vcpkgBuildMock).toHaveBeenCalledTimes(1);
 });

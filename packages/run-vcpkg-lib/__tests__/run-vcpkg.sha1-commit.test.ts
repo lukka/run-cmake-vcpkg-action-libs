@@ -105,6 +105,6 @@ testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git
   )).rejects.toThrowError(new RegExp('.*must be a full SHA1 hash.*'));
 
   // Assert.
-  expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
-  expect(mock.exportedBaselib.error).toBeCalledTimes(0);
+  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(0);
+  expect(mock.exportedBaselib.error).toHaveBeenCalledTimes(0);
 });

@@ -76,8 +76,7 @@ export class VcpkgRunner {
               throw "vcpkg-configuration.json not found";
             }
           } catch (e) {
-            baseUtil.baseLib.warning((e as Error)?.message);
-            baseUtil.baseLib.debug((e as Error)?.toString() ?? "<undefined error>");
+            baseUtil.baseLib.warning((e as Error)?.toString() ?? "<undefined error>");
             throw "The 'vcpkgCommitId's input was not provided, and no vcpkg-configuration.json containing a baseline was found. Failing the action execution as it cannot continue to checkout vcpkg from the git repository.";
           }
 
@@ -476,12 +475,12 @@ export class VcpkgRunner {
     baseUtil.baseLib.debug(`getVcpkgConfigurationJsonPath(${vcpkgConfigurationJsonGlob})<<`);
     let ret: string | null = null;
     try {
-      baseUtil.baseLib.info(`Searching for vcpkg-configuration.json using: '${vcpkgConfigurationJsonGlob}'`);
+      baseUtil.baseLib.info(`Searching for '${globals.VCPKG_CONFIGURATION_JSON}' using: '${vcpkgConfigurationJsonGlob}'`);
       const vcpkgConfigurationJsonPath = await FastGlob(vcpkgConfigurationJsonGlob);
       if (vcpkgConfigurationJsonPath?.length === 1) {
-        baseUtil.baseLib.info(`Found ${globals.VCPKG_CONFIGURATION_JSON} at '${vcpkgConfigurationJsonPath[0]}'.`);
+        baseUtil.baseLib.info(`Found ${vcpkgConfigurationJsonGlob} at '${vcpkgConfigurationJsonPath[0]}'.`);
         ret = vcpkgConfigurationJsonPath[0];
-      } else if (vcpkgConfigurationJsonPath.length > 1) {
+      } else if (vcpkgConfigurationJsonPath?.length > 1) {
         baseUtil.baseLib.warning(`The file ${globals.VCPKG_CONFIGURATION_JSON} was found multiple times with glob expression '${vcpkgConfigurationJsonGlob}'.`);
       } else {
         baseUtil.baseLib.warning(`The file ${globals.VCPKG_CONFIGURATION_JSON} was not found with glob expression '${vcpkgConfigurationJsonGlob}'.`);
