@@ -124,7 +124,7 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
   }
 
   // Assert.
-  expect(mock.exportedBaselib.warning).toBeCalledTimes(0);
-  expect(mock.exportedBaselib.error).toBeCalledTimes(0);
-  expect(vcpkgBuildMock).toBeCalledTimes(1);
+  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(0);
+  expect(mock.exportedBaselib.error).toHaveBeenCalledTimes(0);
+  expect(vcpkgBuildMock).toHaveBeenCalledTimes(1);
 });

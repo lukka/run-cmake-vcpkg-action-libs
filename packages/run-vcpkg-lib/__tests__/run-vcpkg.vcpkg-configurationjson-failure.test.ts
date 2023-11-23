@@ -38,7 +38,7 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
 
 jest.spyOn(runvcpkgrunner.VcpkgRunner, "getVcpkgConfigurationJsonPath").mockImplementationOnce(
   function (baseUtilLib, path): Promise<string | null> {
-    return Promise.resolve(vcpkgConfigurationJsonFile);
+    return Promise.resolve(null);
   });
 
 
@@ -69,7 +69,7 @@ const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
 
-testutils.testWithHeader('run-vcpkg must pick up vcpkg-configuration.json baseline and build and run successfully', async () => {
+testutils.testWithHeader('run-vcpkg must fail if vcpkg-configuration.json is not found and no vcpkgGitCommitId is provided and vcpkg is not a submodule.', async () => {
   let installRoot: string = await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib);
   if (baseUtil.isWin32()) {
     installRoot = 'c:\\github\\workspace\\on\\windows\\';
@@ -95,8 +95,6 @@ testutils.testWithHeader('run-vcpkg must pick up vcpkg-configuration.json baseli
       [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build --x-install-root ${installRoot} --triplet ${baseUtil.getDefaultTriplet()}`]:
-        { 'code': 0, 'stdout': 'this is the `vcpkg install` output' },
     },
     "exist": { [vcpkgRoot]: true },
     'which': {
@@ -109,30 +107,27 @@ testutils.testWithHeader('run-vcpkg must pick up vcpkg-configuration.json baseli
   };
   mock.answersMocks.reset(answers);
 
-  let vcpkg = await VcpkgRunner.create(
-    baseUtil,
-    vcpkgRoot,
-    null,
-    null,
-    true, // Must be true
-    false, // Must be false
-    [],
-    "/path/to/location/of/vcpkgjson/",
-    null,
-    "/path/to/vcpkgconfigurationjson");
-
-  // Act.
-  // HACK: 'any' to access private fields.
-  let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
+  // Act and Assert.
   try {
-    await vcpkg.run();
+    await VcpkgRunner.create(
+      baseUtil,
+      vcpkgRoot,
+      null,
+      null, // vcpkgGitCommitId
+      true, // Must be true
+      false, // Must be false
+      [],
+      "/path/to/location/of/vcpkgjson/",
+      null,
+      "/path/to/vcpkgconfigurationjson");
   }
   catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
+    expect(error as Error).toBeTruthy();
+    expect((error as Error).toString()).toContain("'vcpkgCommitId's input was not provided, and no vcpkg-configuration.json containing a baseline was found.")
   }
 
   // Assert.
-  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(0);
+  // One warn() call to warn user about vcpkg-configuration.json file not found.
+  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(1);
   expect(mock.exportedBaselib.error).toHaveBeenCalledTimes(0);
-  expect(vcpkgBuildMock).toHaveBeenCalledTimes(1);
 });
