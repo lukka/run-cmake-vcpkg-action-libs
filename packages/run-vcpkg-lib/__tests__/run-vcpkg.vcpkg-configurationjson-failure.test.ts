@@ -10,7 +10,6 @@ import * as assert from 'assert';
 import * as utils from '@lukka/base-util-lib';
 import * as runvcpkgrunner from '../src/vcpkg-runner'
 import * as runvcpkgutils from '../src/vcpkg-utils'
-import * as os from 'os'
 
 // Arrange.
 const isWin = process.platform === "win32";
