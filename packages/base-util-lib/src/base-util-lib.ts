@@ -323,11 +323,15 @@ export class Matcher {
   }
 }
 
-export function dumpError(baseLib: baselib.BaseLib, error: Error): void {
-  const errorAsString = (error?.message ?? "undefined error");
-  baseLib.debug(errorAsString);
-  if (error?.stack) {
-    baseLib.debug(error.stack);
+export function dumpError(baseLib: baselib.BaseLib, error: any): void {
+  if (error instanceof Error) {
+    const err = error as Error;
+    if (err?.stack) {
+      baseLib.debug(err.stack);
+    }
+  } else {
+    const errorAsString = `Not an Error istance: ${error?.toString() ?? "null"}`;
+    baseLib.debug(errorAsString);
   }
 }
 
@@ -378,7 +382,7 @@ export class LogFileCollector {
         }
       }
       catch (err) {
-        dumpError(this.baseLib, err as Error);
+        dumpError(this.baseLib, err);
       }
     }
 
@@ -401,7 +405,7 @@ export function dumpFile(baseLib: baselib.BaseLib, filePath: string): void {
       baseLib.warning(`[LogCollection][Warn]File not found:'${filePath}'.`);
   }
   catch (err) {
-    dumpError(baseLib, err as Error);
+    dumpError(baseLib, err);
   }
 }
 

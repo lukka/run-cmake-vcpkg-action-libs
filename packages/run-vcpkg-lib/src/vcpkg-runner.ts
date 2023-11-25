@@ -75,9 +75,9 @@ export class VcpkgRunner {
             if (localVcpkgCommitId === null) {
               throw new Error("vcpkg-configuration.json not found");
             }
-          } catch (e) {
-            baseUtil.baseLib.warning((e as Error)?.toString() ?? "<undefined error>");
-            throw new Error("The 'vcpkgCommitId's input was not provided, and no vcpkg-configuration.json containing a baseline was found. Failing the action execution as it cannot continue to checkout vcpkg from the git repository.");
+          } catch (err) {
+            baseutillib.dumpError(baseUtil.baseLib, err);
+            throw new Error("The 'vcpkgCommitId's input was not provided, and no vcpkg-configuration.json containing a baseline was found. Failing the action execution as without a Git commit id vcpkg cannot be checked out from the repository.");
           }
 
           baseUtil.baseLib.info(`Found baseline '${localVcpkgCommitId}', vcpkg is going to be fetched at this Git commit id.`);
@@ -487,9 +487,8 @@ export class VcpkgRunner {
       }
     }
     catch (err) {
-      if (err instanceof Error) {
-        baseUtil.baseLib.warning((err as Error)?.toString() ?? "<undefined error>");
-      }
+      baseUtil.baseLib.warning((err as Error)?.message ?? "<undefined error>");
+      baseutillib.dumpError(baseUtil.baseLib, err as Error);
     }
 
     baseUtil.baseLib.debug(`getVcpkgConfigurationJsonPath()>>`);
