@@ -323,7 +323,7 @@ export class Matcher {
   }
 }
 
-export function dumpError(baseLib: baselib.BaseLib, error: any): void {
+export function dumpError(baseLib: baselib.BaseLib, error: unknown): void {
   if (error instanceof Error) {
     const err = error as Error;
     if (err?.stack) {
