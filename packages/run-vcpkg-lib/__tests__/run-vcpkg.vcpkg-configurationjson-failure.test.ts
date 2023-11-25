@@ -112,7 +112,7 @@ testutils.testWithHeader('run-vcpkg must fail if vcpkg-configuration.json is not
       baseUtil,
       vcpkgRoot,
       null,
-      null, // vcpkgGitCommitId
+      null, // vcpkgGitCommitId is intentionally absent.
       true, // Must be true
       false, // Must be false
       [],
@@ -125,8 +125,7 @@ testutils.testWithHeader('run-vcpkg must fail if vcpkg-configuration.json is not
     expect((error as Error).toString()).toContain("'vcpkgCommitId's input was not provided, and no vcpkg-configuration.json containing a baseline was found.")
   }
 
-  // Assert.
-  // One warn() call to warn user about vcpkg-configuration.json file not found.
-  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(1);
+  // Asserts. No warns nor errors are going to be emitted during VcpkgRunner.create() runtime.
+  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(0);
   expect(mock.exportedBaselib.error).toHaveBeenCalledTimes(0);
 });
