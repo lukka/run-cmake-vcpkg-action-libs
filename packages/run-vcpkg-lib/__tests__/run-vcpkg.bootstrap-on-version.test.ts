@@ -80,7 +80,6 @@ testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the v
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
         { 'code': 0, 'stdout': 'this is the output of chmod +x bootstrap' },
-      [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' }
     },
@@ -110,6 +109,8 @@ testutils.testWithHeader('run-vcpkg must build (by running bootstrap) when the v
     null, // Must not be provided, otherwise a warning would be triggered
     false,
     false,
+    [],
+    null, // vcpkg.json glob
     [],
     null,
     null);

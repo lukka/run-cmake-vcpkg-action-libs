@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020-2021-2022 Luca Cappa
+// Copyright (c) 2019-2020-2021-2022-2023 Luca Cappa
 // Released under the term specified in file LICENSE.txt
 // SPDX short identifier: MIT
 
@@ -9,7 +9,7 @@ import * as mock from './mocks';
 import * as assert from 'assert';
 import * as utils from '@lukka/base-util-lib';
 import * as runvcpkgutils from '../src/vcpkg-utils'
-import * as os from 'os'
+import * as fastglob from 'fast-glob';
 
 // Arrange.
 const isWin = process.platform === "win32";
@@ -21,10 +21,26 @@ const vcpkgExeName = isWin ? "vcpkg.exe" : "vcpkg";
 const vcpkgExePath = path.join(vcpkgRoot, vcpkgExeName);
 const prefix = isWin ? "cmd.exe /c " : "/bin/bash -c ";
 const bootstrapName = isWin ? "bootstrap-vcpkg.bat" : "bootstrap-vcpkg.sh";
+const vcpkgJsonFile = "/path/to/vcpkg.json";
 
 mock.VcpkgMocks.isVcpkgSubmodule = false;
 mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
+
+jest.mock('fast-glob',
+  () => {
+    return {
+      glob: (globExpression: string | string[], _2: fastglob.Options | undefined) => {
+        let returnValue: string[] = [];
+        if (globExpression.includes(globals.VCPKG_JSON))
+          returnValue = [vcpkgJsonFile];
+        else
+          returnValue = [];
+
+        return Promise.resolve(returnValue);
+      }
+    }
+  });
 
 jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseUtilLib, file: string): string {
@@ -66,9 +82,9 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
   let installRoot: string = await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib);
   if (baseUtil.isWin32()) {
     installRoot = 'c:\\github\\workspace\\on\\windows\\';
-    process.env["VCPKG_INSTALLED_DIR"] = installRoot;
+    process.env[globals.VCPKG_INSTALLED_DIR] = installRoot;
   }
-  
+
   const answers: testutils.BaseLibAnswers = {
     "exec": {
       [`${gitPath}`]:
@@ -85,7 +101,6 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
         { 'code': 0, 'stdout': 'this is the output of chmod +x bootstrap' },
-      [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
       [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build --x-install-root ${installRoot} --triplet ${baseUtil.getDefaultTriplet()}`]:
@@ -110,7 +125,9 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
     true, // Must be true
     false, // Must be false
     [],
-    "/path/to/location/of/vcpkgjson/",
+    "**/vcpkg.json/",
+    [],
+    null,
     null);
 
   // Act.
@@ -118,8 +135,7 @@ testutils.testWithHeader('run-vcpkg must build and run successfully', async () =
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
   try {
     await vcpkg.run();
-  }
-  catch (error) {
+  } catch (error) {
     throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
   }
 

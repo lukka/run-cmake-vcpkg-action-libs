@@ -74,7 +74,6 @@ testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
         { 'code': 0, 'stdout': 'this is the output of chmod +x bootstrap' },
-      [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' }
     },
@@ -99,6 +98,8 @@ testutils.testWithHeader('run-vcpkg must throw error on invalid SHA1 hash of Git
     invalidSHA1HashGitCommit,
     false,
     false,// Must be false
+    [],
+    null,
     [],
     null,
     null

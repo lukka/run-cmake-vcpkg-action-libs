@@ -50,7 +50,7 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
       case globals.VCPKGDEFAULTTRIPLET:
       case globals.RUNVCPKG_VCPKG_DEFAULT_TRIPLET:
       case globals.VCPKG_BINARY_SOURCES:
-          break;
+        break;
       default:
         assert.fail(`Unexpected variable name: '${name}'`);
     }
@@ -79,7 +79,6 @@ testutils.testWithHeader('run-vcpkg must build the vcpkg executable when, althou
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
         { 'code': 0, 'stdout': 'this is the output of chmod +x bootstrap' },
-      [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' }
     },
@@ -109,9 +108,11 @@ testutils.testWithHeader('run-vcpkg must build the vcpkg executable when, althou
     false,
     false, // Must be false.
     [],
+    null, // vcpkg.json glob
+    [],
     null,
-    null
-    );
+    null);
+
   // HACK: any to access private fields.
   let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 

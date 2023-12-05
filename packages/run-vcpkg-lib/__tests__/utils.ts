@@ -64,7 +64,7 @@ export class MockAnswers {
 
         const answer = cmdAnswer[key];
         if (answer !== undefined) {
-            debug(`found mock response: ${JSON.stringify(answer)}`);
+            debug(`test: found mock response: ${JSON.stringify(answer)}`);
             return answer;
         }
 

@@ -38,3 +38,17 @@ export async function getDefaultVcpkgCacheDirectory(baseLib: baselib.BaseLib,): 
 function fwSlash(p: string): string {
   return p.replace(/\\/g, '/');
 }
+
+export async function getCurrentDirectoryForRunningVcpkg(baseLib: baselib.BaseLib, vcpkgJsonFile: string | null): Promise<string> {
+  baseLib.debug(`getCurrentDirectoryForRunningVcpkg(${vcpkgJsonFile}) << `);
+  // When running 'vcpkg install' is requested, ensure the target directory is well known, fail otherwise.
+  const vcpkgJsonPath = vcpkgJsonFile === null ? null : path.dirname(path.resolve(vcpkgJsonFile));
+  baseLib.debug(`vcpkgJsonFile='${vcpkgJsonFile}', vcpkgJsonPath='${vcpkgJsonPath}'.`);
+  if (vcpkgJsonPath === null) {
+    throw new Error(`Cannot find the 'vcpkg.json's location which is used as the 'working directory' when launching 'vcpkg install'`);
+  }
+
+  baseLib.debug(`getCurrentDirectoryForRunningVcpkg()>> -> ${vcpkgJsonPath}`);
+  return vcpkgJsonPath;
+}
+

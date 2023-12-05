@@ -6,11 +6,9 @@ import * as globals from '../src/vcpkg-globals';
 import * as testutils from './utils';
 import * as path from 'path';
 import * as mock from './mocks';
-import * as assert from 'assert';
 import * as utils from '@lukka/base-util-lib';
-import * as runvcpkgrunner from '../src/vcpkg-runner'
 import * as runvcpkgutils from '../src/vcpkg-utils'
-import * as os from 'os'
+import * as fastglob from 'fast-glob';
 
 // Arrange.
 const isWin = process.platform === "win32";
@@ -27,6 +25,21 @@ mock.VcpkgMocks.isVcpkgSubmodule = false;
 mock.VcpkgMocks.vcpkgRoot = vcpkgRoot;
 mock.VcpkgMocks.vcpkgExePath = vcpkgExePath;
 
+jest.mock('fast-glob',
+  () => {
+    return {
+      glob: (globExpression: string | string[], _2: fastglob.Options | undefined) => {
+        let returnValue: string[] = [];
+        if (globExpression.includes(globals.VCPKG_CONFIGURATION_JSON))
+          returnValue = [vcpkgConfigurationJsonFile];
+        else
+          returnValue = [];
+
+        return Promise.resolve(returnValue);
+      }
+    }
+  });
+
 jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
   function (this: utils.BaseUtilLib, file: string): string {
     if (testutils.areEqualVerbose(file, vcpkgConfigurationJsonFile)) {
@@ -36,77 +49,46 @@ jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
       throw `readFile called with unexpected file name: '${file}'.`;
   });
 
-jest.spyOn(runvcpkgrunner.VcpkgRunner, "getVcpkgConfigurationJsonPath").mockImplementationOnce(
-  function (baseUtilLib, path): Promise<string | null> {
-    return Promise.resolve(vcpkgConfigurationJsonFile);
-  });
-
-
-jest.spyOn(utils.BaseUtilLib.prototype, 'setEnvVar').mockImplementation(
-  function (this: utils.BaseUtilLib, name: string, value: string): void {
-    // Ensure they are not set twice.
-    const existingValue: string = mock.envVarSetDict[name];
-    if (existingValue) {
-      assert.fail(`Error: env var ${name} is set multiple times!`);
-    }
-
-    // Ensure their values are the expected ones.
-    switch (name) {
-      case globals.VCPKGROOT:
-      case globals.RUNVCPKG_VCPKG_ROOT:
-        assert.strictEqual(value, vcpkgRoot);
-        break;
-      case globals.VCPKGDEFAULTTRIPLET:
-      case globals.RUNVCPKG_VCPKG_DEFAULT_TRIPLET:
-      case globals.VCPKG_BINARY_SOURCES:
-        break;
-      default:
-        assert.fail(`Unexpected variable name: '${name}'`);
-    }
-  });
-
 const baseUtil = new utils.BaseUtilLib(mock.exportedBaselib);
 
 import { VcpkgRunner } from '../src/vcpkg-runner';
+
+const answers: testutils.BaseLibAnswers = {
+  "exec": {
+    [`${gitPath}`]:
+      { code: 0, stdout: "git output" },
+    [`${gitPath} rev-parse HEAD`]:
+      { code: 0, stdout: 'mygitref' },
+    [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
+      { 'code': 0, 'stdout': 'this is git clone ... output' },
+    [`${gitPath} submodule status ${vcpkgRoot}`]:
+      { 'code': 0, stdout: 'this is git submodule output' },
+    [`${gitPath} checkout --force ${vcpkgBaselineCommitId}`]:
+      { 'code': 0, 'stdout': `this is git checkout ${vcpkgBaselineCommitId} output` },
+    [`chmod +x ${path.join(vcpkgRoot, "vcpkg")}`]:
+      { 'code': 0, 'stdout': 'chmod output here' },
+    [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
+      { 'code': 0, 'stdout': 'this is the output of chmod +x bootstrap' },
+    [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
+      { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
+  },
+  "exist": { [vcpkgRoot]: true },
+  'which': {
+    'git': '/usr/local/bin/git',
+    'sh': '/bin/bash',
+    'chmod': '/bin/chmod',
+    'cmd.exe': 'cmd.exe',
+    [vcpkgExePath]: vcpkgExePath
+  },
+};
 
 testutils.testWithHeader('run-vcpkg must pick up vcpkg-configuration.json baseline and build and run successfully', async () => {
   let installRoot: string = await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib);
   if (baseUtil.isWin32()) {
     installRoot = 'c:\\github\\workspace\\on\\windows\\';
-    process.env["VCPKG_INSTALLED_DIR"] = installRoot;
+    process.env[globals.VCPKG_INSTALLED_DIR] = installRoot;
   }
-
-  const answers: testutils.BaseLibAnswers = {
-    "exec": {
-      [`${gitPath}`]:
-        { code: 0, stdout: "git output" },
-      [`${gitPath} rev-parse HEAD`]:
-        { code: 0, stdout: 'mygitref' },
-      [`${gitPath} clone https://github.com/microsoft/vcpkg.git -n .`]:
-        { 'code': 0, 'stdout': 'this is git clone ... output' },
-      [`${gitPath} submodule status ${vcpkgRoot}`]:
-        { 'code': 0, stdout: 'this is git submodule output' },
-      [`${gitPath} checkout --force ${vcpkgBaselineCommitId}`]:
-        { 'code': 0, 'stdout': `this is git checkout ${vcpkgBaselineCommitId} output` },
-      [`chmod +x ${path.join(vcpkgRoot, "vcpkg")}`]:
-        { 'code': 0, 'stdout': 'chmod output here' },
-      [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
-        { 'code': 0, 'stdout': 'this is the output of chmod +x bootstrap' },
-      [gitPath]: { 'code': 0, 'stdout': 'git output here' },
-      [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
-        { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' },
-      [`${path.join(vcpkgRoot, vcpkgExeName)} install --recurse --clean-after-build --x-install-root ${installRoot} --triplet ${baseUtil.getDefaultTriplet()}`]:
-        { 'code': 0, 'stdout': 'this is the `vcpkg install` output' },
-    },
-    "exist": { [vcpkgRoot]: true },
-    'which': {
-      'git': '/usr/local/bin/git',
-      'sh': '/bin/bash',
-      'chmod': '/bin/chmod',
-      'cmd.exe': 'cmd.exe',
-      [vcpkgExePath]: vcpkgExePath
-    },
-  };
+  
   mock.answersMocks.reset(answers);
 
   let vcpkg = await VcpkgRunner.create(
@@ -114,12 +96,13 @@ testutils.testWithHeader('run-vcpkg must pick up vcpkg-configuration.json baseli
     vcpkgRoot,
     null,
     null,
-    true, // Must be true
+    false, // Must be false, do not run 'vcpkg install'.
     false, // Must be false
     [],
-    "/path/to/location/of/vcpkgjson/",
-    null,
-    "/path/to/vcpkgconfigurationjson");
+    "**/vcpkg.json/", // vcpkg.json glob
+    [], // vcpkg.json glob ignores
+    "/path/to/vcpkg-configuration.json", // vcpkg-configuration.json glob
+    null);
 
   // Act.
   // HACK: 'any' to access private fields.

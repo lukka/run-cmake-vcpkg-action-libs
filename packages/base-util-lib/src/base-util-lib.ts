@@ -112,14 +112,17 @@ export class BaseUtilLib {
   }
 
   public readFile(path: string): string | null {
+    let content: string | null = null;
+    this.baseLib.debug(`readFile(${path})<<`);
     try {
-      const readString: string = fs.readFileSync(path, { encoding: 'utf8', flag: 'r' });
-      this.baseLib.debug(`readFile(${path})='${readString}'.`);
-      return readString;
+      content = fs.readFileSync(path, { encoding: 'utf8', flag: 'r' });
     } catch (error) {
+      dumpError(this.baseLib, error);
       this.baseLib.debug(`readFile(${path}): ${"" + error}`);
-      return null;
+    } finally {
+      this.baseLib.debug(`readFile(${path}) ->'${content}' >>`);
     }
+    return content;
   }
 
   public writeFile(file: string, content: string): void {
