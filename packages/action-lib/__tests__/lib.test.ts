@@ -169,7 +169,7 @@ test("ActionLib`s set/getVariable and others must not throw", async () => {
   actionLib.cd(".");
   expect(actionLib.resolve(".")).toBeTruthy();
 
-  process.env.GITHUB_WORKSPACE="bizzarre-value";
+  process.env.GITHUB_WORKSPACE="ignore-me";
   expect(actionLib.getBinDir()).resolves.toBeTruthy();
   delete process.env.GITHUB_WORKSPACE
 

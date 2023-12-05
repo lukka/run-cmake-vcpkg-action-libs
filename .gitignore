@@ -16,3 +16,4 @@ build
 coverage/*
 .DS_Store
 lerna-debug.log
+ignore-me

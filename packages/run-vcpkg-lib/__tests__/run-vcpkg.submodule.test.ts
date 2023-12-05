@@ -101,6 +101,8 @@ testutils.testWithHeader('run-vcpkg with vcpkg as submodule must build successfu
       false,
       false, // Must be provided.
       [],
+      null, // vcpkg.json glob
+      [],
       null,
       null
     );

@@ -81,7 +81,6 @@ testutils.testWithHeader('run-vcpkg must build vcpkg (by running bootstrap) when
         { 'code': 0, 'stdout': 'chmod output here' },
       [`chmod +x ${path.join(vcpkgRoot, "bootstrap-vcpkg.sh")}`]:
         { 'code': 0, 'stdout': 'this is the output of chmod +x bootstrap' },
-      [gitPath]: { 'code': 0, 'stdout': 'git output here' },
       [`${prefix}${path.join(vcpkgRoot, bootstrapName)}`]:
         { 'code': 0, 'stdout': 'this is the output of bootstrap-vcpkg' }
     },
@@ -111,23 +110,26 @@ testutils.testWithHeader('run-vcpkg must build vcpkg (by running bootstrap) when
     false,
     false, // Must be false
     [],
+    null, // vcpkg.json glob
+    [],
     null,
     null
-  );
-  // HACK: 'any' to access private fields.
-  let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
+    );
 
-  // Act.
-  try {
-    await vcpkg.run();
-  }
-  catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
-  }
+// HACK: 'any' to access private fields.
+let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
 
-  // Assert.
-  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(0);
-  expect(mock.exportedBaselib.error).toHaveBeenCalledTimes(0);
-  // Build of vcpkg must happen.
-  expect(vcpkgBuildMock).toHaveBeenCalledTimes(1);
+// Act.
+try {
+  await vcpkg.run();
+}
+catch (error) {
+  throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
+}
+
+// Assert.
+expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(0);
+expect(mock.exportedBaselib.error).toHaveBeenCalledTimes(0);
+// Build of vcpkg must happen.
+expect(vcpkgBuildMock).toHaveBeenCalledTimes(1);
 });
