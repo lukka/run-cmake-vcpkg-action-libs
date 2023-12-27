@@ -170,7 +170,7 @@ export class CMakeRunner {
       CMakeRunner.addArguments(cpack, this.packagePresetCmdStringAddArgs);
     }
 
-    this.baseLib.debug(`Packaging with CPack ...`);
+    this.baseLib.debug(`test: Packaging with CPack ...`);
     await this.baseUtils.wrapOp("Package with CPack",
       async () => await this.launchTool(
         cpack,
@@ -189,7 +189,7 @@ export class CMakeRunner {
       CMakeRunner.addArguments(cmake, this.buildPresetCmdStringAddArgs);
     }
 
-    this.baseLib.debug(`Building with CMake ...`);
+    this.baseLib.debug(`test: Building with CMake ...`);
     await this.baseUtils.wrapOp("Build with CMake",
       async () => await this.launchTool(
         cmake,
