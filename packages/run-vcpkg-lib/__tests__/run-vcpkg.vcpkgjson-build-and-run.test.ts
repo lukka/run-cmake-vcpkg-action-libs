@@ -144,62 +144,6 @@ testutils.testWithHeader('run-vcpkg must pick up vcpkg.json baseline (from "buil
   expect(vcpkgBuildMock).toHaveBeenCalledTimes(1);
 });
 
-testutils.testWithHeader('run-vcpkg must pick up vcpkg.json baseline (from "default-registry" object) and build and run successfully', async () => {
-  let installRoot: string = await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib);
-  if (baseUtil.isWin32()) {
-    installRoot = 'c:\\github\\workspace\\on\\windows\\';
-    process.env[globals.VCPKG_INSTALLED_DIR] = installRoot;
-  }
-
-  mock.answersMocks.reset(answers);
-
-  const vcpkgJsonContent = 
-`{
-  "default-registry": {
-    "kind": "builtin",
-    "baseline": "${vcpkgBaselineCommitId}"
-  }
-}
-`;
-  
-jest.spyOn(utils.BaseUtilLib.prototype, 'readFile').mockImplementation(
-    function (this: utils.BaseUtilLib, file: string): string {
-      if (testutils.areEqualVerbose(file, vcpkgJsonFile)) {
-        return vcpkgJsonContent;
-      }
-      else
-        throw `readFile called with unexpected file name: '${file}'.`;
-    });
-  
-  let vcpkg = await VcpkgRunner.create(
-    baseUtil,
-    vcpkgRoot,
-    null,
-    null,
-    false, // Must be false, do not run 'vcpkg install'.
-    false, // Must be false
-    [],
-    "**/vcpkg.json/", // vcpkg.json glob
-    [], // vcpkg.json glob ignores
-    "/path/to/vcpkgconfigurationjson", // vcpkg-configuration.json glob
-    null);
-
-  // Act.
-  // HACK: 'any' to access private fields.
-  let vcpkgBuildMock = jest.spyOn(vcpkg as any, 'build');
-  try {
-    await vcpkg.run();
-  }
-  catch (error) {
-    throw new Error(`run must have succeeded, instead it failed: ${error as Error} \n ${(error as Error)?.stack}`);
-  }
-
-  // Assert.
-  expect(mock.exportedBaselib.warning).toHaveBeenCalledTimes(0);
-  expect(mock.exportedBaselib.error).toHaveBeenCalledTimes(0);
-  expect(vcpkgBuildMock).toHaveBeenCalledTimes(1);
-});
-
 testutils.testWithHeader('run-vcpkg must pick up vcpkg.json baseline (from "vcpkg-configuration" object) and build and run successfully', async () => {
   let installRoot: string = await runvcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib);
   if (baseUtil.isWin32()) {

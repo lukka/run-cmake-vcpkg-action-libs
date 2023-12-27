@@ -123,20 +123,10 @@ export class VcpkgRunner {
                 //
                 // or:
                 //
-                // {
-                //   "default-registry": {
-                //     "kind": "builtin",
-                //     "baseline": "<value>"
-                //   }
-                // }
-                //
-                // or:
-                //
                 // { "builtin-baseline": "<value>"}
 
                 const jsonPaths = [
                   `$["builtin-baseline"]`,
-                  `$['default-registry']['baseline']`,
                   `$['vcpkg-configuration']['default-registry']['baseline']`,
                 ];
                 for (const expr of jsonPaths) {
