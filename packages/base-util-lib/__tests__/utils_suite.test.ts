@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as baseutillib from '../src/base-util-lib'
 import * as actionlib from '../../action-lib/src/action-lib';
 import * as lib from '../../action-lib/src/action-lib'
+import os from 'os';
 
 jest.setTimeout(15 * 1000)
 
@@ -83,5 +84,32 @@ test('wrapOp() tests', async () => {
 });
 
 test('getDefaultTriplet() tests', async () => {
+  // Ensure no default triplet is defined in the environment.
+  delete process.env["VCPKG_DEFAULT_TRIPLET"];
+
   expect(baseUtil.getDefaultTriplet()).toBeTruthy();
+
+  // os.arch must be in the triplet (either RUNNER_ARCH is defined or not).
+  const triplet = baseUtil.getDefaultTriplet();
+  expect(triplet).toContain(os.arch());
+
+  // if no RUNNER_ARCH, the triplet contains os.arch()
+  delete process.env["RUNNER_ARCH"];
+  // mock os.arch()
+  const os_arch_value = "custom-arch";
+  const mockOsArch = jest.spyOn(os, 'arch').mockImplementation(() => os_arch_value);
+  expect(baseUtil.getDefaultTriplet()?.startsWith(os_arch_value)).toBeTruthy();
+  const actualOs = jest.requireActual('os');
+  mockOsArch.mockImplementation(() => actualOs.arch())
+  
+  // RUNNER_ARCH must always be present in the triplet.
+  const runner_arch_value = "CUSTOM-RUNNER_ARCH";
+  process.env["RUNNER_ARCH"] = "CUSTOM-RUNNER_ARCH";
+  expect(baseUtil.getDefaultTriplet()?.startsWith(runner_arch_value.toLowerCase())).toBeTruthy();
+
+  // if VCPKG_DEFAULT_TRIPLET is defined, that is the default triplet.
+  const defaultTriplet = "default-triplet";
+  process.env["VCPKG_DEFAULT_TRIPLET"] = defaultTriplet;
+  expect(baseUtil.getDefaultTriplet()).toStrictEqual(defaultTriplet);
+  delete process.env["VCPKG_DEFAULT_TRIPLET"];
 });
