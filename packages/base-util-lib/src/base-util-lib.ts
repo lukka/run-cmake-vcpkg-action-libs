@@ -134,18 +134,30 @@ export class BaseUtilLib {
     const envVar = process.env["VCPKG_DEFAULT_TRIPLET"];
     if (envVar) {
       return envVar;
-    } else {
-      if (this.isWin32()) {
-        return "x64-windows";
-      } else if (this.isLinux()) {
-        return "x64-linux";
-      } else if (this.isMacos()) {
-        return "x64-osx";
-      } else if (this.isBSD()) {
-        return "x64-freebsd";
-      }
     }
-    return null;
+    let arch: string | null = null;
+    // On hosted GitHub runners, the env var RUNNER_ARCH can be 'X86', 'X64', 'ARM' or 'ARM64'.
+    arch = process.env["RUNNER_ARCH"]?.toLowerCase() ?? null;
+    if (!arch) {
+      // Fallback to os.arch() when running outside of GH runners.
+      arch = os.arch();
+    }
+
+    let plat: string | null = null;
+    if (this.isWin32()) {
+      plat = "windows";
+    } else if (this.isLinux()) {
+      plat = "linux";
+    } else if (this.isMacos()) {
+      plat = "osx";
+    } else if (this.isBSD()) {
+      plat = "freebsd";
+    }
+
+    if (plat && arch)
+      return `${arch}-${plat}`;
+    else
+      return null;
   }
 
   // Set both the environment variable and the workflow variable with the same name.
