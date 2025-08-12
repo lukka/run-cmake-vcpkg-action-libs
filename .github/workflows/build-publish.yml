@@ -13,7 +13,7 @@ jobs:
     env:
       VCPKG_ROOT:
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Set Node.js 20.x
       uses: actions/setup-node@v4
       with:
@@ -55,7 +55,7 @@ jobs:
     # Inspired from https://github.community/t/passing-an-array-literal-to-contains-function-causes-syntax-error/17213
     if: contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/heads/prerelease')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set Node.js 20.x
         uses: actions/setup-node@v4
         with:
