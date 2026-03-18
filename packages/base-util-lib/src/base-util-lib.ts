@@ -227,12 +227,15 @@ export class BaseUtilLib {
       param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
     };
     const lines = data.split(/[\r\n]+/);
+    let lastKey: string | null = null;
     for (const line of lines) {
-      if (regex.param.test(line)) {
-        const match = line.match(regex.param);
-        if (match) {
-          map[match[1]] = match[2];
-        }
+      const match = line.match(regex.param);
+      if (match) {
+        map[match[1]] = match[2];
+        lastKey = match[1];
+      } else if (lastKey !== null && line.trim().length > 0) {
+        // Continuation line of a multiline value (e.g. X_VCPKG_RECURSIVE_DATA with embedded JSON)
+        map[lastKey] = map[lastKey] + '\n' + line;
       }
     }
 
