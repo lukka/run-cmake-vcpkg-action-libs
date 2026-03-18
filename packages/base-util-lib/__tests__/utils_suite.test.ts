@@ -24,6 +24,24 @@ test('testing for path normalization', async () => {
 
 test('parseVcpkgEnvOutput() tests', async () => {
   expect(baseUtilLib.parseVcpkgEnvOutput('a=1\nb=2')).toEqual({ "a": "1", "b": "2" });
+
+  // Test multiline variable value (e.g. X_VCPKG_RECURSIVE_DATA containing embedded JSON)
+  const multilineOutput = 'a=1\nX_VCPKG_RECURSIVE_DATA={\n  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"\n}\nb=2';
+  expect(baseUtilLib.parseVcpkgEnvOutput(multilineOutput)).toEqual({
+    "a": "1",
+    "X_VCPKG_RECURSIVE_DATA": '{\n  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"\n}',
+    "b": "2"
+  });
+
+  // Test Windows-style CRLF line endings
+  expect(baseUtilLib.parseVcpkgEnvOutput('a=1\r\nb=2')).toEqual({ "a": "1", "b": "2" });
+
+  // Test multiline with CRLF line endings
+  const multilineCRLF = 'X_VCPKG_RECURSIVE_DATA={\r\n  "key": "value"\r\n}\r\nc=3';
+  expect(baseUtilLib.parseVcpkgEnvOutput(multilineCRLF)).toEqual({
+    "X_VCPKG_RECURSIVE_DATA": '{\n  "key": "value"\n}',
+    "c": "3"
+  });
 });
 
 
