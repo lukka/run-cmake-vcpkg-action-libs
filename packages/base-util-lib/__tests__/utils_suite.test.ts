@@ -45,6 +45,44 @@ test('parseVcpkgEnvOutput() tests', async () => {
 });
 
 
+test('parseEnvVars() tests', () => {
+  // basic key=value pairs
+  expect(baseutillib.BaseUtilLib.parseEnvVars('a=1\nb=2')).toEqual({ a: '1', b: '2' });
+
+  // empty input
+  expect(baseutillib.BaseUtilLib.parseEnvVars('')).toEqual({});
+
+  // value containing '=' — only the first '=' is the separator
+  expect(baseutillib.BaseUtilLib.parseEnvVars('a=x=y')).toEqual({ a: 'x=y' });
+
+  // keys and values are trimmed
+  expect(baseutillib.BaseUtilLib.parseEnvVars('  a  =  1  ')).toEqual({ a: '1' });
+
+  // lines without '=' are skipped when there is no prior key
+  expect(baseutillib.BaseUtilLib.parseEnvVars('noequalssign\na=1')).toEqual({ a: '1' });
+
+  // lines starting with '=' are skipped (eqIdx === 0, not > 0)
+  expect(baseutillib.BaseUtilLib.parseEnvVars('=nokey\na=1')).toEqual({ a: '1' });
+
+  // CRLF line endings
+  expect(baseutillib.BaseUtilLib.parseEnvVars('a=1\r\nb=2')).toEqual({ a: '1', b: '2' });
+
+  // multiline value (continuation lines have no '=')
+  const multilineOutput = 'a=1\nX_VCPKG_RECURSIVE_DATA={\n  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"\n}\nb=2';
+  expect(baseutillib.BaseUtilLib.parseEnvVars(multilineOutput)).toEqual({
+    a: '1',
+    X_VCPKG_RECURSIVE_DATA: '{\n  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"\n}',
+    b: '2',
+  });
+
+  // multiline value with CRLF line endings
+  const multilineCRLF = 'X_VCPKG_RECURSIVE_DATA={\r\n  "key": "value"\r\n}\r\nc=3';
+  expect(baseutillib.BaseUtilLib.parseEnvVars(multilineCRLF)).toEqual({
+    X_VCPKG_RECURSIVE_DATA: '{\n  "key": "value"\n}',
+    c: '3',
+  });
+});
+
 test('isValidSHA1() tests', async () => {
   expect(baseutillib.BaseUtilLib.isValidSHA1('a')).toBeFalsy();
   expect(baseutillib.BaseUtilLib.isValidSHA1('477c8a9afe2d67cafa3521417f5feffc41d00bbe')).toBeTruthy();

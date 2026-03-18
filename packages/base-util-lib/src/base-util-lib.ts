@@ -221,25 +221,29 @@ export class BaseUtilLib {
     return (variableName.toUpperCase() === "__VSCMD_PREINIT_PATH")
   }
 
-  public parseVcpkgEnvOutput(data: string): baselib.VarMap {
+  public static parseEnvVars(data: string): baselib.VarMap {
     const map: baselib.VarMap = {};
-    const regex = {
-      param: /^\s*([^=]+?)\s*=\s*(.*?)\s*$/,
-    };
     const lines = data.split(/[\r\n]+/);
     let lastKey: string | null = null;
     for (const line of lines) {
-      const match = line.match(regex.param);
-      if (match) {
-        map[match[1]] = match[2];
-        lastKey = match[1];
+      const eqIdx = line.indexOf('=');
+      if (eqIdx > 0) {
+        const key = line.slice(0, eqIdx).trim();
+        const value = line.slice(eqIdx + 1).trim();
+        if (key.length > 0) {
+          map[key] = value;
+          lastKey = key;
+        }
       } else if (lastKey !== null && line.trim().length > 0) {
         // Continuation line of a multiline value (e.g. X_VCPKG_RECURSIVE_DATA with embedded JSON)
         map[lastKey] = map[lastKey] + '\n' + line;
       }
     }
-
     return map;
+  }
+
+  public parseVcpkgEnvOutput(data: string): baselib.VarMap {
+    return BaseUtilLib.parseEnvVars(data);
   }
 
   /**
