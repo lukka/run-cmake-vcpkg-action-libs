@@ -25,11 +25,13 @@ test('testing for path normalization', async () => {
 test('parseVcpkgEnvOutput() tests', async () => {
   expect(baseUtilLib.parseVcpkgEnvOutput('a=1\nb=2')).toEqual({ "a": "1", "b": "2" });
 
+  const sep = os.platform().toLowerCase() === 'win32' ? '' : '\n';
+
   // Test multiline variable value (e.g. X_VCPKG_RECURSIVE_DATA containing embedded JSON)
   const multilineOutput = 'a=1\nX_VCPKG_RECURSIVE_DATA={\n  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"\n}\nb=2';
   expect(baseUtilLib.parseVcpkgEnvOutput(multilineOutput)).toEqual({
     "a": "1",
-    "X_VCPKG_RECURSIVE_DATA": '{\n  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"\n}',
+    "X_VCPKG_RECURSIVE_DATA": `{${sep}  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"${sep}}`,
     "b": "2"
   });
 
@@ -39,13 +41,15 @@ test('parseVcpkgEnvOutput() tests', async () => {
   // Test multiline with CRLF line endings
   const multilineCRLF = 'X_VCPKG_RECURSIVE_DATA={\r\n  "key": "value"\r\n}\r\nc=3';
   expect(baseUtilLib.parseVcpkgEnvOutput(multilineCRLF)).toEqual({
-    "X_VCPKG_RECURSIVE_DATA": '{\n  "key": "value"\n}',
+    "X_VCPKG_RECURSIVE_DATA": `{${sep}  "key": "value"${sep}}`,
     "c": "3"
   });
 });
 
 
 test('parseEnvVars() tests', () => {
+  const sep = os.platform().toLowerCase() === 'win32' ? '' : '\n';
+
   // basic key=value pairs
   expect(baseutillib.BaseUtilLib.parseEnvVars('a=1\nb=2')).toEqual({ a: '1', b: '2' });
 
@@ -71,14 +75,14 @@ test('parseEnvVars() tests', () => {
   const multilineOutput = 'a=1\nX_VCPKG_RECURSIVE_DATA={\n  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"\n}\nb=2';
   expect(baseutillib.BaseUtilLib.parseEnvVars(multilineOutput)).toEqual({
     a: '1',
-    X_VCPKG_RECURSIVE_DATA: '{\n  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"\n}',
+    X_VCPKG_RECURSIVE_DATA: `{${sep}  "vcpkg-root-env": "D:\\\\a\\\\vcpkg"${sep}}`,
     b: '2',
   });
 
   // multiline value with CRLF line endings
   const multilineCRLF = 'X_VCPKG_RECURSIVE_DATA={\r\n  "key": "value"\r\n}\r\nc=3';
   expect(baseutillib.BaseUtilLib.parseEnvVars(multilineCRLF)).toEqual({
-    X_VCPKG_RECURSIVE_DATA: '{\n  "key": "value"\n}',
+    X_VCPKG_RECURSIVE_DATA: `{${sep}  "key": "value"${sep}}`,
     c: '3',
   });
 });
