@@ -54,7 +54,7 @@ export async function injectEnvVariables(baseUtils: baseutillib.BaseUtilLib, vcp
           continue;
 
         if (key.toUpperCase() === "PATH") {
-          newValue = process.env[key] + path.delimiter + map[key];
+          newValue = process.env[key] ? process.env[key] + path.delimiter + map[key] : map[key];
         } else {
           newValue = map[key];
         }
