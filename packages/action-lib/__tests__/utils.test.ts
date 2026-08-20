@@ -69,6 +69,67 @@ test('replaceFromEnvVar() negative tests', async () => {
     }
 });
 
+test('evaluateCmdStringFormat() positive tests', async () => {
+    {
+        expect(baseutillib.evaluateCmdStringFormat("[]")).toStrictEqual([]);
+
+        process.env.CMDSTRINGFORMAT_ENVNAME = "envvalue";
+        expect(baseutillib.evaluateCmdStringFormat("[`--build`, `--preset`, `$[env.CMDSTRINGFORMAT_ENVNAME]`]"))
+            .toStrictEqual(["--build", "--preset", "envvalue"]);
+        delete process.env.CMDSTRINGFORMAT_ENVNAME;
+
+        expect(baseutillib.evaluateCmdStringFormat("[`--preset`, `$[name]`]", { "name": "value" }))
+            .toStrictEqual(["--preset", "value"]);
+
+        // Multiple quote styles and a placeholder embedded within literal text
+        // are supported, and are not evaluated/executed.
+        process.env.CMDSTRINGFORMAT_TRIPLET = "x64-linux";
+        expect(baseutillib.evaluateCmdStringFormat("['env', \"--triplet\", `--triplet $[env.CMDSTRINGFORMAT_TRIPLET]`]"))
+            .toStrictEqual(["env", "--triplet", "--triplet x64-linux"]);
+        delete process.env.CMDSTRINGFORMAT_TRIPLET;
+    }
+});
+
+test('evaluateCmdStringFormat() preserves backslashes in substituted environment variable values', async () => {
+    {
+        // Unlike replaceFromEnvVar() (whose output is meant to be eval()'d),
+        // evaluateCmdStringFormat() never runs the substituted value through
+        // eval(), so backslashes in the environment variable value (e.g.
+        // Windows paths) must be preserved verbatim, not doubled.
+        const value = "d:\\a\\b\\c";
+        process.env.CMDSTRINGFORMAT_PATH = value;
+        expect(baseutillib.evaluateCmdStringFormat("[`--path`, `$[env.CMDSTRINGFORMAT_PATH]`]"))
+            .toStrictEqual(["--path", value]);
+        delete process.env.CMDSTRINGFORMAT_PATH;
+    }
+});
+
+test('evaluateCmdStringFormat() does not execute injected code from environment variables', async () => {
+    {
+        // An environment variable value crafted to try to break out of the
+        // string literal and inject/execute arbitrary JavaScript must be
+        // treated as plain text, and not executed.
+        const malicious = "`); ((globalThis as any).INJECTED = true); (`";
+        process.env.CMDSTRINGFORMAT_MALICIOUS = malicious;
+
+        const result = baseutillib.evaluateCmdStringFormat("[`--preset`, `$[env.CMDSTRINGFORMAT_MALICIOUS]`]");
+
+        expect(result).toStrictEqual(["--preset", malicious]);
+        expect((globalThis as any).INJECTED).toBeUndefined();
+
+        delete process.env.CMDSTRINGFORMAT_MALICIOUS;
+    }
+});
+
+test('evaluateCmdStringFormat() decodes JavaScript escape sequences', async () => {
+    {
+        // The escape sequences that are part of the template's string literals
+        // must be decoded exactly as JavaScript would decode them.
+        expect(baseutillib.evaluateCmdStringFormat("[`a\\nb`, `a\\tb`, `a\\\\b`, `a\\`b`, `a\\x41b`, `a\\u0042b`, `a\\u{43}b`, `a\\qb`]"))
+            .toStrictEqual(["a\nb", "a\tb", "a\\b", "a`b", "aAb", "aBb", "aCb", "aqb"]);
+    }
+});
+
 test('KeySet tests', async () => {
     {
         expect((a: []) => baseutillib.createKeySet(a)).toThrow(Error);

@@ -107,8 +107,7 @@ export async function setupMsvc(
             // Use vcpkg to set the environment using provided command line (which includes the triplet).
             // This is only useful to setup the environment for MSVC on Windows.
             baseutillib.setEnvVarIfUndefined(runvcpkglib.VCPKGDEFAULTTRIPLET, baseUtils.getDefaultTriplet());
-            const vcpkgEnvArgsString: string = baseutillib.replaceFromEnvVar(vcpkgEnvStringFormat);
-            const vcpkgEnvArgs: string[] = eval(vcpkgEnvArgsString);
+            const vcpkgEnvArgs: string[] = baseutillib.evaluateCmdStringFormat(vcpkgEnvStringFormat);
             baseUtils.baseLib.debug(`'vcpkg env' arguments: ${vcpkgEnvArgs}`);
             await cmakeutil.injectEnvVariables(baseUtils, vcpkgRoot, vcpkgEnvArgs);
           }

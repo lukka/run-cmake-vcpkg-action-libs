@@ -458,7 +458,9 @@ function _debug(msg: string): void {
   if (process.env.DEBUG) console.log(`DEBUG: '${msg}'`);
 }
 
-// Remark: the output of replaceFromEnvVar is always passed thru eval().
+// Remark: kept for backward compatibility (and used in tests). New code
+// should prefer evaluateCmdStringFormat() below, which does not require the
+// caller to pass the result through eval().
 export function replaceFromEnvVar(text: string, values?: { [key: string]: string; }): string {
   return text.replace(/\$\[(.*?)\]/gi, (a, b) => {
     let ret = "undefined";
@@ -483,4 +485,150 @@ export function replaceFromEnvVar(text: string, values?: { [key: string]: string
 export function setEnvVarIfUndefined(name: string, value: string | null): void {
   if (!process.env[name] && value)
     process.env[name] = value;
+}
+
+// Decodes the JavaScript escape sequence starting at 'text[index]' (which
+// must be the backslash character). Returns the decoded text along with the
+// index of the first character after the consumed escape sequence.
+function decodeEscapeSequence(text: string, index: number): { value: string, next: number } {
+  const ch = text[index + 1];
+  switch (ch) {
+    case 'n': return { value: '\n', next: index + 2 };
+    case 't': return { value: '\t', next: index + 2 };
+    case 'r': return { value: '\r', next: index + 2 };
+    case 'b': return { value: '\b', next: index + 2 };
+    case 'f': return { value: '\f', next: index + 2 };
+    case 'v': return { value: '\v', next: index + 2 };
+    case '0':
+      // '\0' is the NUL character, unless followed by a digit (then it is a
+      // legacy octal escape, which is not supported: keep it verbatim).
+      if (!/[0-9]/.test(text[index + 2] ?? ''))
+        return { value: '\0', next: index + 2 };
+      return { value: '\\' + ch, next: index + 2 };
+    case 'x': {
+      const hex = text.slice(index + 2, index + 4);
+      if (hex.length === 2 && /^[0-9a-fA-F]{2}$/.test(hex))
+        return { value: String.fromCharCode(parseInt(hex, 16)), next: index + 4 };
+      // Invalid escape sequence: keep it verbatim.
+      return { value: '\\' + ch, next: index + 2 };
+    }
+    case 'u': {
+      if (text[index + 2] === '{') {
+        const closeIdx = text.indexOf('}', index + 3);
+        if (closeIdx !== -1) {
+          const hex = text.slice(index + 3, closeIdx);
+          if (hex.length > 0 && hex.length <= 6 && /^[0-9a-fA-F]+$/.test(hex)) {
+            const codePoint = parseInt(hex, 16);
+            if (codePoint <= 0x10FFFF)
+              return { value: String.fromCodePoint(codePoint), next: closeIdx + 1 };
+          }
+        }
+      } else {
+        const hex = text.slice(index + 2, index + 6);
+        if (hex.length === 4 && /^[0-9a-fA-F]{4}$/.test(hex))
+          return { value: String.fromCharCode(parseInt(hex, 16)), next: index + 6 };
+      }
+      // Invalid escape sequence: keep it verbatim.
+      return { value: '\\' + ch, next: index + 2 };
+    }
+    default:
+      // Any other escaped character (e.g. \\, \`, \', \", \/) stands for
+      // itself.
+      return { value: ch, next: index + 2 };
+  }
+}
+
+// Extracts the (unescaped) contents of every top-level quoted string literal
+// (single, double or backtick quoted) found in 'text', which is the only
+// syntax supported by the 'CmdStringFormat' templates (e.g.
+// "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]"). Implemented as a
+// manual, single-pass scan (rather than a regular expression) so that its
+// running time is always linear in the length of 'text', regardless of its
+// content.
+function extractQuotedLiterals(text: string): string[] {
+  const literals: string[] = [];
+  let i = 0;
+  while (i < text.length) {
+    const quoteChar = text[i];
+    if (quoteChar === '`' || quoteChar === '\'' || quoteChar === '"') {
+      let content = '';
+      let j = i + 1;
+      let closed = false;
+      while (j < text.length) {
+        const ch = text[j];
+        if (ch === '\\' && j + 1 < text.length) {
+          // Decode the escape sequence (e.g. \\, \`, \n, \xNN, \uNNNN) that is
+          // part of the template literal itself.
+          const decoded = decodeEscapeSequence(text, j);
+          content += decoded.value;
+          j = decoded.next;
+          continue;
+        }
+        if (ch === quoteChar) {
+          closed = true;
+          j++;
+          break;
+        }
+        content += ch;
+        j++;
+      }
+      if (closed)
+        literals.push(content);
+      i = j;
+    } else {
+      i++;
+    }
+  }
+  return literals;
+}
+
+// Substitutes every '$[...]' placeholder found in 'text' with a value taken
+// from 'values' or, for '$[env.NAME]', from the environment variable NAME.
+// Implemented as a manual, single-pass scan (rather than a regular
+// expression) so that its running time is always linear in the length of
+// 'text', regardless of its content.
+function substitutePlaceholders(text: string, values?: { [key: string]: string; }): string {
+  let result = '';
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === '$' && text[i + 1] === '[') {
+      const closeIdx = text.indexOf(']', i + 2);
+      if (closeIdx === -1) {
+        result += text.slice(i);
+        break;
+      }
+      const key = text.slice(i + 2, closeIdx);
+      if (key.startsWith("env.")) {
+        const envName = key.slice(4);
+        result += process.env[envName] ?? `${envName}-is-undefined`;
+      } else {
+        result += (values && values[key]) ? values[key] : `${key}-is-undefined`;
+      }
+      i = closeIdx + 1;
+    } else {
+      result += text[i];
+      i++;
+    }
+  }
+  return result;
+}
+
+// Safely parses a string template representing a JS array literal of quoted
+// strings (e.g. "[`--build`, `$[env.NAME]`]"), substituting '$[...]'
+// placeholders with values taken from 'values' or, for '$[env.NAME]', from
+// the environment variable NAME. Returns the resulting array of strings.
+//
+// Unlike the previous approach of calling replaceFromEnvVar() followed by
+// eval(), this function never executes the substituted values as code. This
+// avoids the environment variable (or user provided) values being able to
+// inject and run arbitrary JavaScript code.
+export function evaluateCmdStringFormat(text: string, values?: { [key: string]: string; }): string[] {
+  const literals = extractQuotedLiterals(text);
+  return literals.map((literal) => {
+    // Substitution happens after unescaping (done in extractQuotedLiterals())
+    // so that raw environment variable / input values (which may legitimately
+    // contain backslashes, e.g. Windows paths) are inserted verbatim and are
+    // never themselves re-processed as escape sequences.
+    return substitutePlaceholders(literal, values);
+  });
 }

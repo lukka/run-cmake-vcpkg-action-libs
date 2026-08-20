@@ -40,13 +40,11 @@ export class VcpkgRunner {
     baseutillib.setEnvVarIfUndefined(globals.VCPKG_INSTALLED_DIR, await vcpkgutils.getDefaultVcpkgInstallDirectory(baseUtil.baseLib));
     baseutillib.setEnvVarIfUndefined(globals.VCPKGDEFAULTTRIPLET, baseUtil.getDefaultTriplet());
     if (!vcpkgInstallCmd) {
-      vcpkgInstallCmd = baseutillib.replaceFromEnvVar(VcpkgRunner.VCPKGINSTALLCMDDEFAULT);
-    } else {
-      vcpkgInstallCmd = baseutillib.replaceFromEnvVar(vcpkgInstallCmd);
+      vcpkgInstallCmd = VcpkgRunner.VCPKGINSTALLCMDDEFAULT;
     }
 
     baseUtil.baseLib.debug(`vcpkgInstallCmd=${vcpkgInstallCmd}`);
-    const vcpkgInstallArgs: string[] = eval(vcpkgInstallCmd) as string[];
+    const vcpkgInstallArgs: string[] = baseutillib.evaluateCmdStringFormat(vcpkgInstallCmd);
     baseUtil.baseLib.debug(`vcpkgInstallArgs=${vcpkgInstallArgs}`);
 
     // Git update or clone depending on content of vcpkgDestPath input parameter.
