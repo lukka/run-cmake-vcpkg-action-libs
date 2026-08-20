@@ -121,6 +121,15 @@ test('evaluateCmdStringFormat() does not execute injected code from environment 
     }
 });
 
+test('evaluateCmdStringFormat() decodes JavaScript escape sequences', async () => {
+    {
+        // The escape sequences that are part of the template's string literals
+        // must be decoded exactly as JavaScript would decode them.
+        expect(baseutillib.evaluateCmdStringFormat("[`a\\nb`, `a\\tb`, `a\\\\b`, `a\\`b`, `a\\x41b`, `a\\u0042b`, `a\\u{43}b`, `a\\qb`]"))
+            .toStrictEqual(["a\nb", "a\tb", "a\\b", "a`b", "aAb", "aBb", "aCb", "aqb"]);
+    }
+});
+
 test('KeySet tests', async () => {
     {
         expect((a: []) => baseutillib.createKeySet(a)).toThrow(Error);

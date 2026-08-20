@@ -487,6 +487,55 @@ export function setEnvVarIfUndefined(name: string, value: string | null): void {
     process.env[name] = value;
 }
 
+// Decodes the JavaScript escape sequence starting at 'text[index]' (which
+// must be the backslash character). Returns the decoded text along with the
+// index of the first character after the consumed escape sequence.
+function decodeEscapeSequence(text: string, index: number): { value: string, next: number } {
+  const ch = text[index + 1];
+  switch (ch) {
+    case 'n': return { value: '\n', next: index + 2 };
+    case 't': return { value: '\t', next: index + 2 };
+    case 'r': return { value: '\r', next: index + 2 };
+    case 'b': return { value: '\b', next: index + 2 };
+    case 'f': return { value: '\f', next: index + 2 };
+    case 'v': return { value: '\v', next: index + 2 };
+    case '0':
+      // '\0' is the NUL character, unless followed by a digit (then it is a
+      // legacy octal escape, which is not supported: keep it verbatim).
+      if (!/[0-9]/.test(text[index + 2] ?? ''))
+        return { value: '\0', next: index + 2 };
+      return { value: ch, next: index + 2 };
+    case 'x': {
+      const hex = text.slice(index + 2, index + 4);
+      if (hex.length === 2 && /^[0-9a-fA-F]{2}$/.test(hex))
+        return { value: String.fromCharCode(parseInt(hex, 16)), next: index + 4 };
+      return { value: ch, next: index + 2 };
+    }
+    case 'u': {
+      if (text[index + 2] === '{') {
+        const closeIdx = text.indexOf('}', index + 3);
+        if (closeIdx !== -1) {
+          const hex = text.slice(index + 3, closeIdx);
+          if (hex.length > 0 && hex.length <= 6 && /^[0-9a-fA-F]+$/.test(hex)) {
+            const codePoint = parseInt(hex, 16);
+            if (codePoint <= 0x10FFFF)
+              return { value: String.fromCodePoint(codePoint), next: closeIdx + 1 };
+          }
+        }
+      } else {
+        const hex = text.slice(index + 2, index + 6);
+        if (hex.length === 4 && /^[0-9a-fA-F]{4}$/.test(hex))
+          return { value: String.fromCharCode(parseInt(hex, 16)), next: index + 6 };
+      }
+      return { value: ch, next: index + 2 };
+    }
+    default:
+      // Any other escaped character (e.g. \\, \`, \', \", \/) stands for
+      // itself.
+      return { value: ch, next: index + 2 };
+  }
+}
+
 // Extracts the (unescaped) contents of every top-level quoted string literal
 // (single, double or backtick quoted) found in 'text', which is the only
 // syntax supported by the 'CmdStringFormat' templates (e.g.
@@ -506,10 +555,11 @@ function extractQuotedLiterals(text: string): string[] {
       while (j < text.length) {
         const ch = text[j];
         if (ch === '\\' && j + 1 < text.length) {
-          // Unescape any escaped character (e.g. \\, \`, \', \") that is
+          // Decode the escape sequence (e.g. \\, \`, \n, \xNN, \uNNNN) that is
           // part of the template literal itself.
-          content += text[j + 1];
-          j += 2;
+          const decoded = decodeEscapeSequence(text, j);
+          content += decoded.value;
+          j = decoded.next;
           continue;
         }
         if (ch === quoteChar) {
