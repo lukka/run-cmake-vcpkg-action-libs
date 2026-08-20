@@ -504,12 +504,13 @@ function decodeEscapeSequence(text: string, index: number): { value: string, nex
       // legacy octal escape, which is not supported: keep it verbatim).
       if (!/[0-9]/.test(text[index + 2] ?? ''))
         return { value: '\0', next: index + 2 };
-      return { value: ch, next: index + 2 };
+      return { value: '\\' + ch, next: index + 2 };
     case 'x': {
       const hex = text.slice(index + 2, index + 4);
       if (hex.length === 2 && /^[0-9a-fA-F]{2}$/.test(hex))
         return { value: String.fromCharCode(parseInt(hex, 16)), next: index + 4 };
-      return { value: ch, next: index + 2 };
+      // Invalid escape sequence: keep it verbatim.
+      return { value: '\\' + ch, next: index + 2 };
     }
     case 'u': {
       if (text[index + 2] === '{') {
@@ -527,7 +528,8 @@ function decodeEscapeSequence(text: string, index: number): { value: string, nex
         if (hex.length === 4 && /^[0-9a-fA-F]{4}$/.test(hex))
           return { value: String.fromCharCode(parseInt(hex, 16)), next: index + 6 };
       }
-      return { value: ch, next: index + 2 };
+      // Invalid escape sequence: keep it verbatim.
+      return { value: '\\' + ch, next: index + 2 };
     }
     default:
       // Any other escaped character (e.g. \\, \`, \', \", \/) stands for
