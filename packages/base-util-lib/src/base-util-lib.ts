@@ -458,7 +458,9 @@ function _debug(msg: string): void {
   if (process.env.DEBUG) console.log(`DEBUG: '${msg}'`);
 }
 
-// Remark: the output of replaceFromEnvVar is always passed thru eval().
+// Remark: kept for backward compatibility (and used in tests). New code
+// should prefer evaluateCmdStringFormat() below, which does not require the
+// caller to pass the result through eval().
 export function replaceFromEnvVar(text: string, values?: { [key: string]: string; }): string {
   return text.replace(/\$\[(.*?)\]/gi, (a, b) => {
     let ret = "undefined";
@@ -483,4 +485,37 @@ export function replaceFromEnvVar(text: string, values?: { [key: string]: string
 export function setEnvVarIfUndefined(name: string, value: string | null): void {
   if (!process.env[name] && value)
     process.env[name] = value;
+}
+
+// Matches top-level quoted string literals (single, double or backtick quoted),
+// which is the only syntax supported by the 'CmdStringFormat' templates (e.g.
+// "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]").
+const stringLiteralRegExp = /`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g;
+
+// Safely parses a string template representing a JS array literal of quoted
+// strings (e.g. "[`--build`, `$[env.NAME]`]"), substituting '$[...]'
+// placeholders with values taken from 'values' or, for '$[env.NAME]', from
+// the environment variable NAME. Returns the resulting array of strings.
+//
+// Unlike the previous approach of calling replaceFromEnvVar() followed by
+// eval(), this function never executes the substituted values as code. This
+// avoids the environment variable (or user provided) values being able to
+// inject and run arbitrary JavaScript code.
+export function evaluateCmdStringFormat(text: string, values?: { [key: string]: string; }): string[] {
+  const literals = text.match(stringLiteralRegExp) ?? [];
+  return literals.map((literal) => {
+    // Strip the surrounding quotes and unescape any escaped character
+    // (e.g. \\, \`, \', \") within the literal.
+    const unquoted = literal.slice(1, -1).replace(/\\(.)/g, '$1');
+    return unquoted.replace(/\$\[(.*?)\]/gi, (a, b) => {
+      if (typeof b !== "string")
+        return "undefined";
+      if (b.startsWith("env.")) {
+        const envName = b.slice(4);
+        return process.env[envName] ?? `${envName}-is-undefined`;
+      } else {
+        return (values && values[b]) ? values[b] : `${b}-is-undefined`;
+      }
+    });
+  });
 }

@@ -261,8 +261,7 @@ export class CMakeRunner {
   }
 
   private static addArguments(tool: baselib.ToolRunner, args: string) {
-    const additionalArgs: string = baseutillib.replaceFromEnvVar(args);
-    const evaluatedArgs: string[] = eval(additionalArgs);
+    const evaluatedArgs: string[] = baseutillib.evaluateCmdStringFormat(args);
     for (const arg of evaluatedArgs) {
       tool.arg(arg);
     }
