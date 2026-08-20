@@ -90,6 +90,20 @@ test('evaluateCmdStringFormat() positive tests', async () => {
     }
 });
 
+test('evaluateCmdStringFormat() preserves backslashes in substituted environment variable values', async () => {
+    {
+        // Unlike replaceFromEnvVar() (whose output is meant to be eval()'d),
+        // evaluateCmdStringFormat() never runs the substituted value through
+        // eval(), so backslashes in the environment variable value (e.g.
+        // Windows paths) must be preserved verbatim, not doubled.
+        const value = "d:\\a\\b\\c";
+        process.env.CMDSTRINGFORMAT_PATH = value;
+        expect(baseutillib.evaluateCmdStringFormat("[`--path`, `$[env.CMDSTRINGFORMAT_PATH]`]"))
+            .toStrictEqual(["--path", value]);
+        delete process.env.CMDSTRINGFORMAT_PATH;
+    }
+});
+
 test('evaluateCmdStringFormat() does not execute injected code from environment variables', async () => {
     {
         // An environment variable value crafted to try to break out of the

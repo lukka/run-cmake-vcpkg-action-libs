@@ -487,10 +487,79 @@ export function setEnvVarIfUndefined(name: string, value: string | null): void {
     process.env[name] = value;
 }
 
-// Matches top-level quoted string literals (single, double or backtick quoted),
-// which is the only syntax supported by the 'CmdStringFormat' templates (e.g.
-// "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]").
-const stringLiteralRegExp = /`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g;
+// Extracts the (unescaped) contents of every top-level quoted string literal
+// (single, double or backtick quoted) found in 'text', which is the only
+// syntax supported by the 'CmdStringFormat' templates (e.g.
+// "[`--build`, `--preset`, `$[env.BUILD_PRESET_NAME]`]"). Implemented as a
+// manual, single-pass scan (rather than a regular expression) so that its
+// running time is always linear in the length of 'text', regardless of its
+// content.
+function extractQuotedLiterals(text: string): string[] {
+  const literals: string[] = [];
+  let i = 0;
+  while (i < text.length) {
+    const quoteChar = text[i];
+    if (quoteChar === '`' || quoteChar === '\'' || quoteChar === '"') {
+      let content = '';
+      let j = i + 1;
+      let closed = false;
+      while (j < text.length) {
+        const ch = text[j];
+        if (ch === '\\' && j + 1 < text.length) {
+          // Unescape any escaped character (e.g. \\, \`, \', \") that is
+          // part of the template literal itself.
+          content += text[j + 1];
+          j += 2;
+          continue;
+        }
+        if (ch === quoteChar) {
+          closed = true;
+          j++;
+          break;
+        }
+        content += ch;
+        j++;
+      }
+      if (closed)
+        literals.push(content);
+      i = j;
+    } else {
+      i++;
+    }
+  }
+  return literals;
+}
+
+// Substitutes every '$[...]' placeholder found in 'text' with a value taken
+// from 'values' or, for '$[env.NAME]', from the environment variable NAME.
+// Implemented as a manual, single-pass scan (rather than a regular
+// expression) so that its running time is always linear in the length of
+// 'text', regardless of its content.
+function substitutePlaceholders(text: string, values?: { [key: string]: string; }): string {
+  let result = '';
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === '$' && text[i + 1] === '[') {
+      const closeIdx = text.indexOf(']', i + 2);
+      if (closeIdx === -1) {
+        result += text.slice(i);
+        break;
+      }
+      const key = text.slice(i + 2, closeIdx);
+      if (key.startsWith("env.")) {
+        const envName = key.slice(4);
+        result += process.env[envName] ?? `${envName}-is-undefined`;
+      } else {
+        result += (values && values[key]) ? values[key] : `${key}-is-undefined`;
+      }
+      i = closeIdx + 1;
+    } else {
+      result += text[i];
+      i++;
+    }
+  }
+  return result;
+}
 
 // Safely parses a string template representing a JS array literal of quoted
 // strings (e.g. "[`--build`, `$[env.NAME]`]"), substituting '$[...]'
@@ -502,20 +571,12 @@ const stringLiteralRegExp = /`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)
 // avoids the environment variable (or user provided) values being able to
 // inject and run arbitrary JavaScript code.
 export function evaluateCmdStringFormat(text: string, values?: { [key: string]: string; }): string[] {
-  const literals = text.match(stringLiteralRegExp) ?? [];
+  const literals = extractQuotedLiterals(text);
   return literals.map((literal) => {
-    // Strip the surrounding quotes and unescape any escaped character
-    // (e.g. \\, \`, \', \") within the literal.
-    const unquoted = literal.slice(1, -1).replace(/\\(.)/g, '$1');
-    return unquoted.replace(/\$\[(.*?)\]/gi, (a, b) => {
-      if (typeof b !== "string")
-        return "undefined";
-      if (b.startsWith("env.")) {
-        const envName = b.slice(4);
-        return process.env[envName] ?? `${envName}-is-undefined`;
-      } else {
-        return (values && values[b]) ? values[b] : `${b}-is-undefined`;
-      }
-    });
+    // Substitution happens after unescaping (done in extractQuotedLiterals())
+    // so that raw environment variable / input values (which may legitimately
+    // contain backslashes, e.g. Windows paths) are inserted verbatim and are
+    // never themselves re-processed as escape sequences.
+    return substitutePlaceholders(literal, values);
   });
 }
